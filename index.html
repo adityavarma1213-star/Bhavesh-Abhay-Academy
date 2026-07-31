@@ -6,6 +6,9 @@
 <title>BAA OS</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700&family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
 <style>
 *{box-sizing:border-box;}
 html{scroll-behavior:smooth;}
@@ -526,11 +529,43 @@ const TUTOR_API_URL = 'https://bhavesh-abhay-academy.adityavarma1213.workers.dev
 
 let tutorHistory = [];
 
+function escapeHtml(s){
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// Lightweight markdown -> HTML for bot replies (bold, italic, bullet lists, line breaks).
+// Math ($...$ / $$...$$) is left as-is here and rendered separately by KaTeX below.
+function renderMarkdown(text){
+  let html = escapeHtml(text);
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/(?<!\*)\*(?!\*)(.+?)\*(?!\*)/g, '<em>$1</em>');
+  // Turn consecutive "* item" lines into a <ul>
+  html = html.replace(/(?:^|\n)((?:\* .+(?:\n|$))+)/g, (m, block) => {
+    const items = block.trim().split('\n').map(l => '<li>' + l.replace(/^\*\s*/, '') + '</li>').join('');
+    return '<ul style="margin:6px 0;padding-left:20px;">' + items + '</ul>';
+  });
+  html = html.replace(/\n/g, '<br>');
+  return html;
+}
+
 function addMsg(text, who){
   const win = document.getElementById('chat-window');
   const div = document.createElement('div');
   div.className = 'msg ' + who;
-  div.textContent = text;
+  if(who === 'bot'){
+    div.innerHTML = renderMarkdown(text);
+    if(window.renderMathInElement){
+      renderMathInElement(div, {
+        delimiters: [
+          {left: '$$', right: '$$', display: true},
+          {left: '$', right: '$', display: false},
+        ],
+        throwOnError: false,
+      });
+    }
+  } else {
+    div.textContent = text; // user input never rendered as HTML
+  }
   win.appendChild(div);
   win.scrollTop = win.scrollHeight;
   return div;
@@ -558,8 +593,18 @@ async function sendTutorMessage(){
     });
     if(!res.ok) throw new Error('Backend returned ' + res.status);
     const data = await res.json();
-    typing.textContent = data.reply || "Sorry, I didn't get a proper reply from the backend.";
-    tutorHistory.push({role:'assistant', content: typing.textContent});
+    const replyText = data.reply || "Sorry, I didn't get a proper reply from the backend.";
+    typing.innerHTML = renderMarkdown(replyText);
+    if(window.renderMathInElement){
+      renderMathInElement(typing, {
+        delimiters: [
+          {left: '$$', right: '$$', display: true},
+          {left: '$', right: '$', display: false},
+        ],
+        throwOnError: false,
+      });
+    }
+    tutorHistory.push({role:'assistant', content: replyText});
   } catch(err){
     typing.textContent = "Couldn't reach the AI Tutor backend (" + err.message + "). Check that your Worker is deployed and TUTOR_API_URL is correct.";
   }
