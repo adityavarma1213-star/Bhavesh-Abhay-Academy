@@ -211,6 +211,148 @@ body{font-family:var(--font-body);color:var(--ink);}
 
 .bottom-nav{display:none;}
 
+/* ===================== DASHBOARD CONCEPT v2 — WORLD SCENES ===================== */
+/* Visibility is driven entirely by the existing data-exp attribute that
+   setExp() already sets — no new JS state, no duplicated switching logic.
+   Only the world matching the active Learning Experience is shown. */
+.dash-world{display:none;border-radius:28px;overflow:hidden;position:relative;box-shadow:0 20px 46px rgba(0,0,0,0.16);margin-bottom:14px;}
+body[data-exp="scholar"] #dashworld-scholar{display:block;}
+body[data-exp="explorer"] #dashworld-explorer{display:block;}
+body[data-exp="neo"] #dashworld-neo{display:block;}
+
+.dw-content{position:relative;z-index:2;display:flex;align-items:flex-end;gap:26px;padding:40px 32px 0;min-height:300px;}
+.dw-mascot-stage{width:170px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;}
+.dw-mascot-stage svg{width:150px;height:150px;}
+
+/* Shared progress cluster (ring + XP bar + weekly graph + streak dots) */
+.pc-cluster{margin-top:20px;padding-top:18px;border-top:1px solid rgba(0,0,0,0.06);display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:center;}
+.pc-ring{position:relative;width:66px;height:66px;flex-shrink:0;}
+.pc-ring svg{width:100%;height:100%;transform:rotate(-90deg);}
+.pc-ring circle{fill:none;stroke-width:6;}
+.pc-ring .track{opacity:0.28;}
+.pc-ring-label{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:700;}
+.pc-body{display:flex;flex-direction:column;gap:10px;min-width:0;}
+.pc-xpbar{height:8px;border-radius:6px;background:rgba(0,0,0,0.08);overflow:hidden;}
+.pc-xpbar-fill{height:100%;border-radius:6px;width:64%;}
+.pc-week{display:flex;align-items:flex-end;gap:4px;height:26px;}
+.pc-week .bar{flex:1;border-radius:3px 3px 0 0;}
+.pc-streak{display:flex;gap:4px;}
+.pc-streak .dot{width:8px;height:8px;border-radius:50%;}
+.pc-caption{font-size:10px;text-transform:uppercase;letter-spacing:.05em;opacity:.6;margin-bottom:3px;}
+.dw-chip-row{display:flex;gap:8px;flex-wrap:wrap;}
+.dw-chip{display:inline-flex;align-items:center;gap:7px;border-radius:20px;padding:6px 12px 6px 6px;font-size:12px;font-weight:700;}
+.dw-chip .ic-badge{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.dw-chip .ic-badge svg{width:12px;height:12px;}
+.dw-panel{flex:1;min-width:0;border-radius:26px 26px 0 0;padding:26px 30px 24px;}
+
+/* ---- Scholar world: bright premium library ---- */
+.scholar-world{background:linear-gradient(180deg,#FBF3E1 0%,#F5E7C8 45%,#ECD9AC 100%);}
+.scholar-world .window-beam{position:absolute;top:-60px;right:60px;width:380px;height:460px;background:linear-gradient(200deg, rgba(255,250,235,0.9) 0%, rgba(232,184,92,0.35) 45%, transparent 75%);transform:rotate(8deg);filter:blur(2px);}
+.scholar-world .shelf-row{position:absolute;inset:0;display:flex;justify-content:space-between;opacity:0.28;}
+.scholar-world .shelf-col{width:13%;background:repeating-linear-gradient(0deg,#C79B6C 0 34px, #B5895A 34px 38px);}
+.scholar-world .dust{position:absolute;border-radius:50%;background:#E8B85C;opacity:0.55;}
+@media (prefers-reduced-motion: no-preference){
+  .scholar-world .dust{animation:dust-float 9s ease-in-out infinite;}
+  #owl-mascot{animation:owl-bob 3.6s ease-in-out infinite;}
+  .owl-eyelid{animation:owl-blink 4.5s ease-in-out infinite;}
+}
+@keyframes dust-float{0%,100%{transform:translateY(0);opacity:.2;}50%{transform:translateY(-16px);opacity:.65;}}
+@keyframes owl-bob{0%,100%{transform:translateY(0);}50%{transform:translateY(-6px);}}
+@keyframes owl-blink{0%,92%,100%{transform:scaleY(0);}94%,97%{transform:scaleY(1);}}
+.owl-eyelid{fill:#6B4E33;transform-origin:center;}
+.owl-wing-left{transform-origin:62px 78px;transition:transform .5s cubic-bezier(.34,1.56,.64,1);}
+#owl-mascot.wave .owl-wing-left{animation:owl-wave 0.9s ease-in-out;}
+@keyframes owl-wave{0%,100%{transform:rotate(0deg);}30%{transform:rotate(-38deg);}60%{transform:rotate(-15deg);}}
+#owl-mascot.celebrate{animation:owl-celebrate 0.7s ease;}
+@keyframes owl-celebrate{0%{transform:scale(1) translateY(0);}30%{transform:scale(1.12) translateY(-12px) rotate(-4deg);}60%{transform:scale(1.05) translateY(-5px) rotate(3deg);}100%{transform:scale(1) translateY(0);}}
+.scholar-book-stack{width:150px;height:22px;background:linear-gradient(90deg,#C9A171,#A67C4C);border-radius:4px;box-shadow:0 5px 0 #8C6339, 0 12px 18px rgba(90,65,30,.28);position:relative;top:-4px;}
+.dw-panel.scholar-panel{background:#FFFDF8;color:#2A1D13;box-shadow:0 -14px 30px rgba(0,0,0,0.10);}
+.scholar-panel .dw-chip{background:#fff;border:1px solid #F0E7D4;box-shadow:0 3px 10px rgba(0,0,0,0.05);color:#2A1D13;}
+.scholar-panel .dw-chip .ic-badge{background:#2B4C3F;color:#fff;}
+.scholar-panel .pc-ring .track{stroke:#E7DBC0;}
+.scholar-panel .pc-ring .fill{stroke:#2B4C3F;stroke-linecap:round;}
+.scholar-panel .pc-ring-label{color:#2A1D13;}
+.scholar-panel .pc-xpbar-fill{background:linear-gradient(90deg,#2B4C3F,#E8B85C);}
+.scholar-panel .pc-week .bar{background:linear-gradient(180deg,#E8B85C,#2B4C3F);}
+.scholar-panel .pc-streak .dot{background:#EAE0CB;}
+.scholar-panel .pc-streak .dot.on{background:#E8B85C;}
+.scholar-panel .pc-caption{color:#8A7B62;}
+
+/* ---- Explorer world: mountains, forest, adventure ---- */
+.explorer-world{background:linear-gradient(180deg,#BFE3F2 0%,#FFD8A8 42%,#FF9F6B 72%,#7C5CFC 100%);}
+.explorer-world .mountain{position:absolute;bottom:0;left:0;}
+.explorer-world .cloud{position:absolute;background:#fff;border-radius:50px;opacity:.85;}
+.explorer-world .leaf{position:absolute;width:9px;height:9px;background:#7BC47F;border-radius:0 60% 0 60%;opacity:.8;}
+@media (prefers-reduced-motion: no-preference){
+  .explorer-world .cloud{animation:cloud-drift 40s linear infinite;}
+  .explorer-world .leaf{animation:leaf-fall 7s linear infinite;}
+  #fox-mascot{animation:fox-bob 2.6s ease-in-out infinite;}
+  .fox-tail{animation:tail-wag 1.8s ease-in-out infinite;}
+}
+@keyframes cloud-drift{from{transform:translateX(-30px);}to{transform:translateX(30px);}}
+@keyframes leaf-fall{0%{transform:translateY(-10px) rotate(0deg);opacity:0;}10%{opacity:.8;}100%{transform:translateY(240px) rotate(220deg) translateX(26px);opacity:0;}}
+@keyframes fox-bob{0%,100%{transform:translateY(0) rotate(0deg);}50%{transform:translateY(-8px) rotate(-2deg);}}
+.fox-tail{transform-origin:20px 90px;}
+@keyframes tail-wag{0%,100%{transform:rotate(0deg);}50%{transform:rotate(8deg);}}
+#fox-mascot.celebrate{animation:fox-celebrate 0.7s ease;}
+@keyframes fox-celebrate{0%{transform:scale(1) translateY(0);}30%{transform:scale(1.12) translateY(-14px) rotate(3deg);}60%{transform:scale(1.05) translateY(-6px) rotate(-3deg);}100%{transform:scale(1) translateY(0);}}
+.explorer-fox-rock{width:96px;height:20px;background:#D9C79A;border-radius:50%;box-shadow:0 5px 0 #B9A576;margin-top:-6px;}
+.dw-panel.explorer-panel{background:#fff;color:#2B2140;box-shadow:0 -14px 30px rgba(0,0,0,0.14);border-radius:36% 8% 0 0 / 46% 14% 0 0;}
+.explorer-panel .dw-chip{background:linear-gradient(135deg,#FFEFDD,#FFE1EE);color:#2B2140;}
+.explorer-panel .dw-chip .ic-badge{background:#FF7A59;}
+.explorer-panel .dw-chip .ic-badge:nth-of-type(1){background:#FF7A59;}
+.explorer-panel .dw-chip.streak .ic-badge{background:#7C5CFC;}
+.explorer-panel .pc-ring .track{stroke:#F3E7FF;}
+.explorer-panel .pc-ring .fill{stroke:#FF7A59;stroke-linecap:round;}
+.explorer-panel .pc-ring-label{color:#2B2140;}
+.explorer-panel .pc-xpbar-fill{background:linear-gradient(90deg,#FF7A59,#7C5CFC);}
+.explorer-panel .pc-week .bar{background:linear-gradient(180deg,#7C5CFC,#FF7A59);}
+.explorer-panel .pc-streak .dot{background:#F1E7FF;}
+.explorer-panel .pc-streak .dot.on{background:#FF7A59;}
+.explorer-panel .pc-caption{color:#8D7FBE;}
+
+/* ---- Neo world: premium glass, AI robot, orbit ---- */
+.neo-world{background:radial-gradient(circle at 78% 15%, rgba(157,124,255,0.22), transparent 50%),
+                       radial-gradient(circle at 10% 85%, rgba(79,227,214,0.16), transparent 50%),
+                       linear-gradient(180deg,#090C15,#10141F);color:#EAF0FF;}
+.neo-world .ambient-pulse{position:absolute;top:-90px;right:0;width:360px;height:360px;border-radius:50%;background:radial-gradient(circle, rgba(79,227,214,0.16), transparent 70%);}
+@media (prefers-reduced-motion: no-preference){
+  .neo-world .ambient-pulse{animation:pulse-glow 5s ease-in-out infinite;}
+  #bot-mascot{animation:bot-float 3.2s ease-in-out infinite;}
+  .bot-eye{animation:bot-blink 4s ease-in-out infinite;}
+  .orbit-ring{animation:spin-slow 10s linear infinite;}
+}
+@keyframes pulse-glow{0%,100%{opacity:.5;transform:scale(1);}50%{opacity:.9;transform:scale(1.06);}}
+@keyframes bot-float{0%,100%{transform:translateY(0);}50%{transform:translateY(-8px);}}
+@keyframes bot-blink{0%,90%,100%{opacity:1;}93%,96%{opacity:.15;}}
+#bot-mascot.celebrate{animation:bot-celebrate 0.7s ease;}
+@keyframes bot-celebrate{0%{transform:scale(1) translateY(0);}30%{transform:scale(1.1) translateY(-10px);}100%{transform:scale(1) translateY(0);}}
+.dw-mascot-stage.neo-stage{position:relative;}
+.orbit-ring{position:absolute;width:190px;height:190px;border-radius:50%;border:1px solid rgba(79,227,214,0.32);top:0;left:50%;transform:translateX(-50%);}
+.orbit-ring::before,.orbit-ring::after{content:'';position:absolute;width:6px;height:6px;border-radius:50%;background:#4FE3D6;box-shadow:0 0 8px #4FE3D6;}
+.orbit-ring::before{top:-3px;left:50%;}
+.orbit-ring::after{bottom:-3px;left:50%;background:#9D7CFF;box-shadow:0 0 8px #9D7CFF;}
+.dw-panel.neo-panel{background:rgba(255,255,255,0.045);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);border:1px solid rgba(255,255,255,0.08);}
+.neo-panel .dw-chip{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);color:#EAF0FF;font-family:var(--font-mono);}
+.neo-panel .dw-chip .ic-badge{border-radius:6px;background:linear-gradient(135deg,#4FE3D6,#9D7CFF);}
+.neo-panel .dw-chip .ic-badge svg{stroke:#0A0E1A;}
+.neo-panel .pc-ring .track{stroke:rgba(255,255,255,0.08);}
+.neo-panel .pc-ring .fill{stroke:#4FE3D6;stroke-linecap:round;filter:drop-shadow(0 0 5px rgba(79,227,214,.6));}
+.neo-panel .pc-ring-label{color:#EAF0FF;}
+.neo-panel .pc-xpbar-fill{background:linear-gradient(90deg,#4FE3D6,#9D7CFF);}
+.neo-panel .pc-week .bar{background:linear-gradient(180deg,#9D7CFF,#4FE3D6);}
+.neo-panel .pc-streak .dot{background:rgba(255,255,255,0.08);}
+.neo-panel .pc-streak .dot.on{background:#4FE3D6;}
+.neo-panel .pc-caption{color:#7C8EBD;}
+
+@media (max-width: 860px){
+  .dw-content{flex-direction:column;align-items:center;padding:28px 20px 0;text-align:center;}
+  .dw-mascot-stage{width:auto;}
+  .dw-panel{width:100%;border-radius:22px 22px 0 0 !important;}
+  .dw-chip-row{justify-content:center;}
+  .pc-cluster{grid-template-columns:1fr;justify-items:center;text-align:center;}
+}
+
 @media (max-width: 860px){
   .sidebar{display:none;}
   #app.active{flex-direction:column;}
@@ -290,11 +432,127 @@ body{font-family:var(--font-body);color:var(--ink);}
           <p class="page-sub" id="subtext" style="margin-bottom:0;">18-day streak · today's plan is ready.</p>
         </div>
       </div>
-      <div class="grid4">
-        <div class="card stat c-blue"><span class="stat-icon">📈</span><div class="num">78%</div><div class="lbl">Overall progress</div></div>
-        <div class="card stat c-green"><span class="stat-icon">⚡</span><div class="num">2,450</div><div class="lbl">XP points</div></div>
-        <div class="card stat c-purple"><span class="stat-icon">🏆</span><div class="num">#4</div><div class="lbl">Class rank</div></div>
-        <div class="card stat c-amber"><span class="stat-icon flame">🔥</span><div class="num">18</div><div class="lbl">Day streak</div></div>
+      <!-- SCHOLAR world -->
+      <div class="dash-world scholar-world" id="dashworld-scholar">
+        <div class="window-beam"></div>
+        <div class="shelf-row"><div class="shelf-col"></div><div class="shelf-col"></div><div class="shelf-col"></div><div class="shelf-col"></div><div class="shelf-col"></div></div>
+        <span class="dust" style="width:4px;height:4px;top:70px;left:58%;animation-delay:0s;"></span>
+        <span class="dust" style="width:3px;height:3px;top:120px;left:66%;animation-delay:1.4s;"></span>
+        <span class="dust" style="width:5px;height:5px;top:96px;left:74%;animation-delay:2.6s;"></span>
+        <div class="dw-content">
+          <div class="dw-mascot-stage">
+            <svg id="owl-mascot" viewBox="0 0 140 140">
+              <ellipse cx="70" cy="82" rx="42" ry="46" fill="#7A5C3D"/>
+              <path d="M40 40 Q50 14 62 38" fill="#7A5C3D"/>
+              <path d="M78 38 Q90 14 100 40" fill="#7A5C3D"/>
+              <path class="owl-wing-left" d="M30 82 Q10 105 32 118 Q30 96 30 82Z" fill="#5C4529"/>
+              <path d="M110 82 Q130 105 108 118 Q110 96 110 82Z" fill="#5C4529"/>
+              <circle cx="54" cy="70" r="17" fill="#FFF9EC"/>
+              <circle cx="86" cy="70" r="17" fill="#FFF9EC"/>
+              <circle cx="54" cy="70" r="7" fill="#2A1D13"/>
+              <circle cx="86" cy="70" r="7" fill="#2A1D13"/>
+              <rect class="owl-eyelid" x="37" y="53" width="34" height="34" rx="17"/>
+              <rect class="owl-eyelid" x="69" y="53" width="34" height="34" rx="17"/>
+              <path d="M64 82 L70 96 L76 82 Z" fill="#E8B85C"/>
+            </svg>
+            <div class="scholar-book-stack"></div>
+          </div>
+          <div class="dw-panel scholar-panel">
+            <div class="dw-chip-row">
+              <span class="dw-chip"><span class="ic-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></svg></span>2,450 XP</span>
+              <span class="dw-chip"><span class="ic-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v3.5a5 5 0 0 1-10 0V4Z"/><path d="M7 5H4.5A2.5 2.5 0 0 0 7 9M17 5h2.5A2.5 2.5 0 0 1 17 9M12 12v3.5M9.5 19h5v-2.5h-5Z"/></svg></span>Rank #4</span>
+            </div>
+            <div class="pc-cluster">
+              <div class="pc-ring">
+                <svg viewBox="0 0 64 64"><circle class="track" cx="32" cy="32" r="27"/><circle class="fill" cx="32" cy="32" r="27" stroke-width="6" stroke-dasharray="169.6" stroke-dashoffset="42"/></svg>
+                <div class="pc-ring-label">78%</div>
+              </div>
+              <div class="pc-body">
+                <div><div class="pc-caption">Weekly XP goal</div><div class="pc-xpbar"><div class="pc-xpbar-fill"></div></div></div>
+                <div class="pc-week"><div class="bar" style="height:40%"></div><div class="bar" style="height:65%"></div><div class="bar" style="height:35%"></div><div class="bar" style="height:80%"></div><div class="bar" style="height:55%"></div><div class="bar" style="height:90%"></div><div class="bar" style="height:70%"></div></div>
+                <div><div class="pc-caption">18-day streak</div><div class="pc-streak"><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- EXPLORER world -->
+      <div class="dash-world explorer-world" id="dashworld-explorer">
+        <svg class="mountain" viewBox="0 0 1180 200" width="100%" height="180" preserveAspectRatio="none" style="opacity:.35;"><path d="M0 200 L120 90 L260 160 L400 60 L560 150 L720 80 L900 170 L1050 100 L1180 160 L1180 200Z" fill="#8B6BE0"/></svg>
+        <svg class="mountain" viewBox="0 0 1180 160" width="100%" height="140" preserveAspectRatio="none" style="opacity:.5;"><path d="M0 160 L150 70 L320 130 L480 40 L650 120 L820 60 L1000 140 L1180 90 L1180 160Z" fill="#A98BF2"/></svg>
+        <div class="cloud" style="width:90px;height:32px;top:28px;left:8%;"></div>
+        <div class="cloud" style="width:56px;height:22px;top:56px;left:72%;"></div>
+        <div class="cloud" style="width:44px;height:18px;top:86px;left:40%;"></div>
+        <span class="leaf" style="left:20%;animation-delay:0s;"></span>
+        <span class="leaf" style="left:45%;animation-delay:2.2s;background:#F7C873;"></span>
+        <span class="leaf" style="left:65%;animation-delay:4.1s;"></span>
+        <span class="leaf" style="left:85%;animation-delay:1.3s;background:#F7C873;"></span>
+        <div class="dw-content">
+          <div class="dw-mascot-stage">
+            <svg id="fox-mascot" viewBox="0 0 140 140">
+              <path class="fox-tail" d="M30 95 Q0 110 10 135 Q30 125 34 100Z" fill="#FF9F6B"/>
+              <path d="M70 30 L100 8 L92 40Z" fill="#FF7A59"/>
+              <path d="M70 30 L40 8 L48 40Z" fill="#FF7A59"/>
+              <ellipse cx="70" cy="72" rx="46" ry="42" fill="#FF9F6B"/>
+              <path d="M45 92 Q70 112 95 92 L88 100 Q70 108 52 100Z" fill="#FFF6EC"/>
+              <circle cx="55" cy="66" r="15" fill="#fff"/><circle cx="85" cy="66" r="15" fill="#fff"/>
+              <circle cx="56" cy="68" r="6.5" fill="#2B2140"/><circle cx="86" cy="68" r="6.5" fill="#2B2140"/>
+              <path d="M65 82 L70 90 L75 82Z" fill="#2B2140"/>
+            </svg>
+            <div class="explorer-fox-rock"></div>
+          </div>
+          <div class="dw-panel explorer-panel">
+            <div class="dw-chip-row">
+              <span class="dw-chip"><span class="ic-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></svg></span>2,450 XP</span>
+              <span class="dw-chip streak"><span class="ic-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2c1.2 3.2-1.8 4.3-1.8 7.4A2.8 2.8 0 0 0 13 12.2"/><path d="M7.8 13.2a4.2 4.2 0 1 0 8.4 0"/></svg></span>18-day streak</span>
+            </div>
+            <div class="pc-cluster">
+              <div class="pc-ring">
+                <svg viewBox="0 0 64 64"><circle class="track" cx="32" cy="32" r="27"/><circle class="fill" cx="32" cy="32" r="27" stroke-width="6" stroke-dasharray="169.6" stroke-dashoffset="42"/></svg>
+                <div class="pc-ring-label">78%</div>
+              </div>
+              <div class="pc-body">
+                <div><div class="pc-caption">Weekly XP goal</div><div class="pc-xpbar"><div class="pc-xpbar-fill"></div></div></div>
+                <div class="pc-week"><div class="bar" style="height:40%"></div><div class="bar" style="height:65%"></div><div class="bar" style="height:35%"></div><div class="bar" style="height:80%"></div><div class="bar" style="height:55%"></div><div class="bar" style="height:90%"></div><div class="bar" style="height:70%"></div></div>
+                <div><div class="pc-caption">Rank #4 this week</div><div class="pc-streak"><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- NEO world -->
+      <div class="dash-world neo-world" id="dashworld-neo">
+        <div class="ambient-pulse"></div>
+        <div class="dw-content">
+          <div class="dw-mascot-stage neo-stage">
+            <div class="orbit-ring"></div>
+            <svg id="bot-mascot" viewBox="0 0 120 120">
+              <rect x="30" y="34" width="60" height="52" rx="18" fill="rgba(255,255,255,0.06)" stroke="#4FE3D6" stroke-width="1.3"/>
+              <circle class="bot-eye" cx="50" cy="60" r="6" fill="#4FE3D6"/>
+              <circle class="bot-eye" cx="70" cy="60" r="6" fill="#9D7CFF"/>
+              <path d="M60 12v18M48 14l6 6M72 14l-6 6" stroke="#4FE3D6" stroke-width="1.6" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="dw-panel neo-panel">
+            <div class="dw-chip-row">
+              <span class="dw-chip"><span class="ic-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></svg></span>2,450 XP</span>
+              <span class="dw-chip"><span class="ic-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="6"/><path d="M12 8v4l3 2"/></svg></span>Rank #4</span>
+            </div>
+            <div class="pc-cluster" style="border-top-color:rgba(255,255,255,0.08);">
+              <div class="pc-ring">
+                <svg viewBox="0 0 64 64"><circle class="track" cx="32" cy="32" r="27"/><circle class="fill" cx="32" cy="32" r="27" stroke-width="6" stroke-dasharray="169.6" stroke-dashoffset="42"/></svg>
+                <div class="pc-ring-label">78%</div>
+              </div>
+              <div class="pc-body">
+                <div><div class="pc-caption">Weekly sync goal</div><div class="pc-xpbar"><div class="pc-xpbar-fill"></div></div></div>
+                <div class="pc-week"><div class="bar" style="height:40%"></div><div class="bar" style="height:65%"></div><div class="bar" style="height:35%"></div><div class="bar" style="height:80%"></div><div class="bar" style="height:55%"></div><div class="bar" style="height:90%"></div><div class="bar" style="height:70%"></div></div>
+                <div><div class="pc-caption">18-day streak</div><div class="pc-streak"><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
       <div class="grid2">
         <div class="card">
@@ -564,6 +822,24 @@ function showView(name){
   if(name === 'homework') renderHomework();
   if(name === 'career') renderCareer();
   if(name === 'settings') fillProfileInputs();
+  if(name === 'dashboard') reactMascot('wave');
+}
+
+// ================= DASHBOARD MASCOTS: react to real events, no demo buttons =================
+// Picks the mascot matching the currently active Learning Experience and
+// plays a short reaction. Called from real app events below (profile saved,
+// homework submitted, career step completed, dashboard opened) — never on
+// a timer and never from a manually-clicked demo trigger.
+function reactMascot(kind){
+  const exp = document.body.getAttribute('data-exp');
+  const mascotId = {scholar:'owl-mascot', explorer:'fox-mascot', neo:'bot-mascot'}[exp];
+  if(!mascotId) return;
+  const el = document.getElementById(mascotId);
+  if(!el) return;
+  el.classList.remove(kind);
+  void el.offsetWidth; // restart animation
+  el.classList.add(kind);
+  setTimeout(() => el.classList.remove(kind), 900);
 }
 
 // ================= PROFILE: editable, persisted, reflected across the app =================
@@ -596,6 +872,7 @@ function saveProfile(){
   };
   localStorage.setItem('baa-profile', JSON.stringify(p));
   applyProfile();
+  reactMascot('wave');
   const msg = document.getElementById('profile-saved-msg');
   msg.style.display = 'inline';
   setTimeout(() => msg.style.display = 'none', 2000);
@@ -628,7 +905,7 @@ function renderCareer(){
     el.className = 'step' + (s.done ? ' done' : '');
     el.style.cursor = 'pointer';
     el.textContent = (s.done ? '✓ ' : '') + s.title;
-    el.onclick = () => { s.done = !s.done; saveCareerState(steps); renderCareer(); };
+    el.onclick = () => { s.done = !s.done; saveCareerState(steps); renderCareer(); if(s.done) reactMascot('celebrate'); };
     wrap.appendChild(el);
   });
   const doneCount = steps.filter(s=>s.done).length;
@@ -674,6 +951,7 @@ function renderHomework(){
         hw.status = 'submitted';
         saveHwState(items);
         renderHomework();
+        reactMascot('celebrate');
       };
     }
     list.appendChild(row);
