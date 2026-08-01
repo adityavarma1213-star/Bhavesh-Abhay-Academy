@@ -12,7 +12,19 @@
 <style>
 *{box-sizing:border-box;}
 html{scroll-behavior:smooth;}
-body{margin:0;transition:background 0.4s ease, color 0.4s ease;min-height:100vh;}
+body{margin:0;background:var(--bg);transition:background 0.4s ease, color 0.4s ease;min-height:100vh;position:relative;}
+body::before, body::after{
+  content:''; position:fixed; border-radius:50%; pointer-events:none; z-index:-1;
+  filter:blur(90px); opacity:0.22; background:var(--accent);
+}
+body::before{ width:55vw; height:55vw; top:-15%; left:-12%; }
+body::after{ width:45vw; height:45vw; bottom:-18%; right:-10%; background:var(--cyan, var(--accent)); }
+@media (prefers-reduced-motion: no-preference){
+  body::before{ animation: drift-a 24s ease-in-out infinite alternate; }
+  body::after{ animation: drift-b 28s ease-in-out infinite alternate; }
+}
+@keyframes drift-a{ 0%{transform:translate(0,0) scale(1);} 100%{transform:translate(8vw,10vh) scale(1.15);} }
+@keyframes drift-b{ 0%{transform:translate(0,0) scale(1);} 100%{transform:translate(-9vw,-8vh) scale(1.1);} }
 
 /* ===================== LAYER 1 — LEARNING EXPERIENCE ===================== */
 body[data-exp="scholar"]{
@@ -48,7 +60,7 @@ body[data-exp="neo"] .live-dot{animation:neo-pulse 2s ease-in-out infinite;}
 
 /* ===================== LAYER 2 — APPEARANCE ===================== */
 body[data-exp="scholar"][data-appearance="light"]{--bg:#FAFAF9;--panel:#FFFFFF;--border:#E7E5E2;--ink:#18181B;--ink-dim:#6B6B68;--ink-soft:#8B8B87;}
-body[data-exp="scholar"][data-appearance="dark"]{--bg:#14161A;--panel:#1D2025;--border:#2B2F36;--ink:#EDEDEE;--ink-dim:#9A9DA5;--ink-soft:#787C85;}
+body[data-exp="scholar"][data-appearance="dark"]{--bg:#0E1815;--panel:#16241F;--border:#24382F;--ink:#EDEDEE;--ink-dim:#9DB0A8;--ink-soft:#7E9088;}
 body[data-exp="explorer"][data-appearance="light"]{--bg:#FFF9EC;--panel:#FFFFFF;--border:#F0E6C8;--ink:#2B2140;--ink-dim:#7A6F94;--ink-soft:#9A90B8;--shadow-c:#F0E6C8;}
 body[data-exp="explorer"][data-appearance="dark"]{--bg:#241B38;--panel:#2F2547;--border:#3D3159;--ink:#F3EEFF;--ink-dim:#B9AEDC;--ink-soft:#8D7FBE;--shadow-c:#1A1329;}
 body[data-exp="neo"][data-appearance="light"]{--bg:#EEF1F7;--panel:rgba(255,255,255,0.55);--ink:#181C2A;--ink-dim:#565E75;--ink-soft:#7C8299;--glass-bd:rgba(20,25,40,0.10);--border:rgba(20,25,40,0.10);}
@@ -145,7 +157,7 @@ body{font-family:var(--font-body);color:var(--ink);}
 [data-exp="neo"] .card.c-purple{border-top-color:#9D7CFF;}
 [data-exp="neo"] .card.c-purple .num{color:#9D7CFF;}
 
-.chat-window{display:flex;flex-direction:column;gap:12px;margin-bottom:16px;min-height:200px;}
+.chat-window{display:flex;flex-direction:column;gap:12px;margin-bottom:16px;height:52vh;min-height:280px;overflow-y:auto;scroll-behavior:smooth;}
 .msg{max-width:75%;padding:10px 14px;border-radius:14px;font-size:13.5px;line-height:1.55;}
 .msg.bot{background:var(--bg);align-self:flex-start;}
 .msg.user{background:var(--accent);color:#fff;align-self:flex-end;}
@@ -374,15 +386,6 @@ body{font-family:var(--font-body);color:var(--ink);}
             </div>
           </div>
         </div>
-        <div class="eyebrow" style="margin-top:16px;">Appearance</div>
-        <div class="controls">
-          <div class="ctrl-group">
-            <div class="seg" id="seg-app">
-              <button data-v="light" onclick="setAppearance('light')">☀️ Light</button>
-              <button data-v="dark" class="active" onclick="setAppearance('dark')">🌙 Midnight</button>
-            </div>
-          </div>
-        </div>
         <div class="eyebrow" style="margin-top:16px;">Accessibility</div>
         <label class="toggle">
           <input type="checkbox" id="a11y-check" onchange="toggleA11y(this.checked)" />
@@ -587,12 +590,48 @@ function addSpeakerButton(msgDiv, plainText){
   btn.onclick = () => speakText(plainText);
   msgDiv.appendChild(btn);
 }
-function speakText(text){
+
+// Best-quality voice picker: waits for the voice list to actually load
+// (many browsers report an empty list on first call), then prefers
+// natural/neural-labeled English voices over default robotic ones.
+let cachedBestVoice = null;
+function getBestVoice(){
+  return new Promise((resolve) => {
+    if(!window.speechSynthesis){ resolve(null); return; }
+    if(cachedBestVoice){ resolve(cachedBestVoice); return; }
+    const pick = () => {
+      const voices = window.speechSynthesis.getVoices();
+      if(!voices.length) return null;
+      const preferred =
+        voices.find(v => /en-US/i.test(v.lang) && /natural|neural|premium|enhanced/i.test(v.name)) ||
+        voices.find(v => /en-US|en-GB/i.test(v.lang) && /google|microsoft/i.test(v.name)) ||
+        voices.find(v => /en-US/i.test(v.lang)) ||
+        voices[0];
+      return preferred;
+    };
+    let v = pick();
+    if(v){ cachedBestVoice = v; resolve(v); return; }
+    window.speechSynthesis.onvoiceschanged = () => {
+      cachedBestVoice = pick();
+      resolve(cachedBestVoice);
+    };
+  });
+}
+
+async function speakText(text){
   if(!window.speechSynthesis) return;
   window.speechSynthesis.cancel(); // stop any current speech first
-  const clean = text.replace(/\*\*/g,'').replace(/\$\$?/g,'').replace(/[*_#]/g,'');
+  // Strip formatting symbols so they're never spoken aloud, and turn
+  // sentence punctuation into slightly longer pauses for a more natural rhythm.
+  const clean = text
+    .replace(/\*\*/g,'').replace(/\$\$?/g,'').replace(/[*_#]/g,'')
+    .replace(/\. /g, '. ,') // tiny extra pause after sentences
+    .replace(/\n+/g, '. ');
+  const voice = await getBestVoice();
   const utter = new SpeechSynthesisUtterance(clean);
-  utter.rate = 0.95;
+  if(voice) utter.voice = voice;
+  utter.rate = 0.96;
+  utter.pitch = 1.02;
   window.speechSynthesis.speak(utter);
 }
 
@@ -690,7 +729,7 @@ checkTutorBackend();
   const savedAppearance = localStorage.getItem('baa-appearance');
   const savedA11y = localStorage.getItem('baa-a11y') === '1';
   if(savedExp) setExp(savedExp);
-  if(savedAppearance) setAppearance(savedAppearance);
+  setAppearance('dark'); // Light removed entirely — always dark, regardless of any old saved preference
   if(savedA11y){ toggleA11y(true); const cb=document.getElementById('a11y-check'); if(cb) cb.checked = true; }
   if(localStorage.getItem('baa-voice-mode') === '1'){
     voiceModeOn = true;
