@@ -184,8 +184,19 @@ body{font-family:var(--font-body);color:var(--ink);}
 .chat-input input{flex:1;border:1px solid var(--border);border-radius:var(--radius-btn);padding:11px 14px;font-family:var(--font-body);font-size:13.5px;background:var(--bg);color:var(--ink);}
 
 .ku-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
-.ku-swatch{width:100%;height:70px;border-radius:calc(var(--radius-card) - 6px);margin-bottom:10px;}
+.ku-swatch{width:100%;height:70px;border-radius:calc(var(--radius-card) - 6px);margin-bottom:10px;display:flex;align-items:center;justify-content:center;overflow:hidden;transition:transform 0.3s ease;}
+.ku-grid .card:hover .ku-swatch{transform:scale(1.04);}
+.ku-icon{font-size:28px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.25));}
 .ku-loop{font-size:11px;color:var(--ink-dim);margin-top:6px;}
+.ku-loop.new{color:var(--amber);font-weight:600;}
+@media (prefers-reduced-motion: no-preference){
+  .ku-loop.new{animation:sparkle-pulse 1.8s ease-in-out infinite;}
+  .ku-grid .card{animation:card-rise 0.5s ease-out backwards;}
+  .ku-grid .card:nth-child(1){animation-delay:0.05s;} .ku-grid .card:nth-child(2){animation-delay:0.11s;}
+  .ku-grid .card:nth-child(3){animation-delay:0.17s;} .ku-grid .card:nth-child(4){animation-delay:0.23s;}
+  .ku-grid .card:nth-child(5){animation-delay:0.29s;} .ku-grid .card:nth-child(6){animation-delay:0.35s;}
+}
+@keyframes sparkle-pulse{0%,100%{opacity:1;}50%{opacity:0.55;}}
 
 .career-steps{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;}
 .step{font-size:12px;padding:6px 12px;border-radius:99px;background:var(--bg);border:1px solid var(--border);}
@@ -357,38 +368,31 @@ body{font-family:var(--font-body);color:var(--ink);}
       <h1 class="page-title">Knowledge Universe</h1>
       <p class="page-sub">Discover → Read → Watch → Interact → Play → Experiment → Discuss → Teach AI → Quiz → Project → Reflect → Certificate</p>
       <div class="ku-grid">
-        <div class="card"><div class="ku-swatch" style="background:var(--blue);"></div><div style="font-weight:600;font-size:13.5px;">The Solar System</div><div style="font-size:11.5px;color:var(--ink-dim);">Space</div><div class="ku-loop">75% through the loop</div></div>
-        <div class="card"><div class="ku-swatch" style="background:var(--amber);"></div><div style="font-weight:600;font-size:13.5px;">Indus Valley Civilization</div><div style="font-size:11.5px;color:var(--ink-dim);">History</div><div class="ku-loop">New</div></div>
-        <div class="card"><div class="ku-swatch" style="background:var(--green);"></div><div style="font-weight:600;font-size:13.5px;">Intro to Coding Logic</div><div style="font-size:11.5px;color:var(--ink-dim);">Coding</div><div class="ku-loop">2 lessons</div></div>
-        <div class="card"><div class="ku-swatch" style="background:var(--purple);"></div><div style="font-weight:600;font-size:13.5px;">How Rockets Escape Gravity</div><div style="font-size:11.5px;color:var(--ink-dim);">Science · daily capsule</div><div class="ku-loop">5 min read</div></div>
-        <div class="card"><div class="ku-swatch" style="background:var(--pink);"></div><div style="font-weight:600;font-size:13.5px;">World Languages: Greetings</div><div style="font-size:11.5px;color:var(--ink-dim);">Languages</div><div class="ku-loop">Not started</div></div>
-        <div class="card"><div class="ku-swatch" style="background:#8B5CF6;"></div><div style="font-weight:600;font-size:13.5px;">What Makes a Painting Great?</div><div style="font-size:11.5px;color:var(--ink-dim);">Arts</div><div class="ku-loop">Not started</div></div>
+        <div class="card"><div class="ku-swatch" style="background:var(--blue);"><span class="ku-icon">🪐</span></div><div style="font-weight:600;font-size:13.5px;">The Solar System</div><div style="font-size:11.5px;color:var(--ink-dim);">Space</div><div class="ku-loop">75% through the loop</div></div>
+        <div class="card"><div class="ku-swatch" style="background:var(--amber);"><span class="ku-icon">🏺</span></div><div style="font-weight:600;font-size:13.5px;">Indus Valley Civilization</div><div style="font-size:11.5px;color:var(--ink-dim);">History</div><div class="ku-loop new">✨ New</div></div>
+        <div class="card"><div class="ku-swatch" style="background:var(--green);"><span class="ku-icon">💻</span></div><div style="font-weight:600;font-size:13.5px;">Intro to Coding Logic</div><div style="font-size:11.5px;color:var(--ink-dim);">Coding</div><div class="ku-loop">2 lessons</div></div>
+        <div class="card"><div class="ku-swatch" style="background:var(--purple);"><span class="ku-icon">🚀</span></div><div style="font-weight:600;font-size:13.5px;">How Rockets Escape Gravity</div><div style="font-size:11.5px;color:var(--ink-dim);">Science · daily capsule</div><div class="ku-loop">5 min read</div></div>
+        <div class="card"><div class="ku-swatch" style="background:var(--pink);"><span class="ku-icon">🗣️</span></div><div style="font-weight:600;font-size:13.5px;">World Languages: Greetings</div><div style="font-size:11.5px;color:var(--ink-dim);">Languages</div><div class="ku-loop">Not started</div></div>
+        <div class="card"><div class="ku-swatch" style="background:#8B5CF6;"><span class="ku-icon">🎨</span></div><div style="font-weight:600;font-size:13.5px;">What Makes a Painting Great?</div><div style="font-size:11.5px;color:var(--ink-dim);">Arts</div><div class="ku-loop">Not started</div></div>
       </div>
     </section>
 
     <section class="view" id="view-homework">
       <h1 class="page-title">Homework</h1>
-      <p class="page-sub">3 pending · 1 overdue · 12 completed</p>
+      <p class="page-sub" id="hw-summary">3 pending · 1 overdue · 12 completed</p>
       <div class="card">
-        <div class="row"><span>Linear Algebra Problem Set</span><span class="pill">pending</span></div>
-        <div class="row"><span>Essay: The impact of AI</span><span class="pill" style="background:#FEE2E2;color:#B91C1C;">overdue</span></div>
-        <div class="row"><span>Chemistry Worksheet</span><span class="pill" style="background:#DCFCE7;color:#15803D;">graded — 92%</span></div>
-        <div class="row"><span>Math Quiz 3</span><span class="pill" style="background:#DCFCE7;color:#15803D;">submitted</span></div>
+        <div id="hw-list"></div>
       </div>
+      <p style="font-size:11.5px;color:var(--ink-dim);margin-top:10px;">Tap a pending or overdue item to mark it submitted.</p>
     </section>
 
     <section class="view" id="view-career">
       <h1 class="page-title">Career — Dream Mode</h1>
       <p class="page-sub">Your dream: Astronaut</p>
       <div class="card">
-        <div class="eyebrow">Dream pipeline</div>
-        <div class="career-steps">
-          <span class="step done">Recommended subjects</span>
-          <span class="step done">Physics fundamentals</span>
-          <span class="step">Robotics projects</span>
-          <span class="step">Portfolio</span>
-          <span class="step">College guidance</span>
-        </div>
+        <div class="eyebrow">Dream pipeline — <span id="career-progress-text">2 of 5 complete</span></div>
+        <div class="bar-track" style="margin-bottom:14px;"><div class="bar-fill" id="career-progress-bar" style="width:40%;"></div></div>
+        <div class="career-steps" id="career-steps"></div>
         <div class="eyebrow" style="margin-top:18px;">Knowledge Universe picks for this dream</div>
         <div class="row"><span>Space</span><span class="pill">recommended</span></div>
         <div class="row"><span>Physics</span><span class="pill">recommended</span></div>
@@ -538,7 +542,93 @@ function showView(name){
   document.getElementById('view-'+name).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active', n.dataset.view===name));
   document.querySelectorAll('.bn-item').forEach(n=>n.classList.toggle('active', n.dataset.view===name));
+  if(name === 'homework') renderHomework();
+  if(name === 'career') renderCareer();
 }
+
+// ================= CAREER: clickable, persisted dream pipeline =================
+const CAREER_DEFAULTS = [
+  {id:'c1', title:'Recommended subjects', done:true},
+  {id:'c2', title:'Physics fundamentals', done:true},
+  {id:'c3', title:'Robotics projects', done:false},
+  {id:'c4', title:'Portfolio', done:false},
+  {id:'c5', title:'College guidance', done:false},
+];
+function loadCareerState(){
+  try{
+    const saved = JSON.parse(localStorage.getItem('baa-career') || 'null');
+    if(saved) return saved;
+  }catch(e){}
+  return CAREER_DEFAULTS;
+}
+function saveCareerState(steps){
+  localStorage.setItem('baa-career', JSON.stringify(steps));
+}
+function renderCareer(){
+  const steps = loadCareerState();
+  const wrap = document.getElementById('career-steps');
+  wrap.innerHTML = '';
+  steps.forEach(s => {
+    const el = document.createElement('span');
+    el.className = 'step' + (s.done ? ' done' : '');
+    el.style.cursor = 'pointer';
+    el.textContent = (s.done ? '✓ ' : '') + s.title;
+    el.onclick = () => { s.done = !s.done; saveCareerState(steps); renderCareer(); };
+    wrap.appendChild(el);
+  });
+  const doneCount = steps.filter(s=>s.done).length;
+  document.getElementById('career-progress-text').textContent = `${doneCount} of ${steps.length} complete`;
+  document.getElementById('career-progress-bar').style.width = Math.round(doneCount/steps.length*100) + '%';
+}
+
+
+// ================= HOMEWORK: real, clickable, persisted =================
+const HW_DEFAULTS = [
+  {id:'hw1', title:'Linear Algebra Problem Set', status:'pending'},
+  {id:'hw2', title:'Essay: The impact of AI', status:'overdue'},
+  {id:'hw3', title:'Chemistry Worksheet', status:'graded', grade:'92%'},
+  {id:'hw4', title:'Math Quiz 3', status:'submitted'},
+];
+function loadHwState(){
+  try{
+    const saved = JSON.parse(localStorage.getItem('baa-homework') || 'null');
+    if(saved) return saved;
+  }catch(e){}
+  return HW_DEFAULTS;
+}
+function saveHwState(items){
+  localStorage.setItem('baa-homework', JSON.stringify(items));
+}
+function pillStyle(status){
+  if(status === 'overdue') return 'background:#FEE2E2;color:#B91C1C;';
+  if(status === 'graded' || status === 'submitted') return 'background:#DCFCE7;color:#15803D;';
+  return '';
+}
+function renderHomework(){
+  const items = loadHwState();
+  const list = document.getElementById('hw-list');
+  list.innerHTML = '';
+  items.forEach(hw => {
+    const row = document.createElement('div');
+    row.className = 'row';
+    const label = hw.status === 'graded' ? `graded — ${hw.grade}` : hw.status;
+    const clickable = (hw.status === 'pending' || hw.status === 'overdue');
+    row.innerHTML = `<span>${hw.title}</span><span class="pill" style="${pillStyle(hw.status)}${clickable ? 'cursor:pointer;' : ''}">${label}</span>`;
+    if(clickable){
+      row.querySelector('.pill').onclick = () => {
+        hw.status = 'submitted';
+        saveHwState(items);
+        renderHomework();
+      };
+    }
+    list.appendChild(row);
+  });
+  const pending = items.filter(h=>h.status==='pending').length;
+  const overdue = items.filter(h=>h.status==='overdue').length;
+  const done = items.filter(h=>h.status==='submitted'||h.status==='graded').length;
+  document.getElementById('hw-summary').textContent = `${pending} pending · ${overdue} overdue · ${done} completed`;
+}
+
 function setExp(v){
   document.body.setAttribute('data-exp', v);
   localStorage.setItem('baa-exp', v);
