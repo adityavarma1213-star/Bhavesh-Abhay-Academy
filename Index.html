@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BAA OS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700&family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<style>
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{margin:0;transition:background 0.4s ease, color 0.4s ease;min-height:100vh;}
+
+/* ===================== LAYER 1 — LEARNING EXPERIENCE ===================== */
+body[data-exp="scholar"]{
+  --font-display:'Inter',sans-serif; --font-body:'Inter',sans-serif; --font-mono:'JetBrains Mono',monospace;
+  --radius-card:12px; --radius-btn:9px; --card-border:1px solid var(--border);
+  --motion-fast:0.25s ease; --motion-slow:0.4s ease;
+}
+body[data-exp="scholar"] .btn{box-shadow:none;}
+body[data-exp="scholar"] .card{transition:transform var(--motion-slow), box-shadow var(--motion-slow);}
+body[data-exp="scholar"] .card:hover{transform:translateY(-2px);}
+
+body[data-exp="explorer"]{
+  --font-display:'Baloo 2',sans-serif; --font-body:'Nunito',sans-serif; --font-mono:'Nunito',sans-serif;
+  --radius-card:26px; --radius-btn:16px; --card-border:none;
+  --motion-fast:0.3s cubic-bezier(.68,-0.55,.27,1.55); --motion-slow:0.45s cubic-bezier(.68,-0.55,.27,1.4);
+}
+body[data-exp="explorer"] .card{box-shadow:0 5px 0 var(--shadow-c);transition:transform var(--motion-fast);}
+body[data-exp="explorer"] .card:hover{transform:translateY(-3px) scale(1.01);}
+body[data-exp="explorer"] .btn{box-shadow:0 4px 0 var(--shadow-btn);transition:transform var(--motion-fast);}
+body[data-exp="explorer"] .btn:hover{transform:translateY(-2px);}
+body[data-exp="explorer"] .btn:active{transform:translateY(2px);box-shadow:0 1px 0 var(--shadow-btn);}
+
+body[data-exp="neo"]{
+  --font-display:'Space Grotesk',sans-serif; --font-body:'Space Grotesk',sans-serif; --font-mono:'IBM Plex Mono',monospace;
+  --radius-card:18px; --radius-btn:11px;
+  --card-border:1px solid var(--glass-bd); --motion-fast:0.3s ease; --motion-slow:0.6s ease;
+}
+body[data-exp="neo"] .card{backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);transition:box-shadow var(--motion-slow);}
+body[data-exp="neo"] .card:hover{box-shadow:0 0 24px rgba(79,227,214,0.25);}
+body[data-exp="neo"] .btn{background:linear-gradient(90deg,var(--cyan),var(--violet));box-shadow:0 0 18px rgba(157,124,255,0.45);}
+@keyframes neo-pulse{0%,100%{opacity:1;}50%{opacity:0.55;}}
+body[data-exp="neo"] .live-dot{animation:neo-pulse 2s ease-in-out infinite;}
+
+/* ===================== LAYER 2 — APPEARANCE ===================== */
+body[data-exp="scholar"][data-appearance="light"]{--bg:#FAFAF9;--panel:#FFFFFF;--border:#E7E5E2;--ink:#18181B;--ink-dim:#6B6B68;--ink-soft:#8B8B87;}
+body[data-exp="scholar"][data-appearance="dark"]{--bg:#14161A;--panel:#1D2025;--border:#2B2F36;--ink:#EDEDEE;--ink-dim:#9A9DA5;--ink-soft:#787C85;}
+body[data-exp="explorer"][data-appearance="light"]{--bg:#FFF9EC;--panel:#FFFFFF;--border:#F0E6C8;--ink:#2B2140;--ink-dim:#7A6F94;--ink-soft:#9A90B8;--shadow-c:#F0E6C8;}
+body[data-exp="explorer"][data-appearance="dark"]{--bg:#241B38;--panel:#2F2547;--border:#3D3159;--ink:#F3EEFF;--ink-dim:#B9AEDC;--ink-soft:#8D7FBE;--shadow-c:#1A1329;}
+body[data-exp="neo"][data-appearance="light"]{--bg:#EEF1F7;--panel:rgba(255,255,255,0.55);--ink:#181C2A;--ink-dim:#565E75;--ink-soft:#7C8299;--glass-bd:rgba(20,25,40,0.10);--border:rgba(20,25,40,0.10);}
+body[data-exp="neo"][data-appearance="dark"]{
+  --bg1:#0A0E1A;--bg2:#141B2E;--bg:var(--bg1);--panel:rgba(255,255,255,0.06);--ink:#EAF0FF;--ink-dim:#8B96B8;--ink-soft:#5D6787;
+  --glass-bd:rgba(255,255,255,0.12);--border:rgba(255,255,255,0.12);
+  background:radial-gradient(circle at 15% 10%, rgba(157,124,255,0.22), transparent 40%),
+             radial-gradient(circle at 85% 80%, rgba(79,227,214,0.16), transparent 45%),
+             linear-gradient(180deg,var(--bg1),var(--bg2)) !important;
+  background-attachment:fixed;
+}
+:root{--cyan:#4FE3D6;--violet:#9D7CFF;}
+body{--purple:#7C5CFC;--green:#22C55E;--amber:#F5A524;--blue:#3B82F6;--pink:#FF6B9D;}
+body[data-exp="scholar"]{--accent:#2B4C3F;--accent-soft:#E9EFEC;}
+body[data-exp="scholar"][data-appearance="dark"]{--accent:#5FBE97;--accent-soft:#1C2B24;}
+body[data-exp="explorer"]{--accent:#7C5CFC;--accent-soft:#F1ECFF;}
+body[data-exp="explorer"][data-appearance="dark"]{--accent-soft:#3A2F5C;}
+body[data-exp="neo"]{--accent:#4FE3D6;--accent-soft:#E3FBF8;}
+body[data-exp="neo"][data-appearance="dark"]{--accent-soft:rgba(79,227,214,0.12);}
+
+/* ===================== LAYER 3 — ACCESSIBILITY ===================== */
+body.a11y-on{--font-body:'Atkinson Hyperlegible',sans-serif !important;--font-display:'Atkinson Hyperlegible',sans-serif !important;letter-spacing:0.01em;}
+body.a11y-on *{line-height:1.65 !important;}
+body.a11y-on .card{font-size:15.5px;}
+body.a11y-on .status-dot{display:inline-flex !important;}
+body.a11y-on .status-dot .shape{display:inline-block !important;}
+
+/* ===================== SHARED PRIMITIVES ===================== */
+.card{background:var(--panel);border:var(--card-border);border-radius:var(--radius-card);padding:18px;}
+.eyebrow{font-family:var(--font-mono);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:10px;}
+[data-exp="neo"] .eyebrow{color:var(--cyan);}
+.btn{display:inline-flex;align-items:center;gap:6px;border:none;border-radius:var(--radius-btn);padding:10px 18px;font-family:var(--font-body);font-weight:600;font-size:13.5px;cursor:pointer;background:var(--ink);color:var(--panel);}
+[data-exp="explorer"] .btn{background:var(--green);color:#fff;}
+[data-exp="neo"] .btn{color:#0A0E1A;}
+.btn.outline{background:transparent;color:var(--ink);border:1px solid var(--border);box-shadow:none;}
+.bar-track{height:8px;background:var(--accent-soft);border-radius:99px;overflow:hidden;margin:10px 0;}
+.path-node{width:22px;height:22px;border-radius:50%;background:var(--bg);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;color:var(--ink-dim);}
+.path-node.done{background:var(--accent);border-color:var(--accent);color:#fff;}
+.path-node.current{border-color:var(--accent);color:var(--accent);}
+.bar-fill{height:100%;background:var(--accent);border-radius:99px;}
+[data-exp="neo"] .bar-fill{background:linear-gradient(90deg,var(--cyan),var(--violet));}
+.pill{font-family:var(--font-mono);font-size:11px;padding:3px 9px;border-radius:99px;background:var(--accent-soft);color:var(--accent);white-space:nowrap;}
+.row{display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:9px 0;border-bottom:1px solid var(--border);}
+.row:last-child{border:none;}
+.status-dot{display:none;align-items:center;gap:4px;}
+.status-dot .shape{display:none;font-size:10px;}
+h1,h2,h3{font-family:var(--font-display);color:var(--ink);margin:0;}
+body{font-family:var(--font-body);color:var(--ink);}
+
+/* ===================== LOGIN / MODE SELECT SCREEN ===================== */
+#login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px;background:var(--bg);}
+.login-box{max-width:460px;width:100%;}
+.login-box .brand{font-family:var(--font-display);font-weight:700;font-size:20px;text-align:center;margin-bottom:6px;}
+.login-box .greet{text-align:center;color:var(--ink-dim);font-size:14px;margin-bottom:28px;}
+.mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;}
+.mode-card{cursor:pointer;text-align:left;}
+.mode-card .mtitle{font-weight:700;font-size:15px;margin:10px 0 4px;font-family:var(--font-display);}
+.mode-card .mdesc{font-size:12.5px;color:var(--ink-dim);line-height:1.5;}
+.mode-card.recommended{border:2px solid var(--accent);}
+.mode-icon{width:38px;height:38px;border-radius:var(--radius-btn);background:var(--accent-soft);display:flex;align-items:center;justify-content:center;font-size:18px;}
+
+/* ===================== APP SHELL ===================== */
+#app{display:none;}
+#app.active{display:flex;min-height:100vh;}
+.sidebar{width:220px;flex-shrink:0;background:var(--panel);border-right:1px solid var(--border);padding:20px 14px;display:flex;flex-direction:column;}
+.sidebar .brand{display:flex;align-items:center;gap:10px;font-family:var(--font-display);font-weight:700;font-size:16px;padding:0 8px 20px;}
+.sidebar .brand .mark{width:24px;height:24px;border-radius:var(--radius-btn);background:var(--accent);}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;font-size:13.5px;font-weight:500;color:var(--ink-dim);cursor:pointer;margin-bottom:2px;}
+.nav-item .ic{width:18px;text-align:center;}
+.nav-item.active{background:var(--accent-soft);color:var(--accent);font-weight:600;}
+.sidebar-foot{margin-top:auto;font-size:11.5px;color:var(--ink-dim);padding:10px 8px;}
+
+.main{flex:1;padding:26px 30px 90px;max-width:1000px;}
+.view{display:none;}
+.view.active{display:block;}
+.page-title{font-size:22px;margin-bottom:4px;}
+.page-sub{color:var(--ink-dim);font-size:13.5px;margin-bottom:22px;}
+
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:14px;}
+.grid2{display:grid;grid-template-columns:1.3fr 1fr;gap:14px;margin-bottom:14px;}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px;}
+.stat .num{font-family:var(--font-mono);font-size:22px;font-weight:600;}
+.stat .lbl{font-size:11.5px;color:var(--ink-dim);margin-top:3px;}
+.card.c-blue{border-top:4px solid #3B82F6;}
+.card.c-green{border-top:4px solid #22C55E;}
+.card.c-purple{border-top:4px solid #A855F7;}
+.card.c-amber{border-top:4px solid #F5A524;}
+.card.c-blue .num{color:#2563EB;}
+.card.c-green .num{color:#16A34A;}
+.card.c-purple .num{color:#9333EA;}
+.card.c-amber .num{color:#D97F06;}
+[data-exp="neo"] .card.c-blue{border-top-color:#4FE3D6;}
+[data-exp="neo"] .card.c-blue .num{color:#4FE3D6;}
+[data-exp="neo"] .card.c-purple{border-top-color:#9D7CFF;}
+[data-exp="neo"] .card.c-purple .num{color:#9D7CFF;}
+
+.chat-window{display:flex;flex-direction:column;gap:12px;margin-bottom:16px;min-height:200px;}
+.msg{max-width:75%;padding:10px 14px;border-radius:14px;font-size:13.5px;line-height:1.55;}
+.msg.bot{background:var(--bg);align-self:flex-start;}
+.msg.user{background:var(--accent);color:#fff;align-self:flex-end;}
+.chat-input{display:flex;gap:8px;}
+.chat-input input{flex:1;border:1px solid var(--border);border-radius:var(--radius-btn);padding:11px 14px;font-family:var(--font-body);font-size:13.5px;background:var(--bg);color:var(--ink);}
+
+.ku-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+.ku-swatch{width:100%;height:70px;border-radius:calc(var(--radius-card) - 6px);margin-bottom:10px;}
+.ku-loop{font-size:11px;color:var(--ink-dim);margin-top:6px;}
+
+.career-steps{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;}
+.step{font-size:12px;padding:6px 12px;border-radius:99px;background:var(--bg);border:1px solid var(--border);}
+.step.done{background:var(--accent-soft);color:var(--accent);border-color:transparent;}
+
+.controls{display:flex;flex-wrap:wrap;gap:18px;align-items:center;margin-bottom:10px;}
+.ctrl-group{display:flex;align-items:center;gap:8px;}
+.seg{display:flex;gap:4px;background:var(--bg);border-radius:99px;padding:4px;}
+.seg button{border:none;background:transparent;color:var(--ink-dim);font-size:12.5px;font-weight:600;padding:7px 13px;border-radius:99px;cursor:pointer;font-family:'Inter',sans-serif;}
+.seg button.active{background:var(--accent);color:#fff;}
+.toggle{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-dim);cursor:pointer;}
+
+.bottom-nav{display:none;}
+
+@media (max-width: 860px){
+  .sidebar{display:none;}
+  #app.active{flex-direction:column;}
+  .main{padding:18px 16px 90px;max-width:100%;}
+  .grid4{grid-template-columns:1fr 1fr;}
+  .grid2{grid-template-columns:1fr;}
+  .grid3{grid-template-columns:1fr;}
+  .ku-grid{grid-template-columns:1fr 1fr;}
+  .mode-grid{grid-template-columns:1fr;}
+  .bottom-nav{
+    display:flex;position:fixed;bottom:0;left:0;right:0;background:var(--panel);
+    border-top:1px solid var(--border);padding:8px 6px calc(8px + env(safe-area-inset-bottom));
+    justify-content:space-around;z-index:50;
+  }
+  .bottom-nav .bn-item{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10px;color:var(--ink-dim);cursor:pointer;padding:4px 8px;border-radius:10px;}
+  .bottom-nav .bn-item .ic{font-size:18px;}
+  .bottom-nav .bn-item.active{color:var(--accent);}
+  .controls{flex-direction:column;align-items:flex-start;}
+}
+</style>
+</head>
+<body data-exp="neo" data-appearance="dark">
+
+<div id="login-screen">
+  <div class="login-box">
+    <div class="brand">🎓 BAA OS</div>
+    <div class="greet">Welcome back, Bhavesh — how do you want to learn today?</div>
+    <div class="greet" style="margin-bottom:14px;">I am a…</div>
+    <div class="seg" id="seg-role" style="margin:0 auto 22px;width:fit-content;">
+      <button data-v="student" class="active" onclick="setRole('student')">🎓 Student</button>
+      <button data-v="parent" onclick="setRole('parent')">👨‍👩‍👧 Parent</button>
+      <button data-v="teacher" onclick="setRole('teacher')">👨‍🏫 Teacher</button>
+    </div>
+    <div class="mode-grid" id="student-modes">
+      <div class="card mode-card" onclick="enterApp('custom')">
+        <div class="mode-icon">🧭</div>
+        <div class="mtitle">Custom mode</div>
+        <div class="mdesc">Pick your own subject and chapter, study at your own pace.</div>
+      </div>
+      <div class="card mode-card recommended" onclick="enterApp('ai')">
+        <span class="pill" style="margin-bottom:6px;display:inline-block;">Recommended</span>
+        <div class="mode-icon">🧠</div>
+        <div class="mtitle">AI mode</div>
+        <div class="mdesc">AI plans your week, balanced by confidence and upcoming exams.</div>
+      </div>
+    </div>
+    <div class="card" id="role-continue" style="display:none;text-align:center;margin-bottom:20px;">
+      <div id="role-continue-text" style="font-size:13.5px;color:var(--ink-dim);margin-bottom:14px;"></div>
+      <button class="btn" id="role-continue-btn" onclick="continueAsRole()">Continue</button>
+    </div>
+    <div class="row" style="border:none;font-size:12.5px;">
+      <span>Class 8 · CBSE</span>
+      <span>🔥 18 day streak</span>
+    </div>
+  </div>
+</div>
+
+<div id="app">
+  <div class="sidebar">
+    <div class="brand"><span class="mark"></span> BAA OS</div>
+    <div class="nav-item active" data-view="dashboard" onclick="showView('dashboard')"><span class="ic">🏠</span> Dashboard</div>
+    <div class="nav-item" data-view="tutor" onclick="showView('tutor')"><span class="ic">🤖</span> AI Tutor</div>
+    <div class="nav-item" data-view="ku" onclick="showView('ku')"><span class="ic">🌌</span> Knowledge Universe</div>
+    <div class="nav-item" data-view="homework" onclick="showView('homework')"><span class="ic">📄</span> Homework</div>
+    <div class="nav-item" data-view="career" onclick="showView('career')"><span class="ic">🚀</span> Career</div>
+    <div class="nav-item" data-view="settings" onclick="showView('settings')"><span class="ic">⚙️</span> Settings</div>
+    <div class="sidebar-foot" id="mode-badge">Mode: AI</div>
+  </div>
+
+  <div class="main">
+
+    <section class="view active" id="view-dashboard">
+      <h1 class="page-title" id="greeting">Good morning, Bhavesh</h1>
+      <p class="page-sub" id="subtext">18-day streak · today's plan is ready.</p>
+      <div class="grid4">
+        <div class="card stat c-blue"><div class="num">78%</div><div class="lbl">Overall progress</div></div>
+        <div class="card stat c-green"><div class="num">2,450</div><div class="lbl">XP points</div></div>
+        <div class="card stat c-purple"><div class="num">#4</div><div class="lbl">Class rank</div></div>
+        <div class="card stat c-amber"><div class="num">18</div><div class="lbl">Day streak</div></div>
+      </div>
+      <div class="grid2">
+        <div class="card">
+          <div class="eyebrow">Continue learning · Story mode</div>
+          <div style="font-weight:600;font-size:15.5px;margin-bottom:4px;">Chapter 5: The Bridge Problem</div>
+          <p style="font-size:12.5px;color:var(--ink-dim);line-height:1.6;margin:0 0 10px;">The old bridge has collapsed. To rebuild it safely, you need to solve 3 more linear equations before the river rises tonight.</p>
+          <svg viewBox="0 0 300 70" style="width:100%;height:56px;margin-bottom:4px;" aria-hidden="true">
+            <path d="M10,55 C60,10 90,70 140,35 C180,8 210,60 250,30 C265,18 275,35 290,20"
+                  fill="none" stroke="var(--border)" stroke-width="5" stroke-linecap="round"/>
+            <path d="M10,55 C60,10 90,70 140,35" fill="none" stroke="var(--accent)" stroke-width="5" stroke-linecap="round"/>
+          </svg>
+          <div style="display:flex;justify-content:space-between;margin-bottom:10px;">
+            <span class="path-node done">1</span><span class="path-node done">2</span><span class="path-node current">3</span><span class="path-node">4</span><span class="path-node">5</span>
+          </div>
+          <button class="btn" onclick="showView('tutor')">Continue the quest →</button>
+        </div>
+        <div class="card">
+          <div class="eyebrow">AI Tutor</div>
+          <div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:12px;">
+            <div style="width:36px;height:36px;border-radius:50%;background:var(--accent);flex-shrink:0;position:relative;">
+              <span class="live-dot" style="position:absolute;top:-2px;right:-2px;width:8px;height:8px;border-radius:50%;background:var(--green);"></span>
+            </div>
+            <div style="font-size:13px;color:var(--ink-dim);line-height:1.6;background:var(--bg);border-radius:12px;padding:10px 14px;">Ask anything, any time — I've got your last 3 chapters in mind.</div>
+          </div>
+          <button class="btn" onclick="showView('tutor')">Start a conversation</button>
+        </div>
+      </div>
+      <div class="grid3">
+        <div class="card">
+          <div class="eyebrow">Subject strength</div>
+          <div class="row"><span>Mathematics</span><span class="status-dot"><span class="shape">▲</span></span><span class="pill">85%</span></div>
+          <div class="row"><span>Science</span><span class="status-dot"><span class="shape">●</span></span><span class="pill">78%</span></div>
+          <div class="row"><span>English</span><span class="status-dot"><span class="shape">■</span></span><span class="pill">72%</span></div>
+        </div>
+        <div class="card">
+          <div class="eyebrow">Knowledge universe</div>
+          <div class="ku-swatch" style="background:var(--blue);"></div>
+          <div style="font-weight:600;font-size:13.5px;">The Solar System</div>
+          <div style="font-size:11.5px;color:var(--ink-dim);">Space · today's pick</div>
+          <button class="btn outline" style="margin-top:10px;" onclick="showView('ku')">Explore</button>
+        </div>
+        <div class="card">
+          <div class="eyebrow">Homework</div>
+          <div class="row"><span>Linear Algebra set</span><span class="pill">pending</span></div>
+          <div class="row"><span>Essay: impact of AI</span><span class="pill" style="background:#FEE2E2;color:#B91C1C;">overdue</span></div>
+          <button class="btn outline" style="margin-top:6px;" onclick="showView('homework')">View all</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="view" id="view-tutor">
+      <h1 class="page-title">AI Tutor</h1>
+      <p class="page-sub">Ask anything, any time — I remember your last few chapters. <span id="tutor-status" class="pill" style="background:#FEF3C7;color:#B45309;">backend not connected</span></p>
+      <label class="toggle" style="margin-bottom:14px;">
+        <input type="checkbox" id="voice-mode-check" onchange="toggleVoiceMode(this.checked)" />
+        🔊 Voice mode — read replies aloud automatically
+      </label>
+      <div class="card">
+        <div class="chat-window" id="chat-window">
+          <div class="msg bot" id="msg-welcome">Hi Bhavesh! Ask me anything — math, science, homework, whatever's on your mind.</div>
+        </div>
+        <div class="chat-input">
+          <input type="text" id="chat-input-box" placeholder="Ask anything…" onkeydown="if(event.key==='Enter') sendTutorMessage();" />
+          <button class="btn outline" id="mic-btn" onclick="toggleListening()" title="Speak your question">🎤</button>
+          <button class="btn" onclick="sendTutorMessage()">Send</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="view" id="view-ku">
+      <h1 class="page-title">Knowledge Universe</h1>
+      <p class="page-sub">Discover → Read → Watch → Interact → Play → Experiment → Discuss → Teach AI → Quiz → Project → Reflect → Certificate</p>
+      <div class="ku-grid">
+        <div class="card"><div class="ku-swatch" style="background:var(--blue);"></div><div style="font-weight:600;font-size:13.5px;">The Solar System</div><div style="font-size:11.5px;color:var(--ink-dim);">Space</div><div class="ku-loop">75% through the loop</div></div>
+        <div class="card"><div class="ku-swatch" style="background:var(--amber);"></div><div style="font-weight:600;font-size:13.5px;">Indus Valley Civilization</div><div style="font-size:11.5px;color:var(--ink-dim);">History</div><div class="ku-loop">New</div></div>
+        <div class="card"><div class="ku-swatch" style="background:var(--green);"></div><div style="font-weight:600;font-size:13.5px;">Intro to Coding Logic</div><div style="font-size:11.5px;color:var(--ink-dim);">Coding</div><div class="ku-loop">2 lessons</div></div>
+        <div class="card"><div class="ku-swatch" style="background:var(--purple);"></div><div style="font-weight:600;font-size:13.5px;">How Rockets Escape Gravity</div><div style="font-size:11.5px;color:var(--ink-dim);">Science · daily capsule</div><div class="ku-loop">5 min read</div></div>
+        <div class="card"><div class="ku-swatch" style="background:var(--pink);"></div><div style="font-weight:600;font-size:13.5px;">World Languages: Greetings</div><div style="font-size:11.5px;color:var(--ink-dim);">Languages</div><div class="ku-loop">Not started</div></div>
+        <div class="card"><div class="ku-swatch" style="background:#8B5CF6;"></div><div style="font-weight:600;font-size:13.5px;">What Makes a Painting Great?</div><div style="font-size:11.5px;color:var(--ink-dim);">Arts</div><div class="ku-loop">Not started</div></div>
+      </div>
+    </section>
+
+    <section class="view" id="view-homework">
+      <h1 class="page-title">Homework</h1>
+      <p class="page-sub">3 pending · 1 overdue · 12 completed</p>
+      <div class="card">
+        <div class="row"><span>Linear Algebra Problem Set</span><span class="pill">pending</span></div>
+        <div class="row"><span>Essay: The impact of AI</span><span class="pill" style="background:#FEE2E2;color:#B91C1C;">overdue</span></div>
+        <div class="row"><span>Chemistry Worksheet</span><span class="pill" style="background:#DCFCE7;color:#15803D;">graded — 92%</span></div>
+        <div class="row"><span>Math Quiz 3</span><span class="pill" style="background:#DCFCE7;color:#15803D;">submitted</span></div>
+      </div>
+    </section>
+
+    <section class="view" id="view-career">
+      <h1 class="page-title">Career — Dream Mode</h1>
+      <p class="page-sub">Your dream: Astronaut</p>
+      <div class="card">
+        <div class="eyebrow">Dream pipeline</div>
+        <div class="career-steps">
+          <span class="step done">Recommended subjects</span>
+          <span class="step done">Physics fundamentals</span>
+          <span class="step">Robotics projects</span>
+          <span class="step">Portfolio</span>
+          <span class="step">College guidance</span>
+        </div>
+        <div class="eyebrow" style="margin-top:18px;">Knowledge Universe picks for this dream</div>
+        <div class="row"><span>Space</span><span class="pill">recommended</span></div>
+        <div class="row"><span>Physics</span><span class="pill">recommended</span></div>
+        <div class="row"><span>Robotics</span><span class="pill">recommended</span></div>
+      </div>
+    </section>
+
+    <section class="view" id="view-settings">
+      <h1 class="page-title">Settings</h1>
+      <p class="page-sub">Learning Experience, Appearance, and Accessibility combine independently.</p>
+      <div class="card">
+        <div class="eyebrow">Learning experience</div>
+        <div class="controls">
+          <div class="ctrl-group">
+            <div class="seg" id="seg-exp">
+              <button data-v="scholar" onclick="setExp('scholar')">🎓 Scholar</button>
+              <button data-v="explorer" onclick="setExp('explorer')">🚀 Explorer</button>
+              <button data-v="neo" class="active" onclick="setExp('neo')">🤖 Neo</button>
+            </div>
+          </div>
+        </div>
+        <div class="eyebrow" style="margin-top:16px;">Appearance</div>
+        <div class="controls">
+          <div class="ctrl-group">
+            <div class="seg" id="seg-app">
+              <button data-v="light" onclick="setAppearance('light')">☀️ Light</button>
+              <button data-v="dark" class="active" onclick="setAppearance('dark')">🌙 Midnight</button>
+            </div>
+          </div>
+        </div>
+        <div class="eyebrow" style="margin-top:16px;">Accessibility</div>
+        <label class="toggle">
+          <input type="checkbox" id="a11y-check" onchange="toggleA11y(this.checked)" />
+          ♿ Accessible mode (dyslexia-friendly font, larger spacing, shape + color cues)
+        </label>
+      </div>
+    </section>
+
+  </div>
+
+  <div class="bottom-nav">
+    <div class="bn-item active" data-view="dashboard" onclick="showView('dashboard')"><span class="ic">🏠</span>Home</div>
+    <div class="bn-item" data-view="tutor" onclick="showView('tutor')"><span class="ic">🤖</span>Tutor</div>
+    <div class="bn-item" data-view="ku" onclick="showView('ku')"><span class="ic">🌌</span>Explore</div>
+    <div class="bn-item" data-view="homework" onclick="showView('homework')"><span class="ic">📄</span>Homework</div>
+    <div class="bn-item" data-view="settings" onclick="showView('settings')"><span class="ic">⚙️</span>Settings</div>
+  </div>
+</div>
+
+<!-- ============ PARENT DASHBOARD (separate role, own view) ============ -->
+<div id="app-parent" style="display:none;max-width:900px;margin:0 auto;padding:26px 24px 60px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+    <div style="font-family:var(--font-display);font-weight:700;font-size:18px;">👨‍👩‍👧 Parent Dashboard</div>
+    <button class="btn outline" onclick="backToLogin()">Switch role</button>
+  </div>
+  <p class="page-sub">Good evening! Here's how Bhavesh is doing.</p>
+  <div class="grid4">
+    <div class="card stat c-blue"><div class="num">78%</div><div class="lbl">Overall progress</div></div>
+    <div class="card stat c-green"><div class="num">92%</div><div class="lbl">Attendance</div></div>
+    <div class="card stat c-purple"><div class="num">2h 15m</div><div class="lbl">Study time today</div></div>
+    <div class="card stat c-amber"><div class="num">18</div><div class="lbl">Day streak</div></div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="eyebrow">Weak areas</div>
+      <div class="row"><span>Fractions</span><span class="pill" style="background:#FEE2E2;color:#B91C1C;">needs practice</span></div>
+      <div class="row"><span>Essay structure</span><span class="pill" style="background:#FEF3C7;color:#B45309;">improving</span></div>
+      <div style="font-size:12.5px;color:var(--ink-dim);margin-top:10px;">AI recommendation: 15 minutes of focused practice on Fractions today — a short plan is ready.</div>
+      <button class="btn" style="margin-top:12px;">View plan</button>
+    </div>
+    <div class="card">
+      <div class="eyebrow">Recent activity</div>
+      <div class="row"><span>Completed lesson — React Hooks</span><span class="pill">2h ago</span></div>
+      <div class="row"><span>Submitted homework — Data Science I</span><span class="pill">yesterday</span></div>
+      <div class="row"><span>Quiz score — 92%</span><span class="pill">2 days ago</span></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="eyebrow">Parent approval mode</div>
+    <div class="row"><span>Screen time limit</span><span class="pill">2 hrs/day</span></div>
+    <div class="row"><span>Study reminders</span><span class="pill">On</span></div>
+    <div class="row"><span>Weekly report emails</span><span class="pill">On</span></div>
+  </div>
+</div>
+
+<!-- ============ TEACHER DASHBOARD (separate role, own view) ============ -->
+<div id="app-teacher" style="display:none;max-width:900px;margin:0 auto;padding:26px 24px 60px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+    <div style="font-family:var(--font-display);font-weight:700;font-size:18px;">👨‍🏫 Teacher Dashboard</div>
+    <button class="btn outline" onclick="backToLogin()">Switch role</button>
+  </div>
+  <p class="page-sub">Class 8 — Mathematics</p>
+  <div class="grid4">
+    <div class="card stat c-blue"><div class="num">32</div><div class="lbl">Total students</div></div>
+    <div class="card stat c-amber"><div class="num">3</div><div class="lbl">At risk</div></div>
+    <div class="card stat c-purple"><div class="num">8</div><div class="lbl">Homework pending</div></div>
+    <div class="card stat c-green"><div class="num">78%</div><div class="lbl">Class average</div></div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="eyebrow">Students needing attention</div>
+      <div class="row"><span>Rahul Sharma</span><span class="pill" style="background:#FEE2E2;color:#B91C1C;">falling marks</span></div>
+      <div class="row"><span>Priya Nair</span><span class="pill" style="background:#FEF3C7;color:#B45309;">low consistency</span></div>
+      <div class="row"><span>Arjun Mehta</span><span class="pill" style="background:#FEE2E2;color:#B91C1C;">3 missed homeworks</span></div>
+    </div>
+    <div class="card">
+      <div class="eyebrow">AI recommendation</div>
+      <div style="font-size:13px;color:var(--ink-dim);line-height:1.6;margin-bottom:12px;">Class-wide confidence in Fractions is trending down — consider a short revision session before moving to Algebra.</div>
+      <button class="btn">Assign revision</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="eyebrow">Assign to class</div>
+    <div class="row"><span>Homework</span><span class="pill">create</span></div>
+    <div class="row"><span>Mock test</span><span class="pill">create</span></div>
+    <div class="row"><span>Worksheet</span><span class="pill">create</span></div>
+  </div>
+</div>
+
+<script>
+function setRole(role){
+  document.querySelectorAll('#seg-role button').forEach(b=>b.classList.toggle('active', b.dataset.v===role));
+  document.getElementById('student-modes').style.display = role === 'student' ? 'grid' : 'none';
+  const rc = document.getElementById('role-continue');
+  if(role === 'student'){ rc.style.display = 'none'; return; }
+  rc.style.display = 'block';
+  document.getElementById('role-continue-text').textContent =
+    role === 'parent' ? "You'll see Bhavesh's progress, attendance, and weekly reports."
+                       : "You'll see your class overview, at-risk students, and assignment tools.";
+  rc.dataset.role = role;
+}
+function continueAsRole(){
+  const role = document.getElementById('role-continue').dataset.role;
+  localStorage.setItem('baa-role', role);
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app-' + role).style.display = 'block';
+}
+function backToLogin(){
+  localStorage.removeItem('baa-role');
+  localStorage.removeItem('baa-mode');
+  document.getElementById('app-parent').style.display = 'none';
+  document.getElementById('app-teacher').style.display = 'none';
+  document.getElementById('app').classList.remove('active');
+  document.getElementById('login-screen').style.display = 'flex';
+  setRole('student');
+}
+function enterApp(mode){
+  localStorage.setItem('baa-role', 'student');
+  localStorage.setItem('baa-mode', mode);
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').classList.add('active');
+  document.getElementById('mode-badge').textContent = 'Mode: ' + (mode === 'ai' ? 'AI' : 'Custom');
+}
+function showView(name){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+name).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active', n.dataset.view===name));
+  document.querySelectorAll('.bn-item').forEach(n=>n.classList.toggle('active', n.dataset.view===name));
+}
+function setExp(v){
+  document.body.setAttribute('data-exp', v);
+  localStorage.setItem('baa-exp', v);
+  document.querySelectorAll('#seg-exp button').forEach(b=>b.classList.toggle('active', b.dataset.v===v));
+}
+function setAppearance(v){
+  document.body.setAttribute('data-appearance', v);
+  localStorage.setItem('baa-appearance', v);
+  document.querySelectorAll('#seg-app button').forEach(b=>b.classList.toggle('active', b.dataset.v===v));
+}
+function toggleA11y(on){
+  document.body.classList.toggle('a11y-on', on);
+  localStorage.setItem('baa-a11y', on ? '1' : '0');
+}
+
+// ================= AI TUTOR — LIVE BACKEND WIRING =================
+// Fill this in once you've deployed the Cloudflare Worker (see worker.js).
+// Example: 'https://baa-tutor.yourname.workers.dev'
+const TUTOR_API_URL = 'https://bhavesh-abhay-academy.adityavarma1213.workers.dev';
+
+let tutorHistory = [];
+
+function escapeHtml(s){
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// Lightweight markdown -> HTML for bot replies (bold, italic, bullet lists, line breaks).
+// Math ($...$ / $$...$$) is left as-is here and rendered separately by KaTeX below.
+function renderMarkdown(text){
+  let html = escapeHtml(text);
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/(?<!\*)\*(?!\*)(.+?)\*(?!\*)/g, '<em>$1</em>');
+  // Turn consecutive "* item" lines into a <ul>
+  html = html.replace(/(?:^|\n)((?:\* .+(?:\n|$))+)/g, (m, block) => {
+    const items = block.trim().split('\n').map(l => '<li>' + l.replace(/^\*\s*/, '') + '</li>').join('');
+    return '<ul style="margin:6px 0;padding-left:20px;">' + items + '</ul>';
+  });
+  html = html.replace(/\n/g, '<br>');
+  return html;
+}
+
+function addMsg(text, who){
+  const win = document.getElementById('chat-window');
+  const div = document.createElement('div');
+  div.className = 'msg ' + who;
+  if(who === 'bot'){
+    div.innerHTML = renderMarkdown(text);
+    if(window.renderMathInElement){
+      renderMathInElement(div, {
+        delimiters: [
+          {left: '$$', right: '$$', display: true},
+          {left: '$', right: '$', display: false},
+        ],
+        throwOnError: false,
+      });
+    }
+    addSpeakerButton(div, text);
+  } else {
+    div.textContent = text; // user input never rendered as HTML
+  }
+  win.appendChild(div);
+  win.scrollTop = win.scrollHeight;
+  return div;
+}
+
+// ================= VOICE: text-to-speech (read replies aloud) =================
+function addSpeakerButton(msgDiv, plainText){
+  if(!window.speechSynthesis) return; // not supported on this browser — skip silently
+  const btn = document.createElement('button');
+  btn.textContent = '🔊';
+  btn.title = 'Read aloud';
+  btn.style.cssText = 'margin-top:8px;border:none;background:transparent;cursor:pointer;font-size:14px;opacity:0.7;display:block;';
+  btn.onclick = () => speakText(plainText);
+  msgDiv.appendChild(btn);
+}
+function speakText(text){
+  if(!window.speechSynthesis) return;
+  window.speechSynthesis.cancel(); // stop any current speech first
+  const clean = text.replace(/\*\*/g,'').replace(/\$\$?/g,'').replace(/[*_#]/g,'');
+  const utter = new SpeechSynthesisUtterance(clean);
+  utter.rate = 0.95;
+  window.speechSynthesis.speak(utter);
+}
+
+// ================= VOICE: speech-to-text (speak your question) =================
+let voiceModeOn = false;
+function toggleVoiceMode(on){
+  voiceModeOn = on;
+  localStorage.setItem('baa-voice-mode', on ? '1' : '0');
+  if(!on && window.speechSynthesis) window.speechSynthesis.cancel();
+}
+
+let recognizer = null;
+let listening = false;
+function toggleListening(){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR){
+    addMsg("Voice input isn't supported in this browser — try Google Chrome, or type your question instead.", 'bot');
+    return;
+  }
+  const micBtn = document.getElementById('mic-btn');
+  if(listening){
+    recognizer.stop();
+    return;
+  }
+  recognizer = new SR();
+  recognizer.lang = 'en-US';
+  recognizer.interimResults = false;
+  recognizer.onstart = () => { listening = true; micBtn.textContent = '⏹'; micBtn.title = 'Stop listening'; };
+  recognizer.onend = () => { listening = false; micBtn.textContent = '🎤'; micBtn.title = 'Speak your question'; };
+  recognizer.onerror = () => { listening = false; micBtn.textContent = '🎤'; };
+  recognizer.onresult = (e) => {
+    const said = e.results[0][0].transcript;
+    document.getElementById('chat-input-box').value = said;
+    sendTutorMessage();
+  };
+  recognizer.start();
+}
+
+async function sendTutorMessage(){
+  const box = document.getElementById('chat-input-box');
+  const text = box.value.trim();
+  if(!text) return;
+  box.value = '';
+  addMsg(text, 'user');
+  tutorHistory.push({role:'user', content:text});
+
+  if(!TUTOR_API_URL){
+    addMsg("The AI Tutor backend isn't connected yet — set TUTOR_API_URL in the code once your Cloudflare Worker is deployed (see worker.js). Until then, I can't give a real answer here.", 'bot');
+    return;
+  }
+
+  const typing = addMsg('…', 'bot');
+  try{
+    const res = await fetch(TUTOR_API_URL, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({messages: tutorHistory})
+    });
+    if(!res.ok) throw new Error('Backend returned ' + res.status);
+    const data = await res.json();
+    const replyText = data.reply || "Sorry, I didn't get a proper reply from the backend.";
+    typing.innerHTML = renderMarkdown(replyText);
+    if(window.renderMathInElement){
+      renderMathInElement(typing, {
+        delimiters: [
+          {left: '$$', right: '$$', display: true},
+          {left: '$', right: '$', display: false},
+        ],
+        throwOnError: false,
+      });
+    }
+    addSpeakerButton(typing, replyText);
+    tutorHistory.push({role:'assistant', content: replyText});
+    if(voiceModeOn) speakText(replyText);
+  } catch(err){
+    typing.textContent = "Couldn't reach the AI Tutor backend (" + err.message + "). Check that your Worker is deployed and TUTOR_API_URL is correct.";
+  }
+}
+
+function checkTutorBackend(){
+  const badge = document.getElementById('tutor-status');
+  if(!badge) return;
+  if(!TUTOR_API_URL){
+    badge.textContent = 'backend not connected';
+    badge.style.background = '#FEF3C7'; badge.style.color = '#B45309';
+  } else {
+    badge.textContent = 'connected';
+    badge.style.background = '#DCFCE7'; badge.style.color = '#15803D';
+  }
+}
+checkTutorBackend();
+
+(function restoreState(){
+  const savedExp = localStorage.getItem('baa-exp');
+  const savedAppearance = localStorage.getItem('baa-appearance');
+  const savedA11y = localStorage.getItem('baa-a11y') === '1';
+  if(savedExp) setExp(savedExp);
+  if(savedAppearance) setAppearance(savedAppearance);
+  if(savedA11y){ toggleA11y(true); const cb=document.getElementById('a11y-check'); if(cb) cb.checked = true; }
+  if(localStorage.getItem('baa-voice-mode') === '1'){
+    voiceModeOn = true;
+    const vc = document.getElementById('voice-mode-check'); if(vc) vc.checked = true;
+  }
+
+  const savedRole = localStorage.getItem('baa-role');
+  const savedMode = localStorage.getItem('baa-mode');
+  if(savedRole === 'student' && savedMode){
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').classList.add('active');
+    document.getElementById('mode-badge').textContent = 'Mode: ' + (savedMode === 'ai' ? 'AI' : 'Custom');
+  } else if(savedRole === 'parent' || savedRole === 'teacher'){
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app-' + savedRole).style.display = 'block';
+  }
+})();
+</script>
+</body>
+</html>
