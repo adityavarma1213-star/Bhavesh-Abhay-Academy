@@ -143,6 +143,25 @@ body{font-family:var(--font-body);color:var(--ink);}
 .grid2{display:grid;grid-template-columns:1.3fr 1fr;gap:14px;margin-bottom:14px;}
 .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px;}
 .stat .num{font-family:var(--font-mono);font-size:22px;font-weight:600;}
+.mascot-avatar{width:52px;height:52px;border-radius:50%;background:var(--accent-soft);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;}
+@media (prefers-reduced-motion: no-preference){
+  .mascot-avatar{animation:mascot-breathe 3s ease-in-out infinite;}
+}
+@keyframes mascot-breathe{0%,100%{transform:translateY(0) rotate(0deg);}50%{transform:translateY(-3px) rotate(-4deg);}}
+.stat-icon{display:block;font-size:20px;margin-bottom:6px;}
+.stat-icon.flame{display:inline-block;}
+@media (prefers-reduced-motion: no-preference){
+  .stat-icon.flame{animation:flame-flicker 1.6s ease-in-out infinite;}
+}
+@keyframes flame-flicker{0%,100%{transform:scale(1) rotate(0deg);}25%{transform:scale(1.08) rotate(-3deg);}75%{transform:scale(0.96) rotate(3deg);}}
+@media (prefers-reduced-motion: no-preference){
+  .grid4 .card, .grid2 .card, .grid3 .card{animation:card-rise 0.5s ease-out backwards;}
+  .grid4 .card:nth-child(1){animation-delay:0.05s;} .grid4 .card:nth-child(2){animation-delay:0.12s;}
+  .grid4 .card:nth-child(3){animation-delay:0.19s;} .grid4 .card:nth-child(4){animation-delay:0.26s;}
+  .grid2 .card:nth-child(1){animation-delay:0.15s;} .grid2 .card:nth-child(2){animation-delay:0.22s;}
+  .grid3 .card:nth-child(1){animation-delay:0.25s;} .grid3 .card:nth-child(2){animation-delay:0.32s;} .grid3 .card:nth-child(3){animation-delay:0.39s;}
+}
+@keyframes card-rise{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
 .stat .lbl{font-size:11.5px;color:var(--ink-dim);margin-top:3px;}
 .card.c-blue{border-top:4px solid #3B82F6;}
 .card.c-green{border-top:4px solid #22C55E;}
@@ -253,13 +272,18 @@ body{font-family:var(--font-body);color:var(--ink);}
   <div class="main">
 
     <section class="view active" id="view-dashboard">
-      <h1 class="page-title" id="greeting">Good morning, Bhavesh</h1>
-      <p class="page-sub" id="subtext">18-day streak · today's plan is ready.</p>
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:4px;">
+        <div class="mascot-avatar" id="mascot">🦉</div>
+        <div>
+          <h1 class="page-title" id="greeting" style="margin-bottom:0;">Good morning, Bhavesh</h1>
+          <p class="page-sub" id="subtext" style="margin-bottom:0;">18-day streak · today's plan is ready.</p>
+        </div>
+      </div>
       <div class="grid4">
-        <div class="card stat c-blue"><div class="num">78%</div><div class="lbl">Overall progress</div></div>
-        <div class="card stat c-green"><div class="num">2,450</div><div class="lbl">XP points</div></div>
-        <div class="card stat c-purple"><div class="num">#4</div><div class="lbl">Class rank</div></div>
-        <div class="card stat c-amber"><div class="num">18</div><div class="lbl">Day streak</div></div>
+        <div class="card stat c-blue"><span class="stat-icon">📈</span><div class="num">78%</div><div class="lbl">Overall progress</div></div>
+        <div class="card stat c-green"><span class="stat-icon">⚡</span><div class="num">2,450</div><div class="lbl">XP points</div></div>
+        <div class="card stat c-purple"><span class="stat-icon">🏆</span><div class="num">#4</div><div class="lbl">Class rank</div></div>
+        <div class="card stat c-amber"><span class="stat-icon flame">🔥</span><div class="num">18</div><div class="lbl">Day streak</div></div>
       </div>
       <div class="grid2">
         <div class="card">
