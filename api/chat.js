@@ -15,7 +15,7 @@ export const config = { runtime: 'edge' };
 // cheaper/faster tutor if you need higher throughput (also free tier).
 const MODEL = 'gemini-3.6-flash';
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:streamGenerateContent?alt=sse`;
-const MAX_OUTPUT_TOKENS = 700;
+const MAX_OUTPUT_TOKENS = 2048;
 const MAX_MESSAGE_CHARS = 4000;             // per-message cap
 const MAX_HISTORY_MESSAGES = 20;            // how many turns of memory we forward to the model
 const REQUEST_TIMEOUT_MS = 30_000;
