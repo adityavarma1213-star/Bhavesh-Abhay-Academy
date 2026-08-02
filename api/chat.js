@@ -268,10 +268,84 @@ export default async function handler(req) {
       // frontend parses each `data:` line's JSON for candidates[0].content.parts.
       console.log('[DEBUG] Streaming started');
       const reader = upstream.body.getReader();
+
+      // ===== TEMPORARY DEBUG LOGGING — remove once root cause is found =====
+      // Read-only inspection of the same bytes we forward below. Never
+      // throws (wrapped in try/catch) and never alters `value` or the
+      // forwarding behavior — controller.enqueue(value) is untouched.
+      const debugDecoder = new TextDecoder();
+      let debugBuffer = '';
+      let debugLoggedFirstChunk = false;
+      // ===== END TEMPORARY DEBUG LOGGING setup =====
+
       try {
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
+
+          // ===== TEMPORARY DEBUG LOGGING =====
+          try {
+            const chunkText = debugDecoder.decode(value, { stream: true });
+
+            if (!debugLoggedFirstChunk) {
+              console.log('[DEBUG] Raw first chunk from Gemini:', chunkText);
+              debugLoggedFirstChunk = true;
+            }
+
+            debugBuffer += chunkText;
+            const debugEvents = debugBuffer.split('\n\n');
+            debugBuffer = debugEvents.pop(); // keep incomplete event for next read
+
+            for (const evt of debugEvents) {
+              const dataLine = evt.split('\n').find((l) => l.startsWith('data:'));
+              if (!dataLine) continue;
+              const jsonStr = dataLine.slice(5).trim();
+              if (!jsonStr) continue;
+
+              let debugParsed;
+              try {
+                debugParsed = JSON.parse(jsonStr);
+              } catch {
+                console.log('[DEBUG] data: line was not valid JSON:', jsonStr);
+                continue;
+              }
+
+              const debugCandidate = debugParsed.candidates && debugParsed.candidates[0];
+              console.log('[DEBUG] candidates array:', JSON.stringify(debugParsed.candidates));
+              console.log('[DEBUG] finishReason:', debugCandidate && debugCandidate.finishReason);
+              console.log(
+                '[DEBUG] content.parts:',
+                debugCandidate && debugCandidate.content
+                  ? JSON.stringify(debugCandidate.content.parts)
+                  : undefined
+              );
+              console.log(
+                '[DEBUG] text fields:',
+                debugCandidate && debugCandidate.content && debugCandidate.content.parts
+                  ? JSON.stringify(debugCandidate.content.parts.map((p) => p.text))
+                  : undefined
+              );
+              console.log(
+                '[DEBUG] blockReason:',
+                debugParsed.promptFeedback && debugParsed.promptFeedback.blockReason
+              );
+              console.log(
+                '[DEBUG] safetyRatings:',
+                debugCandidate ? JSON.stringify(debugCandidate.safetyRatings) : undefined
+              );
+              console.log('[DEBUG] usageMetadata:', JSON.stringify(debugParsed.usageMetadata));
+              if (debugParsed.error) {
+                console.log('[DEBUG] error object in chunk:', JSON.stringify(debugParsed.error));
+              }
+            }
+          } catch (debugErr) {
+            console.log(
+              '[DEBUG] debug-logging block threw (forwarding continues unaffected):',
+              debugErr && debugErr.message
+            );
+          }
+          // ===== END TEMPORARY DEBUG LOGGING =====
+
           controller.enqueue(value);
         }
       } catch (e) {
