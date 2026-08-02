@@ -1079,6 +1079,92 @@ async function sendChat(overrideText){
     let feChunkIndex = 0;
     // ===== END checkpoint 2 =====
 
+    // ----- SSE event-block processor -----
+    // Per the SSE spec, an event block is one or more lines separated by
+    // '\n', terminated by a blank line ('\n\n' between blocks). Lines
+    // starting with ':' are comments and MUST be ignored — they carry no
+    // data (e.g. our own backend's ': connected' keep-alive). A block with
+    // no 'data:' line at all (comment-only, or blank) is not a data event
+    // and is skipped; a block WITH a 'data:' line is processed regardless
+    // of what other lines (comments) also appear in the same block.
+    function processSSEEvent(evt){
+      const lines = evt.split('\n');
+      const dataLines = lines.filter(l => l.startsWith('data:'));
+
+      // ===== TEMPORARY DEBUG LOGGING — checkpoint 7: extraction of data: lines =====
+      console.log('[FE-DEBUG] event block:', JSON.stringify(evt),
+        '| data line(s) found:', dataLines.length);
+      // ===== END checkpoint 7 =====
+
+      if(dataLines.length === 0) return; // comment-only/blank block — ignore, not an error
+
+      // Multiple 'data:' lines in one block are joined per spec; Gemini's
+      // stream never actually does this, but handling it costs nothing.
+      const jsonStr = dataLines.map(l => l.slice(5).trim()).join('\n').trim();
+      if(!jsonStr || jsonStr === '[DONE]') return;
+
+      let parsed;
+      try{
+        parsed = JSON.parse(jsonStr);
+        // ===== TEMPORARY DEBUG LOGGING — checkpoint 8: JSON.parse() success =====
+        console.log('[FE-DEBUG] JSON.parse succeeded:', parsed);
+        // ===== END checkpoint 8 =====
+      }catch(parseErr){
+        // ===== TEMPORARY DEBUG LOGGING — checkpoint 8: JSON.parse() failure =====
+        console.log('[FE-DEBUG] JSON.parse FAILED on:', JSON.stringify(jsonStr), 'error:', parseErr && parseErr.message);
+        // ===== END checkpoint 8 =====
+        return;
+      }
+
+      if(parsed.error){
+        console.log('[FE-DEBUG] parsed.error present, throwing:', parsed.error);
+        throw new Error(parsed.error.message || 'stream interrupted');
+      }
+
+      const blockReason = parsed.promptFeedback && parsed.promptFeedback.blockReason;
+      if(blockReason){
+        console.log('[FE-DEBUG] blockReason present, throwing:', blockReason);
+        throw new Error("I can't help with that one — try rephrasing your question!");
+      }
+
+      const candidate = parsed.candidates && parsed.candidates[0];
+
+      // ===== TEMPORARY DEBUG LOGGING — checkpoint 9: parsed.candidates =====
+      console.log('[FE-DEBUG] parsed.candidates:', parsed.candidates, '| candidate[0]:', candidate);
+      // ===== END checkpoint 9 =====
+
+      if(candidate && candidate.finishReason === 'SAFETY'){
+        console.log('[FE-DEBUG] finishReason SAFETY, throwing.');
+        throw new Error("I can't help with that one — try rephrasing your question!");
+      }
+
+      // ===== TEMPORARY DEBUG LOGGING — checkpoint 10: content.parts =====
+      console.log('[FE-DEBUG] candidate.content:', candidate && candidate.content,
+        '| content.parts:', candidate && candidate.content && candidate.content.parts,
+        '| finishReason:', candidate && candidate.finishReason);
+      // ===== END checkpoint 10 =====
+
+      const textPart = candidate && candidate.content && candidate.content.parts
+        ? candidate.content.parts.map(p => p.text || '').join('')
+        : '';
+
+      // ===== TEMPORARY DEBUG LOGGING — checkpoint 11: textPart =====
+      console.log('[FE-DEBUG] textPart:', JSON.stringify(textPart), '(length ' + textPart.length + ')');
+      // ===== END checkpoint 11 =====
+
+      if(textPart){
+        accumulated += textPart;
+        const rendered = renderMarkdown(accumulated);
+        aiBubble.innerHTML = rendered.innerHTML;
+        renderMathIn(aiBubble);
+        log.scrollTop = log.scrollHeight;
+
+        // ===== TEMPORARY DEBUG LOGGING — checkpoint 12: accumulated =====
+        console.log('[FE-DEBUG] accumulated updated (length ' + accumulated.length + '):', JSON.stringify(accumulated));
+        // ===== END checkpoint 12 =====
+      }
+    }
+
     while(true){
       const {done, value} = await reader.read();
 
@@ -1096,7 +1182,15 @@ async function sendChat(overrideText){
       feChunkIndex++;
       // ===== END checkpoint 4 =====
 
-      buffer += decodedChunk;
+      // Gemini's own SSE stream terminates events with CRLF CRLF ('\r\n\r\n'),
+      // not the bare '\n\n' our own ': connected' comment uses. Normalizing
+      // to '\n' here — on the full accumulated buffer, not just the new
+      // chunk, so a CRLF split across two reads is still caught — makes
+      // every event boundary (ours and Gemini's) detectable by the same
+      // '\n\n' split below. Without this, '\r\n\r\n' never contains a literal
+      // '\n\n' substring, so real Gemini events are never recognized as
+      // complete and pile up unprocessed in `buffer`.
+      buffer = (buffer + decodedChunk).replace(/\r\n/g, '\n');
 
       // ===== TEMPORARY DEBUG LOGGING — checkpoint 5: buffer =====
       console.log('[FE-DEBUG] buffer after append (len ' + buffer.length + '):', JSON.stringify(buffer));
@@ -1110,76 +1204,23 @@ async function sendChat(overrideText){
       // ===== END checkpoint 6 =====
 
       for(const evt of events){
-        const dataLine = evt.split('\n').find(l => l.startsWith('data:'));
-
-        // ===== TEMPORARY DEBUG LOGGING — checkpoint 7: extraction of data: lines =====
-        console.log('[FE-DEBUG] event block:', JSON.stringify(evt), '| dataLine found:', !!dataLine);
-        // ===== END checkpoint 7 =====
-
-        if(!dataLine) continue;
-        const jsonStr = dataLine.slice(5).trim();
-        if(!jsonStr || jsonStr === '[DONE]') continue;
-        let parsed;
-        try{
-          parsed = JSON.parse(jsonStr);
-          // ===== TEMPORARY DEBUG LOGGING — checkpoint 8: JSON.parse() success =====
-          console.log('[FE-DEBUG] JSON.parse succeeded:', parsed);
-          // ===== END checkpoint 8 =====
-        }catch(parseErr){
-          // ===== TEMPORARY DEBUG LOGGING — checkpoint 8: JSON.parse() failure =====
-          console.log('[FE-DEBUG] JSON.parse FAILED on:', JSON.stringify(jsonStr), 'error:', parseErr && parseErr.message);
-          // ===== END checkpoint 8 =====
-          continue;
-        }
-
-        if(parsed.error){
-          console.log('[FE-DEBUG] parsed.error present, throwing:', parsed.error);
-          throw new Error(parsed.error.message || 'stream interrupted');
-        }
-
-        const blockReason = parsed.promptFeedback && parsed.promptFeedback.blockReason;
-        if(blockReason){
-          console.log('[FE-DEBUG] blockReason present, throwing:', blockReason);
-          throw new Error("I can't help with that one — try rephrasing your question!");
-        }
-
-        const candidate = parsed.candidates && parsed.candidates[0];
-
-        // ===== TEMPORARY DEBUG LOGGING — checkpoint 9: parsed.candidates =====
-        console.log('[FE-DEBUG] parsed.candidates:', parsed.candidates, '| candidate[0]:', candidate);
-        // ===== END checkpoint 9 =====
-
-        if(candidate && candidate.finishReason === 'SAFETY'){
-          console.log('[FE-DEBUG] finishReason SAFETY, throwing.');
-          throw new Error("I can't help with that one — try rephrasing your question!");
-        }
-
-        // ===== TEMPORARY DEBUG LOGGING — checkpoint 10: content.parts =====
-        console.log('[FE-DEBUG] candidate.content:', candidate && candidate.content,
-          '| content.parts:', candidate && candidate.content && candidate.content.parts,
-          '| finishReason:', candidate && candidate.finishReason);
-        // ===== END checkpoint 10 =====
-
-        const textPart = candidate && candidate.content && candidate.content.parts
-          ? candidate.content.parts.map(p => p.text || '').join('')
-          : '';
-
-        // ===== TEMPORARY DEBUG LOGGING — checkpoint 11: textPart =====
-        console.log('[FE-DEBUG] textPart:', JSON.stringify(textPart), '(length ' + textPart.length + ')');
-        // ===== END checkpoint 11 =====
-
-        if(textPart){
-          accumulated += textPart;
-          const rendered = renderMarkdown(accumulated);
-          aiBubble.innerHTML = rendered.innerHTML;
-          renderMathIn(aiBubble);
-          log.scrollTop = log.scrollHeight;
-
-          // ===== TEMPORARY DEBUG LOGGING — checkpoint 12: accumulated =====
-          console.log('[FE-DEBUG] accumulated updated (length ' + accumulated.length + '):', JSON.stringify(accumulated));
-          // ===== END checkpoint 12 =====
-        }
+        processSSEEvent(evt);
       }
+    }
+
+    // ----- Flush any trailing event left in `buffer` -----
+    // If the stream closes right after its final event and that event's
+    // closing '\n\n' either arrives in the same read as `done` or is
+    // omitted entirely by the server, the last split() above defers it to
+    // `buffer` as a "possibly incomplete" remainder — and it is never
+    // reprocessed once the loop exits. Since there is no more data coming,
+    // whatever is left in `buffer` at this point IS complete; process it.
+    if(buffer.trim()){
+      // ===== TEMPORARY DEBUG LOGGING — trailing buffer flush =====
+      console.log('[FE-DEBUG] Flushing leftover buffer after stream close:', JSON.stringify(buffer));
+      // ===== END trailing buffer flush =====
+      processSSEEvent(buffer);
+      buffer = '';
     }
 
     // ===== TEMPORARY DEBUG LOGGING — checkpoint 13/14: final accumulated + fallback condition =====
