@@ -116,6 +116,39 @@ body.a11y-on .status-dot .shape{display:inline-block !important;}
 .bar-fill{height:100%;background:var(--accent);border-radius:99px;}
 [data-exp="neo"] .bar-fill{background:linear-gradient(90deg,var(--cyan),var(--violet));}
 .pill{font-family:var(--font-mono);font-size:11px;padding:3px 9px;border-radius:99px;background:var(--accent-soft);color:var(--accent);white-space:nowrap;}
+.nav-item[role="button"]:focus-visible, .bn-item[role="button"]:focus-visible, .mode-card[role="button"]:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;}
+
+/* ===================== LEARNING COMPANION & SMART GUIDANCE (Production Milestone 2B) =====================
+   Additive only. Reuses .card/.eyebrow/.row/.pill/.bar-track/.btn primitives so Scholar/Explorer/Neo
+   theming, glass UI, and radius/motion tokens apply automatically — no new per-experience rules needed. */
+.lc-mission-row{display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid var(--border);}
+.lc-mission-row:last-child{border-bottom:none;}
+.lc-mission-row input[type="checkbox"]{width:17px;height:17px;accent-color:var(--accent);cursor:pointer;flex-shrink:0;}
+.lc-mission-row input[type="checkbox"]:disabled{cursor:default;}
+.lc-mission-label{font-size:13px;flex:1;}
+.lc-mission-row.done .lc-mission-label{text-decoration:line-through;color:var(--ink-soft);}
+.lc-reward-pill{font-family:var(--font-mono);font-size:10.5px;color:var(--ink-dim);white-space:nowrap;}
+.lc-emotion-row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
+.lc-emotion-btn{background:var(--accent-soft);border:none;border-radius:var(--radius-btn);padding:8px 12px;font-size:18px;line-height:1;cursor:pointer;transition:transform var(--motion-fast,0.2s ease);}
+.lc-emotion-btn:hover{transform:translateY(-2px);}
+.lc-emotion-btn[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset:2px;}
+.lc-emotion-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+.lc-plan-block{display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:7px 0;border-bottom:1px solid var(--border);}
+.lc-plan-block:last-child{border-bottom:none;}
+.lc-revision-item{padding:8px 0;border-bottom:1px solid var(--border);}
+.lc-revision-item:last-child{border-bottom:none;}
+.lc-revision-item .lc-r-why{font-size:11.5px;color:var(--ink-dim);margin-top:2px;}
+.lc-timeline{display:flex;flex-direction:column;}
+.lc-timeline-item{position:relative;padding:0 0 18px 22px;border-left:2px solid var(--border);}
+.lc-timeline-item:last-child{border-left-color:transparent;padding-bottom:0;}
+.lc-timeline-item::before{content:'';position:absolute;left:-6px;top:2px;width:10px;height:10px;border-radius:50%;background:var(--accent);}
+.lc-timeline-item.current::before{box-shadow:0 0 0 3px var(--accent-soft);}
+.lc-t-label{font-weight:600;font-size:13px;}
+.lc-t-date{font-size:11px;color:var(--ink-dim);}
+.lc-curiosity-item{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12.5px;line-height:1.5;}
+.lc-curiosity-item:last-child{border-bottom:none;}
+.lc-curiosity-tag{font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:0.05em;color:var(--accent);flex-shrink:0;padding-top:1px;}
+@media (prefers-reduced-motion: reduce){ .lc-emotion-btn{transition:none;} }
 .row{display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:9px 0;border-bottom:1px solid var(--border);}
 .row:last-child{border:none;}
 .status-dot{display:none;align-items:center;gap:4px;}
@@ -655,6 +688,7 @@ body[data-exp="explorer"] .dash-focus .path-node{width:28px;height:28px;font-siz
 .dna-trait .dt-fill{display:block;height:100%;background:var(--accent);border-radius:99px;transition:width 0.8s ease;width:0;}
 [data-exp="neo"] .dna-trait .dt-fill{background:linear-gradient(90deg,var(--cyan),var(--violet));}
 .dna-trait .dt-val{width:32px;text-align:right;font-family:var(--font-mono);color:var(--ink-dim);}
+.dna-trait .dt-trend{width:14px;text-align:center;font-size:10px;flex-shrink:0;}
 .goal-chip{display:inline-flex;align-items:center;gap:6px;background:var(--accent-soft);color:var(--accent);font-size:12px;font-weight:600;padding:6px 12px;border-radius:99px;margin:0 6px 6px 0;border:none;cursor:pointer;font-family:var(--font-body);}
 .goal-chip.selected{background:var(--accent);color:#fff;}
 .insight-item{display:flex;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;color:var(--ink-dim);line-height:1.55;}
@@ -743,12 +777,12 @@ body[data-exp="explorer"] .dash-focus .path-node{width:28px;height:28px;font-siz
       <button data-v="teacher" onclick="setRole('teacher')">👨‍🏫 Teacher</button>
     </div>
     <div class="mode-grid" id="student-modes">
-      <div class="card mode-card" onclick="enterApp('custom')">
+      <div class="card mode-card" role="button" tabindex="0" onclick="enterApp('custom')">
         <div class="mode-icon">🧭</div>
         <div class="mtitle">Custom mode</div>
         <div class="mdesc">Pick your own subject and chapter, study at your own pace.</div>
       </div>
-      <div class="card mode-card recommended" onclick="enterApp('ai')">
+      <div class="card mode-card recommended" role="button" tabindex="0" onclick="enterApp('ai')">
         <span class="pill" style="margin-bottom:6px;display:inline-block;">Recommended</span>
         <div class="mode-icon">🧠</div>
         <div class="mtitle">AI mode</div>
@@ -769,13 +803,13 @@ body[data-exp="explorer"] .dash-focus .path-node{width:28px;height:28px;font-siz
 <div id="app">
   <div class="sidebar">
     <div class="brand"><span class="mark"></span> BAA OS</div>
-    <div class="nav-item active" data-view="dashboard" onclick="showView('dashboard')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9a1 1 0 0 0 1 1H9a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1h2.5a1 1 0 0 0 1-1v-9"/></svg></span> Dashboard</div>
-    <div class="nav-item" data-view="tutor" onclick="showView('tutor')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v7A2.5 2.5 0 0 1 17.5 15H10l-4 3.5V15H6.5A2.5 2.5 0 0 1 4 12.5z"/><path d="M9 8.5h6M9 11h4"/></svg></span> AI Tutor</div>
-    <div class="nav-item" data-view="ku" onclick="showView('ku')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7.5"/><ellipse cx="12" cy="12" rx="7.5" ry="3"/><path d="M12 4.5v15"/></svg></span> Knowledge Universe</div>
-    <div class="nav-item" data-view="homework" onclick="showView('homework')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h7l4 4v14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M14 3v4h4"/><path d="M8.5 12.5h7M8.5 16h5"/></svg></span> Homework</div>
-    <div class="nav-item" data-view="career" onclick="showView('career')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5c2.5 1.8 4 5 4 8.5 0 1.6-.3 3-.8 4.2l-3.2 3.3-3.2-3.3c-.5-1.2-.8-2.6-.8-4.2 0-3.5 1.5-6.7 4-8.5Z"/><circle cx="12" cy="10.5" r="1.6"/><path d="M9 15l-2.5 2.5M15 15l2.5 2.5M10 19.5l2-2 2 2"/></svg></span> Career</div>
-    <div class="nav-item" data-view="profile" onclick="showView('profile')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.6 3.1-6.5 7-6.5s7 2.9 7 6.5"/></svg></span> Profile</div>
-    <div class="nav-item" data-view="settings" onclick="showView('settings')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.5-2-3.4-2.3.9a7 7 0 0 0-2-1.2L14 3h-4l-.4 2.6a7 7 0 0 0-2 1.2l-2.3-.9-2 3.4 2 1.5A7 7 0 0 0 5 12c0 .4 0 .8.1 1.2l-2 1.5 2 3.4 2.3-.9c.6.5 1.3.9 2 1.2L10 21h4l.4-2.6c.7-.3 1.4-.7 2-1.2l2.3.9 2-3.4-2-1.5c.1-.4.1-.8.1-1.2Z"/></svg></span> Settings</div>
+    <div class="nav-item active" data-view="dashboard" role="button" tabindex="0" onclick="showView('dashboard')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9a1 1 0 0 0 1 1H9a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1h2.5a1 1 0 0 0 1-1v-9"/></svg></span> Dashboard</div>
+    <div class="nav-item" data-view="tutor" role="button" tabindex="0" onclick="showView('tutor')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v7A2.5 2.5 0 0 1 17.5 15H10l-4 3.5V15H6.5A2.5 2.5 0 0 1 4 12.5z"/><path d="M9 8.5h6M9 11h4"/></svg></span> AI Tutor</div>
+    <div class="nav-item" data-view="ku" role="button" tabindex="0" onclick="showView('ku')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7.5"/><ellipse cx="12" cy="12" rx="7.5" ry="3"/><path d="M12 4.5v15"/></svg></span> Knowledge Universe</div>
+    <div class="nav-item" data-view="homework" role="button" tabindex="0" onclick="showView('homework')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h7l4 4v14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M14 3v4h4"/><path d="M8.5 12.5h7M8.5 16h5"/></svg></span> Homework</div>
+    <div class="nav-item" data-view="career" role="button" tabindex="0" onclick="showView('career')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5c2.5 1.8 4 5 4 8.5 0 1.6-.3 3-.8 4.2l-3.2 3.3-3.2-3.3c-.5-1.2-.8-2.6-.8-4.2 0-3.5 1.5-6.7 4-8.5Z"/><circle cx="12" cy="10.5" r="1.6"/><path d="M9 15l-2.5 2.5M15 15l2.5 2.5M10 19.5l2-2 2 2"/></svg></span> Career</div>
+    <div class="nav-item" data-view="profile" role="button" tabindex="0" onclick="showView('profile')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.6 3.1-6.5 7-6.5s7 2.9 7 6.5"/></svg></span> Profile</div>
+    <div class="nav-item" data-view="settings" role="button" tabindex="0" onclick="showView('settings')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.5-2-3.4-2.3.9a7 7 0 0 0-2-1.2L14 3h-4l-.4 2.6a7 7 0 0 0-2 1.2l-2.3-.9-2 3.4 2 1.5A7 7 0 0 0 5 12c0 .4 0 .8.1 1.2l-2 1.5 2 3.4 2.3-.9c.6.5 1.3.9 2 1.2L10 21h4l.4-2.6c.7-.3 1.4-.7 2-1.2l2.3.9 2-3.4-2-1.5c.1-.4.1-.8.1-1.2Z"/></svg></span> Settings</div>
     <div class="sidebar-foot" id="mode-badge">Mode: AI</div>
     <div class="sidebar-foot account-switch" style="margin-top:8px;">
       <button onclick="openManageProfiles()" title="Switch profile">👤 Switch</button>
@@ -963,7 +997,7 @@ body[data-exp="explorer"] .dash-focus .path-node{width:28px;height:28px;font-siz
             <div id="dash-today-goal" style="font-weight:600;font-size:13.5px;"></div>
           </div>
           <div class="card">
-            <div class="eyebrow">Confidence</div>
+            <div class="eyebrow">Confidence summary</div>
             <div id="dash-confidence" style="font-size:12.5px;color:var(--ink-dim);line-height:1.5;"></div>
           </div>
           <div class="card">
@@ -973,6 +1007,33 @@ body[data-exp="explorer"] .dash-focus .path-node{width:28px;height:28px;font-siz
           <div class="card">
             <div class="eyebrow">AI insight</div>
             <div id="dash-insight" style="font-size:12px;color:var(--ink-dim);line-height:1.5;"></div>
+          </div>
+          <div class="card" id="lc-companion-card">
+            <div class="eyebrow">Learning Companion</div>
+            <div id="companion-greeting" style="font-weight:700;font-size:14.5px;font-family:var(--font-display);margin-bottom:4px;"></div>
+            <div id="companion-message" style="font-size:12.5px;color:var(--ink-dim);line-height:1.6;"></div>
+            <div class="lc-emotion-row" id="companion-emotion-row" role="group" aria-label="How are you feeling today?"></div>
+          </div>
+          <div class="card">
+            <div class="eyebrow">Today's plan</div>
+            <div id="plan-blocks"></div>
+            <div class="row" style="border-top:1px solid var(--border);margin-top:4px;padding-top:9px;"><span>Estimated time</span><span class="pill" id="plan-total-time">—</span></div>
+          </div>
+          <div class="card">
+            <div class="eyebrow">Missions</div>
+            <div id="missions-list"></div>
+            <div id="missions-progress-text" style="font-size:11.5px;color:var(--ink-dim);margin-top:8px;"></div>
+          </div>
+          <div class="card">
+            <div class="eyebrow">Continue learning</div>
+            <div style="font-weight:600;font-size:13.5px;" id="continue-subject"></div>
+            <div class="bar-track"><div class="bar-fill" id="continue-progress-bar" style="width:0%;"></div></div>
+            <div class="row" style="border:none;padding-top:0;"><span id="continue-progress-text" style="font-size:11.5px;color:var(--ink-dim);"></span></div>
+            <button class="btn outline" style="margin-top:6px;" onclick="lcResumeContinueLearning()">Resume →</button>
+          </div>
+          <div class="card">
+            <div class="eyebrow">Revision reminder</div>
+            <div id="revision-list"></div>
           </div>
         </div>
       </div>
@@ -1146,11 +1207,22 @@ body[data-exp="explorer"] .dash-focus .path-node{width:28px;height:28px;font-siz
         <div id="insights-body"></div>
       </div>
 
-      <div class="card">
+      <div class="card" style="margin-bottom:20px;">
         <div class="eyebrow">Learning story</div>
         <p style="font-size:13.5px;color:var(--ink-dim);line-height:1.7;" id="profile-learning-story">
           You started this term steady in Physics and have kept building — three weeks of consistent practice pushed your Learning IQ up and your confidence with it. Chemistry has been a slower climb, but every review session is closing the gap.
         </p>
+      </div>
+
+      <div class="card" style="margin-bottom:20px;">
+        <div class="eyebrow">Learning journey</div>
+        <div class="lc-timeline" id="journey-timeline"></div>
+      </div>
+
+      <div class="card">
+        <div class="eyebrow">Curiosity engine</div>
+        <div id="curiosity-list"></div>
+        <button class="btn outline" style="margin-top:10px;" onclick="lcRefreshCuriosity()">Show me something new</button>
       </div>
     </section>
 
@@ -1226,12 +1298,12 @@ body[data-exp="explorer"] .dash-focus .path-node{width:28px;height:28px;font-siz
   </div>
 
   <div class="bottom-nav">
-    <div class="bn-item active" data-view="dashboard" onclick="showView('dashboard')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9a1 1 0 0 0 1 1H9a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1h2.5a1 1 0 0 0 1-1v-9"/></svg></span>Home</div>
-    <div class="bn-item" data-view="tutor" onclick="showView('tutor')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v7A2.5 2.5 0 0 1 17.5 15H10l-4 3.5V15H6.5A2.5 2.5 0 0 1 4 12.5z"/><path d="M9 8.5h6M9 11h4"/></svg></span>Tutor</div>
-    <div class="bn-item" data-view="ku" onclick="showView('ku')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7.5"/><ellipse cx="12" cy="12" rx="7.5" ry="3"/><path d="M12 4.5v15"/></svg></span>Explore</div>
-    <div class="bn-item" data-view="homework" onclick="showView('homework')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h7l4 4v14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M14 3v4h4"/><path d="M8.5 12.5h7M8.5 16h5"/></svg></span>Homework</div>
-    <div class="bn-item" data-view="profile" onclick="showView('profile')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.6 3.1-6.5 7-6.5s7 2.9 7 6.5"/></svg></span>Profile</div>
-    <div class="bn-item" data-view="settings" onclick="showView('settings')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.5-2-3.4-2.3.9a7 7 0 0 0-2-1.2L14 3h-4l-.4 2.6a7 7 0 0 0-2 1.2l-2.3-.9-2 3.4 2 1.5A7 7 0 0 0 5 12c0 .4 0 .8.1 1.2l-2 1.5 2 3.4 2.3-.9c.6.5 1.3.9 2 1.2L10 21h4l.4-2.6c.7-.3 1.4-.7 2-1.2l2.3.9 2-3.4-2-1.5c.1-.4.1-.8.1-1.2Z"/></svg></span>Settings</div>
+    <div class="bn-item active" data-view="dashboard" role="button" tabindex="0" onclick="showView('dashboard')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9a1 1 0 0 0 1 1H9a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1h2.5a1 1 0 0 0 1-1v-9"/></svg></span>Home</div>
+    <div class="bn-item" data-view="tutor" role="button" tabindex="0" onclick="showView('tutor')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v7A2.5 2.5 0 0 1 17.5 15H10l-4 3.5V15H6.5A2.5 2.5 0 0 1 4 12.5z"/><path d="M9 8.5h6M9 11h4"/></svg></span>Tutor</div>
+    <div class="bn-item" data-view="ku" role="button" tabindex="0" onclick="showView('ku')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7.5"/><ellipse cx="12" cy="12" rx="7.5" ry="3"/><path d="M12 4.5v15"/></svg></span>Explore</div>
+    <div class="bn-item" data-view="homework" role="button" tabindex="0" onclick="showView('homework')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h7l4 4v14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M14 3v4h4"/><path d="M8.5 12.5h7M8.5 16h5"/></svg></span>Homework</div>
+    <div class="bn-item" data-view="profile" role="button" tabindex="0" onclick="showView('profile')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.6 3.1-6.5 7-6.5s7 2.9 7 6.5"/></svg></span>Profile</div>
+    <div class="bn-item" data-view="settings" role="button" tabindex="0" onclick="showView('settings')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.5-2-3.4-2.3.9a7 7 0 0 0-2-1.2L14 3h-4l-.4 2.6a7 7 0 0 0-2 1.2l-2.3-.9-2 3.4 2 1.5A7 7 0 0 0 5 12c0 .4 0 .8.1 1.2l-2 1.5 2 3.4 2.3-.9c.6.5 1.3.9 2 1.2L10 21h4l.4-2.6c.7-.3 1.4-.7 2-1.2l2.3.9 2-3.4-2-1.5c.1-.4.1-.8.1-1.2Z"/></svg></span>Settings</div>
   </div>
 </div>
 
@@ -2544,38 +2616,70 @@ const DNA_TRAITS = [
   {key:'studyConsistency', label:'Study Consistency'},
   {key:'curiosity', label:'Curiosity'},
 ];
-const PZ_LEARNING_STYLES = ['Visual','Story Based','Practice Based','Video Based'];
+const PZ_LEARNING_STYLES = ['Visual','Story Based','Practice Based','Step by Step'];
 const PZ_READING_PACES = ['Fast Reader','Average Reader','Slow Reader'];
 const PZ_STUDY_TIMES = ['Morning','Afternoon','Evening','Night'];
 const PZ_SUBJECTS = ['Mathematics','Science','English','Geometry','History','Coding'];
-const PZ_GOAL_OPTIONS = ['Score Above 90%','Improve Mathematics','Olympiad','JEE','NEET','Coding','Communication','Public Speaking'];
+const PZ_GOAL_OPTIONS = ['Score Above 90%','Improve Mathematics','Improve English','Olympiad','JEE','NEET','UPSC','Coding','Communication','Public Speaking'];
 const PZ_DREAM_OPTIONS = ['Doctor','Engineer','Scientist','Teacher','Artist','Entrepreneur','Pilot','IAS','IPS','CA','Lawyer','Designer'];
 
 function pzRand(min,max){ return Math.round(min + Math.random()*(max-min)); }
 function pzPick(arr){ return arr[pzRand(0, arr.length-1)]; }
+/* Options helper: keeps an already-saved value in a <select>/chip list even if it predates a later option-list update. */
+function pzOptionsWith(list, current){ return (current && list.indexOf(current) === -1) ? list.concat([current]) : list; }
+/* DNA trait accessor — traits are stored as {value, trend, updatedAt}; this keeps old flat-number saves readable too. */
+function dnaTraitValue(dna, key){ const v = dna[key]; return (v && typeof v === 'object') ? v.value : (v || 0); }
+function dnaTraitTrend(dna, key){ const v = dna[key]; return (v && typeof v === 'object') ? v.trend : 0; }
+function dnaTraitUpdated(dna, key){ const v = dna[key]; return (v && typeof v === 'object' && v.updatedAt) ? v.updatedAt : null; }
+function pzShortDate(iso){ if(!iso) return ''; try{ return new Date(iso).toLocaleDateString(undefined,{month:'short',day:'numeric'}); }catch(e){ return ''; } }
 
-/* ---------------- Module 1: Learning DNA (initial estimate; evolves later) ---------------- */
+/* ---------------- Module 1: Learning DNA (initial estimate; evolves later) ----------------
+   Each trait is stored as { value, trend, updatedAt } so future modules can log growth
+   over time instead of overwriting a single number. */
 function generateLearningDNA(){
   const dna = {};
-  DNA_TRAITS.forEach(t => { dna[t.key] = pzRand(58, 90); });
+  DNA_TRAITS.forEach(t => {
+    dna[t.key] = { value: pzRand(58, 90), trend: pzRand(-3, 6), updatedAt: new Date().toISOString() };
+  });
+  return dna;
+}
+/* Upgrades a profile saved under the old flat-number Learning DNA shape to the {value,trend,updatedAt} shape. */
+function migrateLearningDNA(dna){
+  DNA_TRAITS.forEach(t => {
+    if(typeof dna[t.key] === 'number'){
+      dna[t.key] = { value: dna[t.key], trend: 0, updatedAt: new Date().toISOString() };
+    }
+  });
   return dna;
 }
 
-/* ---------------- Module 2: Learning Twin ---------------- */
+/* ---------------- Module 2: Learning Twin (student's AI profile) ---------------- */
 function generateLearningTwin(){
   return {
     learningStyle: pzPick(PZ_LEARNING_STYLES),
     readingPace: pzPick(PZ_READING_PACES),
     avgStudySession: pzRand(25, 55),
     preferredStudyTime: pzPick(PZ_STUDY_TIMES),
-    weakTopics: ['Geometry', 'Chemical Bonding'],
-    strongTopics: ['Algebra', 'Mechanics'],
-    attentionPattern: 'Focused in short bursts, dips after ~30 min',
+    attentionSpan: pzRand(15, 45),
+    weakSubjects: ['Geometry', 'Chemistry'],
+    strongSubjects: ['Algebra', 'Physics'],
+    weakTopics: ['Geometry proofs', 'Chemical Bonding'],
+    strongTopics: ['Linear Equations', 'Newtonian Mechanics'],
     learningVelocity: pzRand(60, 95),
     currentConfidence: pzRand(55, 85),
-    revisionFrequency: 'Every 3–4 days',
+    currentMotivation: pzPick(['High', 'Steady', 'Building back up']),
+    revisionPattern: 'Every 3–4 days',
     recentImprovement: '+' + pzRand(3, 12) + '% this month',
   };
+}
+/* Fills in fields added to the Learning Twin shape after a profile was first created, without touching what's already there. */
+function migrateLearningTwin(t){
+  if(t.attentionSpan === undefined) t.attentionSpan = pzRand(15, 45);
+  if(!t.weakSubjects) t.weakSubjects = ['Geometry', 'Chemistry'];
+  if(!t.strongSubjects) t.strongSubjects = ['Algebra', 'Physics'];
+  if(!t.currentMotivation) t.currentMotivation = pzPick(['High', 'Steady', 'Building back up']);
+  if(!t.revisionPattern) t.revisionPattern = t.revisionFrequency || 'Every 3–4 days';
+  return t;
 }
 
 /* ---------------- Module 3: Confidence Engine ---------------- */
@@ -2593,7 +2697,7 @@ function generateConfidenceModel(){
 function generateInsights(p){
   const twin = p.learningTwin || {};
   const dna = p.learningDNA || {};
-  const ranked = Object.entries(dna).sort((a,b) => b[1]-a[1]);
+  const ranked = Object.keys(dna).map(k => [k, dnaTraitValue(dna, k)]).sort((a,b) => b[1]-a[1]);
   const best = ranked[0];
   const bestLabel = best ? (DNA_TRAITS.find(t => t.key === best[0]) || {}).label : null;
   const lines = [];
@@ -2611,7 +2715,9 @@ function ensurePersonalization(p){
   if(!p || p.accountType !== 'student') return p;
   let changed = false;
   if(!p.learningDNA){ p.learningDNA = generateLearningDNA(); changed = true; }
+  else { migrateLearningDNA(p.learningDNA); }
   if(!p.learningTwin){ p.learningTwin = generateLearningTwin(); changed = true; }
+  else { migrateLearningTwin(p.learningTwin); }
   if(!p.confidenceModel){ p.confidenceModel = generateConfidenceModel(); changed = true; }
   if(!p.learningGoals){ p.learningGoals = ['Score Above 90%', 'Improve Mathematics']; changed = true; }
   if(!p.dreamCareer){ p.dreamCareer = {title: 'Aerospace Engineer', category: 'Engineer', note: 'Building the next generation of flight.'}; changed = true; }
@@ -2637,7 +2743,7 @@ function buildDNARadarSVG(dna){
     const r = (Math.max(0, Math.min(100, val)) / 100) * rMax;
     return [cx + r * Math.cos(angle), cy + r * Math.sin(angle)];
   };
-  const dataPts = DNA_TRAITS.map((t, i) => ptFor(dna[t.key] || 0, i));
+  const dataPts = DNA_TRAITS.map((t, i) => ptFor(dnaTraitValue(dna, t.key), i));
   const polyPts = dataPts.map(p => p.join(',')).join(' ');
   const rings = [0.25, 0.5, 0.75, 1].map(f => {
     const pts = DNA_TRAITS.map((t, i) => {
@@ -2663,11 +2769,18 @@ function renderDNACard(p){
   const wrap = document.getElementById('dna-wrap');
   if(!wrap) return;
   const dna = p.learningDNA;
-  const bars = DNA_TRAITS.map(t => (
-    '<div class="dna-trait"><span class="dt-label">' + t.label + '</span>' +
-    '<span class="dt-bar"><span class="dt-fill" style="width:' + dna[t.key] + '%;"></span></span>' +
-    '<span class="dt-val">' + dna[t.key] + '%</span></div>'
-  )).join('');
+  const bars = DNA_TRAITS.map(t => {
+    const val = dnaTraitValue(dna, t.key);
+    const trend = dnaTraitTrend(dna, t.key);
+    const trendIcon = trend > 0 ? '▲' : trend < 0 ? '▼' : '–';
+    const trendClass = trend > 0 ? 'var(--green)' : trend < 0 ? '#DC2626' : 'var(--ink-soft)';
+    const updated = pzShortDate(dnaTraitUpdated(dna, t.key));
+    return '<div class="dna-trait" title="Last updated ' + (updated || 'today') + '">' +
+      '<span class="dt-label">' + t.label + '</span>' +
+      '<span class="dt-bar"><span class="dt-fill" style="width:' + val + '%;"></span></span>' +
+      '<span class="dt-val">' + val + '%</span>' +
+      '<span class="dt-trend" style="color:' + trendClass + ';">' + trendIcon + '</span></div>';
+  }).join('');
   wrap.innerHTML = buildDNARadarSVG(dna) + '<div class="dna-traits">' + bars + '</div>';
   const focus = document.getElementById('profile-focus-window');
   if(focus) focus.textContent = (p.learningTwin.preferredStudyTime || 'Evening') + ' window';
@@ -2684,12 +2797,15 @@ function renderTwinCard(p){
     '<div class="row"><span>Reading pace</span><span class="pill">' + t.readingPace + '</span></div>' +
     '<div class="row"><span>Avg. study session</span><span class="pill">' + t.avgStudySession + ' min</span></div>' +
     '<div class="row"><span>Preferred study time</span><span class="pill">' + t.preferredStudyTime + '</span></div>' +
+    '<div class="row"><span>Attention span</span><span class="pill">~' + t.attentionSpan + ' min</span></div>' +
+    '<div class="row"><span>Weak subjects</span><span class="pill">' + t.weakSubjects.join(', ') + '</span></div>' +
+    '<div class="row"><span>Strong subjects</span><span class="pill">' + t.strongSubjects.join(', ') + '</span></div>' +
     '<div class="row"><span>Weak topics</span><span class="pill">' + t.weakTopics.join(', ') + '</span></div>' +
     '<div class="row"><span>Strong topics</span><span class="pill">' + t.strongTopics.join(', ') + '</span></div>' +
-    '<div class="row"><span>Attention pattern</span><span class="pill">' + t.attentionPattern + '</span></div>' +
     '<div class="row"><span>Learning velocity</span><span class="pill">' + t.learningVelocity + '%</span></div>' +
     '<div class="row"><span>Current confidence</span><span class="pill">' + t.currentConfidence + '%</span></div>' +
-    '<div class="row"><span>Revision frequency</span><span class="pill">' + t.revisionFrequency + '</span></div>' +
+    '<div class="row"><span>Current motivation</span><span class="pill">' + t.currentMotivation + '</span></div>' +
+    '<div class="row"><span>Revision pattern</span><span class="pill">' + t.revisionPattern + '</span></div>' +
     '<div class="row" style="border-bottom:none;"><span>Recent improvement</span><span class="pill">' + t.recentImprovement + '</span></div>';
 }
 
@@ -2732,7 +2848,8 @@ function renderRecentGrowthCard(p){
   const el = document.getElementById('recent-growth-body');
   if(!el) return;
   const dna = p.learningDNA;
-  const top = Object.entries(dna).sort((a,b) => b[1]-a[1])[0];
+  const ranked = DNA_TRAITS.map(t => [t.key, dnaTraitTrend(dna, t.key)]).sort((a,b) => b[1]-a[1]);
+  const top = ranked[0];
   const label = top ? (DNA_TRAITS.find(t => t.key === top[0]) || {}).label : 'Overall progress';
   el.textContent = (label || 'Overall progress') + ' is trending upward this month, alongside ' + (p.learningTwin.recentImprovement || 'steady progress') + ' overall.';
 }
@@ -2740,7 +2857,7 @@ function renderRecentGrowthCard(p){
 function renderDashboardPersonalization(p){
   const dnaTop = document.getElementById('dash-dna-top');
   if(dnaTop){
-    const entries = Object.entries(p.learningDNA).sort((a,b) => b[1]-a[1]).slice(0,2);
+    const entries = DNA_TRAITS.map(t => [t.key, dnaTraitValue(p.learningDNA, t.key)]).sort((a,b) => b[1]-a[1]).slice(0,2);
     dnaTop.textContent = entries.map(e => (DNA_TRAITS.find(t => t.key === e[0]) || {}).label + ' ' + e[1] + '%').join(' · ');
   }
   const conf = document.getElementById('dash-confidence');
@@ -2755,7 +2872,7 @@ function renderPersonalizationSettings(p){
   const styleSel = document.getElementById('pz-learning-style');
   if(!styleSel) return;
   const t = p.learningTwin;
-  styleSel.innerHTML = PZ_LEARNING_STYLES.map(s => '<option value="' + s + '"' + (t.learningStyle===s?' selected':'') + '>' + s + '</option>').join('');
+  styleSel.innerHTML = pzOptionsWith(PZ_LEARNING_STYLES, t.learningStyle).map(s => '<option value="' + s + '"' + (t.learningStyle===s?' selected':'') + '>' + s + '</option>').join('');
   document.getElementById('pz-reading-pace').innerHTML = PZ_READING_PACES.map(s => '<option value="' + s + '"' + (t.readingPace===s?' selected':'') + '>' + s + '</option>').join('');
   document.getElementById('pz-study-time').innerHTML = PZ_STUDY_TIMES.map(s => '<option value="' + s + '"' + (t.preferredStudyTime===s?' selected':'') + '>' + s + '</option>').join('');
   document.getElementById('pz-session-length').value = t.avgStudySession;
@@ -2876,7 +2993,406 @@ function identityBoot(){
   }
   idGoProfileSelect();
 }
+/* ============================================================================
+   LEARNING COMPANION & SMART GUIDANCE — Production Milestone 2B
+   Additive layer on top of the frozen Personalization Engine (Milestone 2A).
+   Does not modify Dashboard/Login/Identity/Homework/KU/Career/Profile/Settings
+   markup or logic — only reads learningDNA/learningTwin/confidenceModel/
+   learningGoals/dreamCareer/learningInsights/studyPreferences, and writes
+   exclusively into p.futureAI.{companion,dailyPlan,revision,missions,
+   curiosity,timeline,emotion,celebration}. No duplicate learner model.
+   ============================================================================ */
+
+const LC_MISSION_TEMPLATES = {
+  daily: [
+    {label:'Read one chapter', xp:15, coins:5},
+    {label:'Complete one quiz', xp:20, coins:8},
+    {label:'Revise {weak}', xp:15, coins:5},
+    {label:'Practice {weak} for 10 minutes', xp:10, coins:4},
+    {label:"Finish today's homework", xp:25, coins:10},
+  ],
+  weekly: [
+    {label:'Complete 3 quizzes this week', xp:60, coins:20},
+    {label:'Revise every weak subject at least once', xp:70, coins:25},
+    {label:'Keep a 5-day streak this week', xp:80, coins:30},
+  ],
+  monthly: [
+    {label:'Make progress toward: {goal}', xp:150, coins:60},
+    {label:'Improve confidence in {weak}', xp:120, coins:50},
+  ],
+};
+const LC_CURIOSITY_POOL = {
+  Mathematics: [
+    {tag:'related', text:'Coordinate geometry connects algebra to shapes on a graph — worth a look after today\u2019s practice.'},
+    {tag:'real world', text:'Ratios and proportions are exactly what recipe scaling and map reading use.'},
+    {tag:'fact', text:'The equals sign was invented because a mathematician was tired of writing "is equal to" repeatedly.'},
+  ],
+  Science: [
+    {tag:'related', text:'Newton\u2019s laws link directly to how rockets and cars accelerate.'},
+    {tag:'real world', text:'The chemistry behind rusting is the same reaction that powers some batteries.'},
+    {tag:'fact', text:'A teaspoon of a neutron star would weigh about a billion tons.'},
+  ],
+  English: [
+    {tag:'related', text:'Studying rhetoric alongside grammar makes essay arguments noticeably sharper.'},
+    {tag:'real world', text:'The persuasive techniques in ads are the same ones used in classic speeches.'},
+    {tag:'fact', text:'English borrows words from over 350 other languages.'},
+  ],
+  Geometry: [
+    {tag:'related', text:'Trigonometry grows directly out of the triangle work you\u2019re doing now.'},
+    {tag:'real world', text:'Architects use the same angle rules to keep bridges standing.'},
+    {tag:'fact', text:'The Pythagorean theorem has over 350 known proofs.'},
+  ],
+  History: [
+    {tag:'related', text:'Comparing two civilizations side by side often reveals patterns a single timeline hides.'},
+    {tag:'real world', text:'Trade route history explains a lot about why certain cities became major hubs today.'},
+    {tag:'fact', text:'Some ancient libraries were larger, relative to their era, than many university libraries today.'},
+  ],
+  Coding: [
+    {tag:'related', text:'Once loops feel natural, recursion is the next satisfying puzzle to try.'},
+    {tag:'real world', text:'The sorting logic you\u2019re learning runs behind the scenes every time you search something online.'},
+    {tag:'fact', text:'The first computer "bug" was an actual moth found in a relay in 1947.'},
+  ],
+};
+const LC_EMOTIONS = [
+  {key:'happy', emoji:'\u{1F60A}', label:'Happy'},
+  {key:'okay', emoji:'\u{1F610}', label:'Okay'},
+  {key:'stressed', emoji:'\u{1F614}', label:'Stressed'},
+  {key:'tired', emoji:'\u{1F634}', label:'Tired'},
+];
+
+function lcDateKey(d){ return d.toISOString().slice(0,10); }
+function lcWeekKey(d){ const day = d.getDay() || 7; const monday = new Date(d); monday.setDate(d.getDate() - day + 1); return lcDateKey(monday); }
+function lcMonthKey(d){ return d.toISOString().slice(0,7); }
+function lcPickUnique(arr, count){
+  const pool = arr.slice(), out = [];
+  while(out.length < count && pool.length){ out.push(pool.splice(pzRand(0, pool.length-1), 1)[0]); }
+  return out;
+}
+function lcWeakSubject(p){
+  const t = p.learningTwin || {};
+  if(t.weakSubjects && t.weakSubjects.length) return t.weakSubjects[0];
+  const cm = (p.confidenceModel || []).slice().sort((a,b)=> (a.knowledge-a.confidence) < (b.knowledge-b.confidence) ? 1 : -1)[0];
+  return cm ? cm.subject : 'Mathematics';
+}
+function lcStrongSubject(p){
+  const t = p.learningTwin || {};
+  return (t.strongSubjects && t.strongSubjects[0]) || 'Mathematics';
+}
+
+/* ---------------- Module 11: data model — extend futureAI only ---------------- */
+function ensureCompanionData(p){
+  if(!p || p.accountType !== 'student') return p;
+  ensurePersonalization(p);
+  if(!p.futureAI) p.futureAI = {tutorContext:{}, homeworkContext:{}, careerContext:{}, knowledgeUniverseContext:{}, studyPlannerContext:{}, analyticsContext:{}};
+  const fa = p.futureAI;
+  let changed = false;
+  const now = new Date();
+  const today = lcDateKey(now), week = lcWeekKey(now), month = lcMonthKey(now);
+
+  if(!fa.companion) fa.companion = {}; 
+  if(!fa.companion.continueLearning){
+    fa.companion.continueLearning = {
+      subject: lcWeakSubject(p), chapter: 'Chapter in progress',
+      progressPct: pzRand(20, 70), lastActiveISO: now.toISOString(),
+    };
+    changed = true;
+  }
+
+  if(!fa.dailyPlan || fa.dailyPlan.date !== today){
+    const weak = lcWeakSubject(p), strong = lcStrongSubject(p);
+    const blocks = [
+      {subject: weak, minutes: 20, type: 'Focus'},
+      {subject: strong, minutes: 15, type: 'Practice'},
+      {subject: weak, minutes: 10, type: 'Revision'},
+      {subject: 'Quick check', minutes: 5, type: 'Quiz'},
+    ];
+    fa.dailyPlan = {date: today, blocks: blocks, totalMinutes: blocks.reduce((s,b)=>s+b.minutes,0), generatedAt: now.toISOString()};
+    changed = true;
+  }
+
+  if(!fa.missions) fa.missions = {daily:[], weekly:[], monthly:[], totalXPEarned:0, totalCoinsEarned:0};
+  if(fa.missions.dailyKey !== today){
+    const weak = lcWeakSubject(p);
+    fa.missions.daily = lcPickUnique(LC_MISSION_TEMPLATES.daily, 3).map((m,i)=>({
+      id: 'daily-'+today+'-'+i, label: m.label.replace('{weak}', weak), xp: m.xp, coins: m.coins, done: false,
+    }));
+    fa.missions.dailyKey = today;
+    changed = true;
+  }
+  if(fa.missions.weeklyKey !== week){
+    fa.missions.weekly = lcPickUnique(LC_MISSION_TEMPLATES.weekly, 2).map((m,i)=>({
+      id: 'weekly-'+week+'-'+i, label: m.label, xp: m.xp, coins: m.coins, done: false,
+    }));
+    fa.missions.weeklyKey = week;
+    changed = true;
+  }
+  if(fa.missions.monthlyKey !== month){
+    const weak = lcWeakSubject(p), goal = (p.learningGoals && p.learningGoals[0]) || 'Score Above 90%';
+    fa.missions.monthly = lcPickUnique(LC_MISSION_TEMPLATES.monthly, 1).map((m,i)=>({
+      id: 'monthly-'+month+'-'+i, label: m.label.replace('{weak}', weak).replace('{goal}', goal), xp: m.xp, coins: m.coins, done: false,
+    }));
+    fa.missions.monthlyKey = month;
+    changed = true;
+  }
+
+  // Revision recommendations — recomputed each time from the current confidence model (no stale data).
+  const revisionSource = (p.confidenceModel || []).slice()
+    .sort((a,b)=> (b.knowledge-b.confidence) - (a.knowledge-a.confidence))
+    .slice(0, 2)
+    .map(c => ({
+      subject: c.subject,
+      why: c.support === 'Needs Revision' ? 'Confidence is well behind knowledge here.' : 'A quick revision pass will keep this sharp.',
+      when: (p.learningTwin && p.learningTwin.preferredStudyTime) || 'Evening',
+      priority: c.support,
+    }));
+  fa.revision = {recommendations: revisionSource, updatedAt: now.toISOString()};
+
+  if(!fa.curiosity || !fa.curiosity.items || !fa.curiosity.items.length){
+    fa.curiosity = {items: lcBuildCuriosityItems(p), generatedAt: now.toISOString()};
+    changed = true;
+  }
+
+  if(!fa.emotion) { fa.emotion = {history: [], lastMood: null, lastLoggedDate: null}; changed = true; }
+  if(!fa.celebration) { fa.celebration = {lastCelebratedStreak: p.streakDays || 0, lastCelebratedLevel: p.level || 1, lastAvgConfidence: lcAvgConfidence(p), lastCelebratedMissionIds: []}; changed = true; }
+  if(!fa.timeline) { fa.timeline = {events: []}; changed = true; }
+
+  if(changed) saveProfile(p);
+  return p;
+}
+
+function lcAvgConfidence(p){
+  const cm = p.confidenceModel || [];
+  if(!cm.length) return 0;
+  return Math.round(cm.reduce((s,c)=>s+c.confidence,0) / cm.length);
+}
+function lcBuildCuriosityItems(p){
+  const strong = lcStrongSubject(p);
+  const pool = LC_CURIOSITY_POOL[strong] || LC_CURIOSITY_POOL.Mathematics;
+  return lcPickUnique(pool, Math.min(3, pool.length));
+}
+
+/* ---------------- Module 1: Learning Companion — contextual message ---------------- */
+function lcGreeting(){
+  const h = new Date().getHours();
+  if(h < 5 || h >= 22) return 'Good night';
+  if(h < 12) return 'Good morning';
+  if(h < 17) return 'Good afternoon';
+  return 'Good evening';
+}
+function lcCompanionMessage(p){
+  const twin = p.learningTwin || {};
+  const lines = [];
+  const cm = (p.confidenceModel || []).slice().sort((a,b)=> (b.knowledge-b.confidence) - (a.knowledge-a.confidence))[0];
+  if(cm && cm.support === 'Needs Revision') lines.push(cm.subject + ' needs a bit more revision \u2014 your knowledge is ahead of your confidence there.');
+  if(p.learningGoals && p.learningGoals[0]) lines.push("You're working toward \u201c" + p.learningGoals[0] + '.\u201d Today\u2019s plan keeps that moving.');
+  if(p.dreamCareer && p.dreamCareer.title) lines.push('Every session like this adds up toward becoming a ' + p.dreamCareer.title + '.');
+  if((p.streakDays||0) > 0) lines.push('You\u2019re on a ' + p.streakDays + '-day streak \u2014 keep it going.');
+  if(twin.recentImprovement) lines.push(twin.recentImprovement + ' \u2014 nice work.');
+  return lines.length ? lines.slice(0,2).join(' ') : 'Ready when you are \u2014 let\u2019s make today count.';
+}
+
+/* ---------------- Module 6: Celebration engine (reuses existing mascot + toast) ---------------- */
+function lcCheckCelebrations(p){
+  const fa = p.futureAI;
+  const c = fa.celebration;
+  let changed = false;
+  if((p.streakDays||0) > (c.lastCelebratedStreak||0)){
+    mascotReact('celebrate');
+    showToast('\u{1F525} ' + p.streakDays + '-day streak! Keep it going.');
+    c.lastCelebratedStreak = p.streakDays;
+    changed = true;
+  }
+  if((p.level||1) > (c.lastCelebratedLevel||1)){
+    mascotReact('celebrate');
+    showToast('\u2B50 Level up! You\u2019re now Level ' + p.level + '.');
+    c.lastCelebratedLevel = p.level;
+    changed = true;
+  }
+  const avgConf = lcAvgConfidence(p);
+  if(avgConf > (c.lastAvgConfidence||0) + 4){
+    mascotReact('celebrate');
+    showToast('\u{1F4C8} Your confidence is trending up \u2014 great progress.');
+    c.lastAvgConfidence = avgConf;
+    changed = true;
+  } else if(avgConf !== c.lastAvgConfidence){
+    c.lastAvgConfidence = avgConf;
+  }
+  if(changed) saveProfile(p);
+}
+
+/* ---------------- Rendering ---------------- */
+function renderCompanionCard(p){
+  const g = document.getElementById('companion-greeting'), m = document.getElementById('companion-message'), er = document.getElementById('companion-emotion-row');
+  if(!g) return;
+  g.textContent = lcGreeting() + ', ' + (p.name ? p.name.split(' ')[0] : 'there') + '.';
+  m.textContent = lcCompanionMessage(p);
+  const today = lcDateKey(new Date());
+  const loggedToday = p.futureAI.emotion.lastLoggedDate === today ? p.futureAI.emotion.lastMood : null;
+  er.innerHTML = LC_EMOTIONS.map(e =>
+    '<button type="button" class="lc-emotion-btn" aria-label="' + e.label + '" aria-pressed="' + (loggedToday===e.key) + '" onclick="lcSetEmotion(\'' + e.key + '\')">' + e.emoji + '</button>'
+  ).join('');
+}
+function renderTodaysPlanCard(p){
+  const wrap = document.getElementById('plan-blocks'), tot = document.getElementById('plan-total-time');
+  if(!wrap) return;
+  const plan = p.futureAI.dailyPlan;
+  wrap.innerHTML = plan.blocks.map(b =>
+    '<div class="lc-plan-block"><span>' + b.type + ' \u00b7 ' + b.subject + '</span><span class="pill">' + b.minutes + ' min</span></div>'
+  ).join('');
+  tot.textContent = plan.totalMinutes + ' minutes';
+}
+function renderMissionsCard(p){
+  const wrap = document.getElementById('missions-list'), prog = document.getElementById('missions-progress-text');
+  if(!wrap) return;
+  const daily = p.futureAI.missions.daily;
+  wrap.innerHTML = daily.map(msn =>
+    '<label class="lc-mission-row' + (msn.done ? ' done' : '') + '">' +
+      '<input type="checkbox" ' + (msn.done ? 'checked disabled' : '') + ' onchange="lcToggleMission(\'daily\',\'' + msn.id + '\')" />' +
+      '<span class="lc-mission-label">' + msn.label + '</span>' +
+      '<span class="lc-reward-pill">+' + msn.xp + ' XP</span>' +
+    '</label>'
+  ).join('');
+  const doneCount = daily.filter(m=>m.done).length;
+  const weekly = p.futureAI.missions.weekly.length, monthly = p.futureAI.missions.monthly.length;
+  prog.textContent = doneCount + ' of ' + daily.length + ' complete today \u00b7 ' + weekly + ' weekly, ' + monthly + ' monthly mission active';
+}
+function renderContinueLearningCard(p){
+  const subjEl = document.getElementById('continue-subject'), bar = document.getElementById('continue-progress-bar'), txt = document.getElementById('continue-progress-text');
+  if(!subjEl) return;
+  const cl = p.futureAI.companion.continueLearning;
+  subjEl.textContent = cl.subject + ' \u2014 ' + cl.chapter;
+  bar.style.width = cl.progressPct + '%';
+  txt.textContent = cl.progressPct + '% complete';
+}
+function renderRevisionReminderCard(p){
+  const wrap = document.getElementById('revision-list');
+  if(!wrap) return;
+  const recs = p.futureAI.revision.recommendations;
+  wrap.innerHTML = recs.length ? recs.map(r =>
+    '<div class="lc-revision-item"><div class="row" style="border:none;padding:0;"><span>' + r.subject + '</span><span class="pill">' + r.when + '</span></div><div class="lc-r-why">' + r.why + '</div></div>'
+  ).join('') : '<div class="lc-r-why">Nothing urgent \u2014 confidence is holding steady across subjects.</div>';
+}
+function renderJourneyTimeline(p){
+  const wrap = document.getElementById('journey-timeline');
+  if(!wrap) return;
+  const events = [];
+  events.push({label: 'Started BAA OS', date: p.createdAt});
+  const strongestTrait = DNA_TRAITS.map(t => [t.label, dnaTraitValue(p.learningDNA, t.key)]).sort((a,b)=>b[1]-a[1])[0];
+  if(strongestTrait) events.push({label: strongestTrait[0] + ' became your strongest trait', date: null});
+  if((p.streakDays||0) >= 5) events.push({label: 'Reached a ' + p.streakDays + '-day streak', date: null});
+  events.push({label: 'Reached Level ' + (p.level||1), date: null});
+  const strongSubj = lcStrongSubject(p);
+  events.push({label: 'Improved in ' + strongSubj, date: null});
+  if(p.learningGoals && p.learningGoals[0]) events.push({label: 'Current goal: ' + p.learningGoals[0], date: null, current: true});
+  if(p.dreamCareer && p.dreamCareer.title) events.push({label: 'Next milestone toward becoming a ' + p.dreamCareer.title, date: null});
+  wrap.innerHTML = events.map((e,i) =>
+    '<div class="lc-timeline-item' + (e.current ? ' current' : '') + '"><div class="lc-t-label">' + e.label + '</div>' +
+    (e.date ? '<div class="lc-t-date">' + pzShortDate(e.date) + '</div>' : '') + '</div>'
+  ).join('');
+}
+function renderCuriosityCard(p){
+  const wrap = document.getElementById('curiosity-list');
+  if(!wrap) return;
+  wrap.innerHTML = p.futureAI.curiosity.items.map(it =>
+    '<div class="lc-curiosity-item"><span class="lc-curiosity-tag">' + it.tag + '</span><span>' + it.text + '</span></div>'
+  ).join('');
+}
+
+/* ---------------- Interactions ---------------- */
+function lcToggleMission(period, id){
+  const p = getActiveProfile();
+  if(!p) return;
+  ensureCompanionData(p);
+  const list = p.futureAI.missions[period];
+  const msn = list.find(m => m.id === id);
+  if(!msn || msn.done) return;
+  msn.done = true;
+  p.xp = (p.xp||0) + msn.xp;
+  p.futureAI.missions.totalXPEarned = (p.futureAI.missions.totalXPEarned||0) + msn.xp;
+  p.futureAI.missions.totalCoinsEarned = (p.futureAI.missions.totalCoinsEarned||0) + msn.coins;
+  p.futureAI.celebration.lastCelebratedMissionIds.push(id);
+  saveProfile(p);
+  mascotReact('celebrate');
+  showToast('\u2705 Mission complete! +' + msn.xp + ' XP, +' + msn.coins + ' coins.');
+  renderMissionsCard(p);
+}
+function lcResumeContinueLearning(){
+  const p = getActiveProfile();
+  if(!p) return;
+  ensureCompanionData(p);
+  const cl = p.futureAI.companion.continueLearning;
+  cl.progressPct = Math.min(100, cl.progressPct + pzRand(3, 9));
+  cl.lastActiveISO = new Date().toISOString();
+  saveProfile(p);
+  showToast('Resuming ' + cl.subject + '\u2026');
+  renderContinueLearningCard(p);
+  showView('ku');
+}
+function lcSetEmotion(mood){
+  const p = getActiveProfile();
+  if(!p) return;
+  ensureCompanionData(p);
+  const today = lcDateKey(new Date());
+  p.futureAI.emotion.history.push({date: today, mood: mood});
+  p.futureAI.emotion.lastMood = mood;
+  p.futureAI.emotion.lastLoggedDate = today;
+  saveProfile(p);
+  showToast('Thanks for checking in \u2014 noted.');
+  renderCompanionCard(p);
+}
+function lcRefreshCuriosity(){
+  const p = getActiveProfile();
+  if(!p) return;
+  ensureCompanionData(p);
+  p.futureAI.curiosity = {items: lcBuildCuriosityItems(p), generatedAt: new Date().toISOString()};
+  saveProfile(p);
+  renderCuriosityCard(p);
+}
+
+/* ---------------- Master render ---------------- */
+function renderLearningCompanion(p){
+  if(!p) p = getActiveProfile();
+  if(!p || p.accountType !== 'student') return;
+  ensureCompanionData(p);
+  lcCheckCelebrations(p);
+  renderCompanionCard(p);
+  renderTodaysPlanCard(p);
+  renderMissionsCard(p);
+  renderContinueLearningCard(p);
+  renderRevisionReminderCard(p);
+  renderJourneyTimeline(p);
+  renderCuriosityCard(p);
+}
+window.renderLearningCompanion = renderLearningCompanion;
+
+/* Hook into the frozen Milestone 2A render entry points without editing their code:
+   every place that already calls renderPersonalizationEngine/renderProfilePage now
+   also gets the Companion layer refreshed, since both are called by bare identifier
+   (== window.<name> at global scope in a classic script). */
+const _lcOrigRenderPersonalizationEngine = window.renderPersonalizationEngine;
+window.renderPersonalizationEngine = function(p){
+  _lcOrigRenderPersonalizationEngine(p);
+  renderLearningCompanion(p);
+};
+const _lcOrigRenderProfilePage = window.renderProfilePage;
+window.renderProfilePage = function(){
+  _lcOrigRenderProfilePage();
+  const p = getActiveProfile();
+  if(p) renderLearningCompanion(p);
+};
+
 identityBoot();
+
+/* ---------------- QA fix: keyboard support for role="button" divs (nav items, mode cards) ----------------
+   These elements already carry onclick handlers; this delegated listener makes them Enter/Space
+   operable like native buttons, without altering markup, styling, or click behavior. */
+document.addEventListener('keydown', function(e){
+  if(e.key !== 'Enter' && e.key !== ' ' && e.key !== 'Spacebar') return;
+  const el = e.target.closest('[role="button"]');
+  if(!el || el.tagName === 'BUTTON' || el.tagName === 'A') return;
+  e.preventDefault();
+  el.click();
+});
 </script>
 </body>
 </html>
