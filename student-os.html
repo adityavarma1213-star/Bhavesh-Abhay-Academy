@@ -957,6 +957,13 @@ const CHAT_API_URL = 'https://bhavesh-abhay-academy.vercel.app/api/chat';
 
 const MAX_CHAT_CHARS = 1000;
 const CHAT_HISTORY_KEY = 'baaOsChatHistory';
+// Mirrors the backend's MAX_HISTORY_MESSAGES (api/chat.js). Kept as an explicit
+// constant here — rather than relying solely on the backend to trim — so we
+// never upload more bytes than Gemini will actually see, which matters a lot
+// once base64 images are in the mix. Also used to cap chatHistory itself in
+// memory so a long voice/image session doesn't grow (and keep old image
+// blobs) forever.
+const MAX_OUTGOING_MESSAGES = 20;
 
 let chatHistory = loadChatHistory();       // [{role:'user'|'assistant', content:string}, ...]
 let chatInFlight = false;
@@ -969,6 +976,16 @@ function loadChatHistory(){
   }catch{ return []; }
 }
 function saveChatHistory(){
+  // Bound chatHistory itself in memory, not just the persisted copy. Previously
+  // only the localStorage copy was ever trimmed (to 40) — the live `chatHistory`
+  // array kept every message (including full base64 image blobs) for the whole
+  // session and was sent to the backend in full on every request. That unbounded
+  // growth was the actual cause of "conversation too long": once a session (made
+  // longer/easier by voice) passed the backend's old hard limit, every further
+  // request was rejected outright instead of being trimmed.
+  if (chatHistory.length > MAX_OUTGOING_MESSAGES * 2){
+    chatHistory = chatHistory.slice(-MAX_OUTGOING_MESSAGES * 2);
+  }
   // Image bytes are intentionally dropped before persisting — keeping them out of
   // localStorage avoids quota issues and stale multi-MB blobs surviving reloads.
   // The text of the turn (e.g. "What is this?") is kept as before.
@@ -977,17 +994,22 @@ function saveChatHistory(){
     localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(slim));
   }catch{}
 }
-// Builds the array actually sent to the backend. Only the MOST RECENT message
-// that has an attached image keeps its image bytes — older images (if the
-// student uploaded more than one earlier in the conversation) are stripped from
-// the outgoing request so payload size stays bounded no matter how long the
-// conversation runs. Gemini still has that turn's TEXT for continuity.
+// Builds the array actually sent to the backend. Only sends the most recent
+// MAX_OUTGOING_MESSAGES turns (mirroring the backend's own trim window) so we
+// never upload an unbounded, ever-growing conversation — this is what fixes
+// "conversation too long" at the source instead of just relying on the
+// backend to reject or silently drop the excess. Within that window, only the
+// MOST RECENT message that has an attached image keeps its image bytes —
+// older images are stripped so payload size stays bounded even within a
+// single image-heavy window. Gemini still has every kept turn's TEXT for
+// continuity.
 function buildOutgoingMessages(){
+  const windowed = chatHistory.slice(-MAX_OUTGOING_MESSAGES);
   let lastImageIdx = -1;
-  for (let i = chatHistory.length - 1; i >= 0; i--){
-    if (chatHistory[i].image){ lastImageIdx = i; break; }
+  for (let i = windowed.length - 1; i >= 0; i--){
+    if (windowed[i].image){ lastImageIdx = i; break; }
   }
-  return chatHistory.map((m, i) => ({
+  return windowed.map((m, i) => ({
     role: m.role,
     content: m.content,
     image: (i === lastImageIdx && m.image) ? m.image : undefined,
