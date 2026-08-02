@@ -656,9 +656,9 @@
     <div class="icon-badge">✦</div>
     <h3>Step into BAA</h3>
     <p>Your universe of learning starts here.</p>
-    <input type="text" placeholder="Full name">
+    <input type="text" placeholder="Full name" id="signupName">
     <input type="email" placeholder="Email address">
-    <button class="btn-primary"><span>Create My Account</span></button>
+    <button class="btn-primary" onclick="goToStudentOS()"><span>Create My Account</span></button>
   </div>
 </div>
 
@@ -670,6 +670,10 @@
   });
 
   // Modal
+  function goToStudentOS(){
+    const name = document.getElementById('signupName').value.trim();
+    window.location.href = 'student-os.html' + (name ? ('?name=' + encodeURIComponent(name)) : '');
+  }
   function openModal(){ document.getElementById('modalOverlay').classList.add('open'); }
   function closeModal(){ document.getElementById('modalOverlay').classList.remove('open'); }
   document.getElementById('modalOverlay').addEventListener('click', (e) => {
