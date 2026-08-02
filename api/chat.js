@@ -8,12 +8,12 @@
 export const config = { runtime: 'edge' };
 
 // ---------- Configuration ----------
-// gemini-3.6-flash is Google's current GA, production-ready Flash model
-// (as of mid-2026) and remains on the free tier. gemini-2.5-flash has begun
-// returning 404s ahead of its official Oct 16, 2026 shutdown, so we no
-// longer use it. Swap to 'gemini-3.5-flash-lite' for an even
-// cheaper/faster tutor if you need higher throughput (also free tier).
-const MODEL = 'gemini-3.6-flash';
+// gemini-3.5-flash-lite is Google's current GA, production-ready Flash-Lite
+// model (as of mid-2026) and remains on the free tier. We moved to it from
+// gemini-3.6-flash after repeatedly hitting that model's free-tier daily
+// quota (RPD) in production. gemini-2.5-flash has begun returning 404s
+// ahead of its official Oct 16, 2026 shutdown, so we no longer use it.
+const MODEL = 'gemini-3.5-flash-lite';
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:streamGenerateContent?alt=sse`;
 const MAX_OUTPUT_TOKENS = 2048;
 const MAX_MESSAGE_CHARS = 4000;             // per-message cap
