@@ -197,6 +197,9 @@ export default async function handler(req) {
     contents: toGeminiContents(validated.messages),
     generationConfig: {
       maxOutputTokens: MAX_OUTPUT_TOKENS,
+      thinkingConfig: {
+        thinkingLevel: 'low',
+      },
       // Note: temperature/top_p/top_k are deprecated for the Gemini 3.x
       // family (Google recommends the model's default of 1.0) — omitted
       // intentionally, not an oversight.
