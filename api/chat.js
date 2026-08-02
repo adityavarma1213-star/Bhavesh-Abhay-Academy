@@ -8,10 +8,12 @@
 export const config = { runtime: 'edge' };
 
 // ---------- Configuration ----------
-// Gemini 2.5 Flash has the most generous free tier and is a good fit for a
-// short, encouraging tutor persona. Swap to 'gemini-2.5-pro' for harder
-// questions if you outgrow Flash (much smaller free quota — see DEPLOYMENT.md).
-const MODEL = 'gemini-2.5-flash';
+// gemini-3.6-flash is Google's current GA, production-ready Flash model
+// (as of mid-2026) and remains on the free tier. gemini-2.5-flash has begun
+// returning 404s ahead of its official Oct 16, 2026 shutdown, so we no
+// longer use it. Swap to 'gemini-3.5-flash-lite' for an even
+// cheaper/faster tutor if you need higher throughput (also free tier).
+const MODEL = 'gemini-3.6-flash';
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:streamGenerateContent?alt=sse`;
 const MAX_OUTPUT_TOKENS = 700;
 const MAX_MESSAGE_CHARS = 4000;             // per-message cap
@@ -187,7 +189,9 @@ export default async function handler(req) {
     contents: toGeminiContents(validated.messages),
     generationConfig: {
       maxOutputTokens: MAX_OUTPUT_TOKENS,
-      temperature: 0.7,
+      // Note: temperature/top_p/top_k are deprecated for the Gemini 3.x
+      // family (Google recommends the model's default of 1.0) — omitted
+      // intentionally, not an oversight.
     },
     safetySettings: [
       // Keep Google's default child-safety blocking; only relax categories
