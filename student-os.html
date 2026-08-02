@@ -228,6 +228,24 @@ a{color:inherit;text-decoration:none;}
 .chip{font-size:.8rem;padding:9px 16px;border-radius:100px;background:rgba(253,249,240,0.05);border:1px solid rgba(253,249,240,0.12);color:var(--dim);transition:all .25s ease;}
 .chip:hover{border-color:var(--violet);color:var(--warmwhite);}
 
+/* ================= AI TUTOR VOICE (STT + Gemini TTS) ================= */
+.mic-btn{width:44px;height:44px;border-radius:50%;background:rgba(253,249,240,0.06);border:1px solid rgba(253,249,240,0.14);color:var(--warmwhite);flex-shrink:0;font-size:1rem;display:flex;align-items:center;justify-content:center;transition:all .25s ease;position:relative;}
+.mic-btn:hover{border-color:var(--cyan);}
+.mic-btn.listening{background:rgba(232,96,143,0.16);border-color:var(--rose);color:var(--rose);}
+.mic-btn.listening::before{content:'';position:absolute;inset:-5px;border-radius:50%;border:1px solid var(--rose);animation:micPulse 1.4s ease-out infinite;}
+@keyframes micPulse{0%{transform:scale(.9);opacity:.8;}100%{transform:scale(1.5);opacity:0;}}
+
+.voice-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 20px;border-top:1px solid rgba(253,249,240,0.08);background:rgba(11,15,46,0.25);}
+.voice-icon-btn{width:36px;height:36px;border-radius:50%;background:rgba(253,249,240,0.05);border:1px solid rgba(253,249,240,0.12);color:var(--dim);font-size:.9rem;display:flex;align-items:center;justify-content:center;transition:all .25s ease;flex-shrink:0;}
+.voice-icon-btn:hover{border-color:var(--violet);color:var(--warmwhite);}
+.voice-icon-btn.active{border-color:var(--cyan);color:var(--cyan);background:rgba(76,217,232,0.1);}
+.voice-select{background:rgba(253,249,240,0.06);border:1px solid rgba(253,249,240,0.14);border-radius:100px;padding:8px 14px;color:var(--warmwhite);font-size:.78rem;outline:none;}
+.voice-select:focus{border-color:var(--violet);}
+.autospeak-toggle{display:flex;align-items:center;gap:7px;font-size:.76rem;color:var(--dim);margin-left:auto;cursor:pointer;user-select:none;}
+.autospeak-toggle input{accent-color:var(--violet);width:15px;height:15px;cursor:pointer;}
+.voice-toolbar-label{font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);margin-right:2px;}
+@media (max-width:520px){.voice-toolbar{justify-content:center;}.autospeak-toggle{margin-left:0;width:100%;justify-content:center;margin-top:4px;}}
+
 /* ---- Theme: Knowledge Universe teaser ---- */
 .theme-universe{background:radial-gradient(ellipse 1200px 900px at 50% 30%,#0d1240,#05061a 70%);}
 .theme-universe .world-eyebrow{color:var(--cyan);}
@@ -383,6 +401,7 @@ a{color:inherit;text-decoration:none;}
 .chat-char-count{font-size:.7rem;color:rgba(253,249,240,0.4);text-align:right;padding:0 20px 8px;}
 .chat-char-count.warn{color:#ffb84c;}
 </style>
+<link rel="stylesheet" href="css/image.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
@@ -646,8 +665,27 @@ a{color:inherit;text-decoration:none;}
       </div>
       <div class="chat-char-count" id="chatCharCount"></div>
       <div class="chat-input-row">
+        <button class="image-upload-btn" id="imageUploadBtn" type="button" title="Upload a photo of your worksheet, diagram, or notes" aria-label="Upload an image">📷</button>
+        <input type="file" id="imageFileInput" accept="image/png,image/jpeg,image/webp" style="display:none">
+        <button class="mic-btn" id="micBtn" onclick="toggleMic()" title="Speak your question" aria-label="Speak your question">🎤</button>
         <input id="chatInput" type="text" maxlength="1000" placeholder="Ask your AI Tutor anything…" oninput="updateCharCount()" onkeydown="if(event.key==='Enter')sendChat()">
         <button class="chat-send" id="chatSendBtn" onclick="sendChat()">➤</button>
+      </div>
+      <div class="image-preview-wrap" id="imagePreviewWrap">
+        <img class="image-preview-thumb" id="imagePreviewThumb" alt="Uploaded image preview">
+        <span class="image-preview-info">Image attached — I'll look at it when you send your next question.</span>
+        <button class="image-preview-remove" id="imagePreviewRemove" type="button" title="Remove image" aria-label="Remove image">✕</button>
+      </div>
+      <div class="voice-toolbar">
+        <span class="voice-toolbar-label">Voice</span>
+        <select class="voice-select" id="voiceSelect" onchange="onVoiceChange()"></select>
+        <button class="voice-icon-btn" id="muteBtn" onclick="toggleMute()" title="Mute AI voice" aria-label="Mute AI voice">🔊</button>
+        <button class="voice-icon-btn" id="stopSpeakBtn" onclick="stopSpeaking()" title="Stop speaking" aria-label="Stop speaking">⏸</button>
+        <button class="voice-icon-btn" id="replayBtn" onclick="replayLast()" title="Replay last answer" aria-label="Replay last answer">▶</button>
+        <label class="autospeak-toggle">
+          <input type="checkbox" id="autoSpeakToggle" onchange="onAutoSpeakChange()">
+          <span>Auto-speak replies</span>
+        </label>
       </div>
     </div>
     <div class="chat-suggest">
@@ -931,7 +969,29 @@ function loadChatHistory(){
   }catch{ return []; }
 }
 function saveChatHistory(){
-  try{ localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(chatHistory.slice(-40))); }catch{}
+  // Image bytes are intentionally dropped before persisting — keeping them out of
+  // localStorage avoids quota issues and stale multi-MB blobs surviving reloads.
+  // The text of the turn (e.g. "What is this?") is kept as before.
+  try{
+    const slim = chatHistory.slice(-40).map(m => ({role:m.role, content:m.content}));
+    localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(slim));
+  }catch{}
+}
+// Builds the array actually sent to the backend. Only the MOST RECENT message
+// that has an attached image keeps its image bytes — older images (if the
+// student uploaded more than one earlier in the conversation) are stripped from
+// the outgoing request so payload size stays bounded no matter how long the
+// conversation runs. Gemini still has that turn's TEXT for continuity.
+function buildOutgoingMessages(){
+  let lastImageIdx = -1;
+  for (let i = chatHistory.length - 1; i >= 0; i--){
+    if (chatHistory[i].image){ lastImageIdx = i; break; }
+  }
+  return chatHistory.map((m, i) => ({
+    role: m.role,
+    content: m.content,
+    image: (i === lastImageIdx && m.image) ? m.image : undefined,
+  }));
 }
 function resetChat(){
   chatHistory = [];
@@ -978,11 +1038,20 @@ function askChip(text){
   sendChat();
 }
 
-function appendUserMsg(text){
+function appendUserMsg(text, imagePreviewUrl){
   const log=document.getElementById('chatLog');
   const me=document.createElement('div');
   me.className='msg me';
-  me.textContent=text;
+  if (imagePreviewUrl){
+    const img=document.createElement('img');
+    img.className='msg-image';
+    img.src=imagePreviewUrl;
+    img.alt='Uploaded image';
+    me.appendChild(img);
+  }
+  const textNode=document.createElement('div');
+  textNode.textContent=text;
+  me.appendChild(textNode);
   log.appendChild(me);
   log.scrollTop=log.scrollHeight;
 }
@@ -1021,13 +1090,22 @@ async function sendChat(overrideText){
     return;
   }
 
+  // Pick up any image the student attached via js/image.js. BAAImage is defined
+  // by that (optional) external module — guarded so chat still works fine if
+  // image.js isn't loaded for any reason.
+  const pendingImg = (typeof BAAImage !== 'undefined') ? BAAImage.getPendingImage() : null;
+
   if (overrideText === undefined){
-    appendUserMsg(text);
+    appendUserMsg(text, pendingImg ? pendingImg.previewUrl : null);
     input.value='';
     updateCharCount();
   }
 
-  chatHistory.push({role:'user', content:text});
+  chatHistory.push({
+    role:'user',
+    content:text,
+    image: pendingImg ? { mimeType: pendingImg.mimeType, data: pendingImg.data } : undefined,
+  });
   saveChatHistory();
   lastFailedMessage = null;
 
@@ -1047,7 +1125,7 @@ async function sendChat(overrideText){
     const response = await fetch(CHAT_API_URL, {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ messages: chatHistory, studentName })
+      body: JSON.stringify({ messages: buildOutgoingMessages(), studentName })
     });
 
     // ===== TEMPORARY DEBUG LOGGING (frontend) — checkpoint 1: fetch() =====
@@ -1236,6 +1314,14 @@ async function sendChat(overrideText){
     chatHistory.push({role:'assistant', content: accumulated});
     saveChatHistory();
 
+    // Only now — after a confirmed success — clear the image preview. If the
+    // request had failed instead, the image stays attached so Retry resends it.
+    if (pendingImg && typeof BAAImage !== 'undefined') BAAImage.clearPendingImage();
+
+    // Voice: speak the finished answer. Text is already fully rendered above —
+    // speech starts only once streaming is done, never blocking the text.
+    if (typeof autoSpeakOn !== 'undefined' && autoSpeakOn) speakText(accumulated);
+
   }catch(e){
     typing.remove();
     if(aiBubble && !accumulated.trim()) aiBubble.remove();
@@ -1251,6 +1337,179 @@ async function sendChat(overrideText){
     log.scrollTop = log.scrollHeight;
   }
 }
+
+/* ================= AI TUTOR VOICE (STT input + Gemini TTS output) =================
+   Fully additive module — does not touch chat/streaming/markdown/math/memory/retry
+   logic above. The only hook into sendChat() is the one-line speakText() call added
+   at the end of its try block. If any part of this file fails to load (e.g. an
+   unsupported browser), the chat keeps working exactly as before — voice is a bonus
+   layer, never a dependency. */
+
+// Point this at your deployed Vercel backend, same pattern as CHAT_API_URL above.
+const SPEAK_API_URL = 'https://bhavesh-abhay-academy.vercel.app/api/speak';
+const MAX_SPEAK_CHARS = 3000; // safety cap; matches api/speak.js server-side cap
+
+// Voice presets shown in the dropdown. To add a new voice later, add one line
+// here — the <select> and everything else picks it up automatically. `voiceName`
+// must be one of Gemini's 30 prebuilt TTS voices (see api/speak.js ALLOWED_VOICES).
+const VOICE_PRESETS = {
+  friendly:  { voiceName: 'Achird',     label: '🙂 Friendly'  },
+  female:    { voiceName: 'Kore',       label: '👩 Female'    },
+  male:      { voiceName: 'Charon',     label: '👨 Male'      },
+  teacher:   { voiceName: 'Rasalgethi', label: '🧑‍🏫 Teacher' },
+  calm:      { voiceName: 'Umbriel',    label: '😌 Calm'      },
+  energetic: { voiceName: 'Laomedeia',  label: '⚡ Energetic' },
+};
+
+const VOICE_KEY = 'baaOsVoicePreset';
+const AUTOSPEAK_KEY = 'baaOsAutoSpeak';
+const MUTE_KEY = 'baaOsVoiceMuted';
+
+let isMuted = (localStorage.getItem(MUTE_KEY) === '1');
+let autoSpeakOn = (localStorage.getItem(AUTOSPEAK_KEY) !== '0'); // default ON
+let currentAudio = null;     // the <audio> element currently playing the AI's voice
+let currentAudioUrl = null;  // its object URL, so we can revoke it
+let lastSpokenText = '';     // powers the Replay button
+let recognizer = null;
+let isListening = false;
+
+function initVoiceUI(){
+  const sel = document.getElementById('voiceSelect');
+  if(!sel || sel.dataset.built) return;
+  sel.dataset.built = '1';
+  Object.entries(VOICE_PRESETS).forEach(([key, v])=>{
+    const opt = document.createElement('option');
+    opt.value = key;
+    opt.textContent = v.label;
+    sel.appendChild(opt);
+  });
+  const savedVoice = localStorage.getItem(VOICE_KEY);
+  sel.value = (savedVoice && VOICE_PRESETS[savedVoice]) ? savedVoice : 'friendly';
+
+  const autoBox = document.getElementById('autoSpeakToggle');
+  if(autoBox) autoBox.checked = autoSpeakOn;
+
+  updateMuteBtn();
+
+  // Hide the mic button entirely on browsers with no speech recognition support,
+  // rather than showing a control that will just fail on tap.
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const micBtn = document.getElementById('micBtn');
+  if(!SR && micBtn) micBtn.style.display = 'none';
+}
+
+function onVoiceChange(){
+  const sel = document.getElementById('voiceSelect');
+  if(sel) localStorage.setItem(VOICE_KEY, sel.value);
+}
+function onAutoSpeakChange(){
+  const box = document.getElementById('autoSpeakToggle');
+  autoSpeakOn = !!(box && box.checked);
+  localStorage.setItem(AUTOSPEAK_KEY, autoSpeakOn ? '1' : '0');
+}
+function updateMuteBtn(){
+  const btn = document.getElementById('muteBtn');
+  if(!btn) return;
+  btn.textContent = isMuted ? '🔇' : '🔊';
+  btn.classList.toggle('active', isMuted);
+}
+function toggleMute(){
+  isMuted = !isMuted;
+  localStorage.setItem(MUTE_KEY, isMuted ? '1' : '0');
+  updateMuteBtn();
+  if(isMuted) stopSpeaking();
+}
+function stopSpeaking(){
+  if(currentAudio){
+    currentAudio.pause();
+    currentAudio.currentTime = 0;
+  }
+  const stopBtn = document.getElementById('stopSpeakBtn');
+  if(stopBtn) stopBtn.classList.remove('active');
+}
+function replayLast(){
+  if(!lastSpokenText || isMuted) return;
+  speakText(lastSpokenText);
+}
+
+/* ---------- Speech-to-text (browser Web Speech API — free, real-time,
+   no round trip needed just to turn the student's voice into text) ---------- */
+function toggleMic(){
+  const micBtn = document.getElementById('micBtn');
+  if(!micBtn) return;
+
+  if(isListening){
+    recognizer && recognizer.stop();
+    return;
+  }
+
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR){
+    appendErrorMsg("Voice input isn't supported in this browser — try Chrome or Edge, or just type your question.");
+    return;
+  }
+
+  const input = document.getElementById('chatInput');
+  recognizer = new SR();
+  recognizer.lang = 'en-IN';
+  recognizer.interimResults = true;
+  recognizer.maxAlternatives = 1;
+
+  isListening = true;
+  micBtn.classList.add('listening');
+
+  recognizer.onresult = (e)=>{
+    let text = '';
+    for(let i=0;i<e.results.length;i++) text += e.results[i][0].transcript;
+    input.value = text;
+    updateCharCount();
+  };
+  recognizer.onerror = ()=>{ /* fail silently — student can still type */ };
+  recognizer.onend = ()=>{
+    isListening = false;
+    micBtn.classList.remove('listening');
+    if(input.value.trim() && !chatInFlight) sendChat();
+  };
+
+  try{ recognizer.start(); }
+  catch{ isListening = false; micBtn.classList.remove('listening'); }
+}
+
+/* ---------- Text-to-speech (Gemini natural voices, via api/speak.js) ---------- */
+async function speakText(text){
+  if(isMuted || !text || !text.trim()) return;
+  const clipped = text.length > MAX_SPEAK_CHARS ? text.slice(0, MAX_SPEAK_CHARS) : text;
+  lastSpokenText = text;
+  stopSpeaking();
+
+  const voiceKey = document.getElementById('voiceSelect')?.value || 'friendly';
+  const voiceName = (VOICE_PRESETS[voiceKey] || VOICE_PRESETS.friendly).voiceName;
+
+  try{
+    const res = await fetch(SPEAK_API_URL, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ text: clipped, voice: voiceName })
+    });
+    if(!res.ok) return; // voice is a bonus layer — the text answer is already on screen
+
+    const blob = await res.blob();
+    if(currentAudioUrl) URL.revokeObjectURL(currentAudioUrl);
+    currentAudioUrl = URL.createObjectURL(blob);
+    currentAudio = new Audio(currentAudioUrl);
+
+    const stopBtn = document.getElementById('stopSpeakBtn');
+    currentAudio.onplay = ()=>{ stopBtn && stopBtn.classList.add('active'); };
+    currentAudio.onended = ()=>{ stopBtn && stopBtn.classList.remove('active'); };
+    currentAudio.onerror = ()=>{ stopBtn && stopBtn.classList.remove('active'); };
+
+    // Autoplay can be blocked if this fires outside a direct user gesture
+    // (rare here, since it follows a send/mic action) — fail silently either way.
+    await currentAudio.play().catch(()=>{});
+  }catch{ /* never let a voice failure break the chat experience */ }
+}
+
+document.addEventListener('DOMContentLoaded', initVoiceUI);
 
 /* ================= QUIZ ARENA ================= */
 function answerQuiz(el,correct){
@@ -1350,5 +1609,6 @@ function animateCareer(){
   });
 }
 </script>
+<script src="js/image.js"></script>
 </body>
 </html>
