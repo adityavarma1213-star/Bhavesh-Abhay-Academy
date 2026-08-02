@@ -212,37 +212,59 @@ export default async function handler(req) {
   console.log('[DEBUG] Request URL:', GEMINI_API_URL);
   console.log('[DEBUG] Request payload:', JSON.stringify(payload));
 
-  let upstream;
-  try {
-    upstream = await callGeminiWithRetry(payload, apiKey);
-  } catch (err) {
-    console.log('[DEBUG] Exception calling Gemini - name:', err && err.name);
-    console.log('[DEBUG] Exception calling Gemini - message:', err && err.message);
-    console.log('[DEBUG] Exception calling Gemini - stack:', err && err.stack);
-    return jsonError(req, 504, err.message || 'Failed to reach the AI service');
-  }
-
-  if (!upstream.ok) {
-    let detail = 'AI service error';
-    try {
-      const errBody = await upstream.json();
-      console.log('[DEBUG] Gemini non-200 response body:', JSON.stringify(errBody));
-      // Gemini errors can come back as an object or a single-element array.
-      const errObj = Array.isArray(errBody) ? errBody[0]?.error : errBody?.error;
-      detail = errObj?.message || detail;
-    } catch (parseErr) {
-      console.log('[DEBUG] Gemini non-200 response body: <failed to parse as JSON>', parseErr && parseErr.message);
-      /* ignore parse failure, use default message */
-    }
-    return jsonError(req, upstream.status, detail);
-  }
-
-  // Re-stream Gemini's SSE events straight through to the browser. The
-  // frontend parses each `data:` line's JSON for candidates[0].content.parts.
+  // --- Return the streaming Response immediately. We do NOT await Gemini
+  // here — Vercel Edge Functions must send an initial response quickly
+  // (the platform will kill the invocation with "did not return an initial
+  // response" if we sit here awaiting a slow upstream call first). Instead,
+  // the Gemini call — including retries — happens inside the ReadableStream's
+  // start(), after the Response has already been handed back to the platform.
+  const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
+      // Send an immediate SSE comment (lines starting with ':' are ignored
+      // by SSE parsers, including the frontend's) so real bytes hit the wire
+      // right away. This satisfies Vercel Edge's requirement to begin
+      // sending a response within 25 seconds, independent of how long the
+      // upstream Gemini call ends up taking.
+      controller.enqueue(encoder.encode(': connected\n\n'));
+
+      let upstream;
+      try {
+        upstream = await callGeminiWithRetry(payload, apiKey);
+      } catch (err) {
+        console.log('[DEBUG] Exception calling Gemini - name:', err && err.name);
+        console.log('[DEBUG] Exception calling Gemini - message:', err && err.message);
+        console.log('[DEBUG] Exception calling Gemini - stack:', err && err.stack);
+        controller.enqueue(
+          encoder.encode(`data: ${JSON.stringify({ error: { message: err.message || 'Failed to reach the AI service' } })}\n\n`)
+        );
+        controller.close();
+        return;
+      }
+
+      if (!upstream.ok) {
+        let detail = 'AI service error';
+        try {
+          const errBody = await upstream.json();
+          console.log('[DEBUG] Gemini non-200 response body:', JSON.stringify(errBody));
+          // Gemini errors can come back as an object or a single-element array.
+          const errObj = Array.isArray(errBody) ? errBody[0]?.error : errBody?.error;
+          detail = errObj?.message || detail;
+        } catch (parseErr) {
+          console.log('[DEBUG] Gemini non-200 response body: <failed to parse as JSON>', parseErr && parseErr.message);
+          /* ignore parse failure, use default message */
+        }
+        controller.enqueue(
+          encoder.encode(`data: ${JSON.stringify({ error: { message: detail } })}\n\n`)
+        );
+        controller.close();
+        return;
+      }
+
+      // Re-stream Gemini's SSE events straight through to the browser. The
+      // frontend parses each `data:` line's JSON for candidates[0].content.parts.
+      console.log('[DEBUG] Streaming started');
       const reader = upstream.body.getReader();
-      const encoder = new TextEncoder();
       try {
         while (true) {
           const { done, value } = await reader.read();
