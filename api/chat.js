@@ -21,6 +21,16 @@ const MAX_HISTORY_MESSAGES = 20;            // how many turns of memory we forwa
 const REQUEST_TIMEOUT_MS = 30_000;
 const MAX_RETRIES = 2;
 
+// ---------- Image understanding (additive — see toGeminiContents/validateMessages) ----------
+// gemini-3.5-flash-lite accepts inline image parts natively; no separate vision
+// model or endpoint is needed. Cap is on the base64 STRING length (cheap check,
+// no decode needed) — 7M base64 chars is roughly 5.25MB decoded, comfortably
+// under Vercel Edge's request body ceiling once JSON overhead is included. The
+// frontend (js/image.js) compresses client-side well below this before upload;
+// this is a server-side backstop, not the primary size control.
+const ALLOWED_IMAGE_MIME_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
+const MAX_IMAGE_BASE64_CHARS = 7_000_000;
+
 // Best-effort in-memory rate limiter. Edge functions are ephemeral and can run
 // across many isolated instances, so this only throttles *within* an
 // instance's lifetime — it is a safety net, not a hard guarantee. Google's own
@@ -93,6 +103,20 @@ function validateMessages(messages) {
     if (m.content.length > MAX_MESSAGE_CHARS) {
       return { error: `message exceeds ${MAX_MESSAGE_CHARS} characters` };
     }
+    if (m.image !== undefined && m.image !== null) {
+      if (typeof m.image !== 'object') {
+        return { error: 'image must be an object with mimeType and data' };
+      }
+      if (!ALLOWED_IMAGE_MIME_TYPES.has(m.image.mimeType)) {
+        return { error: 'unsupported image format — use PNG, JPEG, or WEBP' };
+      }
+      if (typeof m.image.data !== 'string' || !m.image.data.trim()) {
+        return { error: 'image data is missing' };
+      }
+      if (m.image.data.length > MAX_IMAGE_BASE64_CHARS) {
+        return { error: 'image is too large — please upload a smaller or more compressed image' };
+      }
+    }
   }
   // Keep only the most recent turns so token usage stays bounded.
   const trimmed = messages.slice(-MAX_HISTORY_MESSAGES);
@@ -100,12 +124,42 @@ function validateMessages(messages) {
 }
 
 // Gemini uses role "model" where our own history (and Anthropic-style
-// convention) uses "assistant" — translate on the way out.
+// convention) uses "assistant" — translate on the way out. When a message
+// carries an image, its part is placed BEFORE the text part — Google's own
+// guidance is that leading with the image improves grounding versus putting
+// the instruction first.
 function toGeminiContents(messages) {
-  return messages.map((m) => ({
-    role: m.role === 'assistant' ? 'model' : 'user',
-    parts: [{ text: m.content }],
-  }));
+  return messages.map((m) => {
+    const parts = [];
+    if (m.image && m.image.mimeType && m.image.data) {
+      parts.push({ inlineData: { mimeType: m.image.mimeType, data: m.image.data } });
+    }
+    parts.push({ text: m.content });
+    return {
+      role: m.role === 'assistant' ? 'model' : 'user',
+      parts,
+    };
+  });
+}
+
+// Debug-logging only — returns a deep copy of the payload with any inline
+// image base64 data replaced by a short placeholder, so uploaded images never
+// end up verbatim in Vercel's function logs. The real `payload` object sent
+// to Gemini is never touched by this.
+function redactImageDataForLogging(payload) {
+  try {
+    const clone = JSON.parse(JSON.stringify(payload));
+    for (const c of clone.contents || []) {
+      for (const p of c.parts || []) {
+        if (p.inlineData && typeof p.inlineData.data === 'string') {
+          p.inlineData.data = `<omitted, ${p.inlineData.data.length} base64 chars>`;
+        }
+      }
+    }
+    return clone;
+  } catch {
+    return { note: 'payload redaction failed, not logging raw payload' };
+  }
 }
 
 async function callGeminiWithRetry(payload, apiKey, attempt = 0) {
@@ -190,7 +244,10 @@ export default async function handler(req) {
     `simple, age-appropriate, and end with a small encouraging nudge or a follow-up question. ` +
     `Use markdown for structure when it helps (e.g. **bold**, short lists, \`code\`, or fenced ` +
     `code blocks). For math, write expressions in LaTeX using $...$ for inline and $$...$$ for ` +
-    `block equations.`;
+    `block equations. The student can also attach a photo — a worksheet, textbook page, diagram, ` +
+    `handwritten notes, map, chart, graph, or table. When an image is attached, look at it carefully ` +
+    `before answering: read every label, number, and line of handwriting, and refer to specific parts ` +
+    `of the image in your answer (e.g. "In Question 5..." or "The diagram's third label...").`;
 
   const payload = {
     system_instruction: { parts: [{ text: systemPrompt }] },
@@ -213,7 +270,7 @@ export default async function handler(req) {
 
   console.log('[DEBUG] Model name:', MODEL);
   console.log('[DEBUG] Request URL:', GEMINI_API_URL);
-  console.log('[DEBUG] Request payload:', JSON.stringify(payload));
+  console.log('[DEBUG] Request payload:', JSON.stringify(redactImageDataForLogging(payload)));
 
   // --- Return the streaming Response immediately. We do NOT await Gemini
   // here — Vercel Edge Functions must send an initial response quickly
