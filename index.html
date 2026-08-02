@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BAA OS</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700&family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700&family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Atkinson+Hyperlegible:wght@400;700&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
@@ -28,7 +28,7 @@ body::after{ width:45vw; height:45vw; bottom:-18%; right:-10%; background:var(--
 
 /* ===================== LAYER 1 — LEARNING EXPERIENCE ===================== */
 body[data-exp="scholar"]{
-  --font-display:'Inter',sans-serif; --font-body:'Inter',sans-serif; --font-mono:'JetBrains Mono',monospace;
+  --font-display:'Fraunces',serif; --font-body:'Inter',sans-serif; --font-mono:'JetBrains Mono',monospace;
   --radius-card:12px; --radius-btn:9px; --card-border:1px solid var(--border);
   --motion-fast:0.25s ease; --motion-slow:0.4s ease;
 }
@@ -59,10 +59,23 @@ body[data-exp="neo"] .btn{background:linear-gradient(90deg,var(--cyan),var(--vio
 body[data-exp="neo"] .live-dot{animation:neo-pulse 2s ease-in-out infinite;}
 
 /* ===================== LAYER 2 — APPEARANCE ===================== */
-body[data-exp="scholar"][data-appearance="light"]{--bg:#FAFAF9;--panel:#FFFFFF;--border:#E7E5E2;--ink:#18181B;--ink-dim:#6B6B68;--ink-soft:#8B8B87;}
-body[data-exp="scholar"][data-appearance="dark"]{--bg:#0E1815;--panel:#16241F;--border:#24382F;--ink:#EDEDEE;--ink-dim:#9DB0A8;--ink-soft:#7E9088;}
-body[data-exp="explorer"][data-appearance="light"]{--bg:#FFF9EC;--panel:#FFFFFF;--border:#F0E6C8;--ink:#2B2140;--ink-dim:#7A6F94;--ink-soft:#9A90B8;--shadow-c:#F0E6C8;}
-body[data-exp="explorer"][data-appearance="dark"]{--bg:#241B38;--panel:#2F2547;--border:#3D3159;--ink:#F3EEFF;--ink-dim:#B9AEDC;--ink-soft:#8D7FBE;--shadow-c:#1A1329;}
+body[data-exp="scholar"][data-appearance="light"]{--bg:#FAFAF9;--panel:#FFFFFF;--border:#E7E5E2;--ink:#18181B;--ink-dim:#6B6B68;--ink-soft:#8B8B87;
+  background:radial-gradient(circle at 6% 0%, rgba(232,184,92,0.16), transparent 42%),
+             radial-gradient(circle at 100% 100%, rgba(43,76,63,0.07), transparent 46%),
+             linear-gradient(160deg,#FAF7F0,#F3EFE4) !important; background-attachment:fixed;}
+body[data-exp="scholar"][data-appearance="dark"]{--bg:#0E1815;--panel:#16241F;--border:#24382F;--ink:#EDEDEE;--ink-dim:#9DB0A8;--ink-soft:#7E9088;
+  background:radial-gradient(circle at 6% 0%, rgba(232,184,92,0.12), transparent 42%),
+             radial-gradient(circle at 100% 100%, rgba(95,190,151,0.10), transparent 46%),
+             linear-gradient(160deg,#0E1815,#152420) !important; background-attachment:fixed;}
+body[data-exp="explorer"][data-appearance="light"]{--bg:#FFF9EC;--panel:#FFFFFF;--border:#F0E6C8;--ink:#2B2140;--ink-dim:#7A6F94;--ink-soft:#9A90B8;--shadow-c:#F0E6C8;
+  background:radial-gradient(circle at 8% 12%, rgba(255,122,89,0.16), transparent 40%),
+             radial-gradient(circle at 92% 18%, rgba(124,92,255,0.16), transparent 45%),
+             radial-gradient(circle at 50% 100%, rgba(79,227,214,0.10), transparent 50%),
+             linear-gradient(160deg,#FFF3E6,#F3ECFF) !important; background-attachment:fixed;}
+body[data-exp="explorer"][data-appearance="dark"]{--bg:#241B38;--panel:#2F2547;--border:#3D3159;--ink:#F3EEFF;--ink-dim:#B9AEDC;--ink-soft:#8D7FBE;--shadow-c:#1A1329;
+  background:radial-gradient(circle at 8% 10%, rgba(255,122,89,0.22), transparent 40%),
+             radial-gradient(circle at 92% 30%, rgba(124,92,255,0.26), transparent 45%),
+             linear-gradient(160deg,#241B38,#2F2547) !important; background-attachment:fixed;}
 body[data-exp="neo"][data-appearance="light"]{--bg:#EEF1F7;--panel:rgba(255,255,255,0.55);--ink:#181C2A;--ink-dim:#565E75;--ink-soft:#7C8299;--glass-bd:rgba(20,25,40,0.10);--border:rgba(20,25,40,0.10);}
 body[data-exp="neo"][data-appearance="dark"]{
   --bg1:#0A0E1A;--bg2:#141B2E;--bg:var(--bg1);--panel:rgba(255,255,255,0.06);--ink:#EAF0FF;--ink-dim:#8B96B8;--ink-soft:#5D6787;
@@ -74,8 +87,8 @@ body[data-exp="neo"][data-appearance="dark"]{
 }
 :root{--cyan:#4FE3D6;--violet:#9D7CFF;}
 body{--purple:#7C5CFC;--green:#22C55E;--amber:#F5A524;--blue:#3B82F6;--pink:#FF6B9D;}
-body[data-exp="scholar"]{--accent:#2B4C3F;--accent-soft:#E9EFEC;}
-body[data-exp="scholar"][data-appearance="dark"]{--accent:#5FBE97;--accent-soft:#1C2B24;}
+body[data-exp="scholar"]{--accent:#2B4C3F;--accent-soft:#E9EFEC;--lamp-glow:#E8B85C;}
+body[data-exp="scholar"][data-appearance="dark"]{--accent:#5FBE97;--accent-soft:#1C2B24;--lamp-glow:#E8B85C;}
 body[data-exp="explorer"]{--accent:#7C5CFC;--accent-soft:#F1ECFF;}
 body[data-exp="explorer"][data-appearance="dark"]{--accent-soft:#3A2F5C;}
 body[data-exp="neo"]{--accent:#4FE3D6;--accent-soft:#E3FBF8;}
@@ -126,17 +139,40 @@ body{font-family:var(--font-body);color:var(--ink);}
 #app{display:none;}
 #app.active{display:flex;min-height:100vh;}
 .sidebar{width:220px;flex-shrink:0;background:var(--panel);border-right:1px solid var(--border);padding:20px 14px;display:flex;flex-direction:column;}
-.sidebar .brand{display:flex;align-items:center;gap:10px;font-family:var(--font-display);font-weight:700;font-size:16px;padding:0 8px 20px;}
-.sidebar .brand .mark{width:24px;height:24px;border-radius:var(--radius-btn);background:var(--accent);}
-.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;font-size:13.5px;font-weight:500;color:var(--ink-dim);cursor:pointer;margin-bottom:2px;}
-.nav-item .ic{width:18px;text-align:center;}
+.sidebar .brand{display:flex;align-items:center;gap:10px;font-family:var(--font-display);font-weight:700;font-size:16px;padding:0 8px 24px;}
+.sidebar .brand .mark{width:26px;height:26px;border-radius:var(--radius-btn);background:linear-gradient(135deg,var(--accent),var(--cyan,var(--accent)));}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;font-size:13.5px;font-weight:500;color:var(--ink-dim);cursor:pointer;margin-bottom:4px;transition:background var(--motion-fast,0.2s ease),color var(--motion-fast,0.2s ease);}
+.nav-item .ic{width:18px;text-align:center;display:inline-flex;align-items:center;justify-content:center;}
+.nav-item .ic svg{width:18px;height:18px;display:block;}
 .nav-item.active{background:var(--accent-soft);color:var(--accent);font-weight:600;}
 .sidebar-foot{margin-top:auto;font-size:11.5px;color:var(--ink-dim);padding:10px 8px;}
 
 .main{flex:1;padding:26px 30px 90px;max-width:1000px;}
 .view{display:none;}
 .view.active{display:block;}
-.page-title{font-size:22px;margin-bottom:4px;}
+.page-title{font-size:24px;margin-bottom:4px;letter-spacing:-0.01em;}
+
+/* Elevation baseline — every card gets a soft resting shadow + lift on hover, themes layer on top */
+.card{box-shadow:0 1px 2px rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.5);transition:box-shadow 0.2s ease, transform 0.2s ease;}
+.card:hover{box-shadow:0 16px 32px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.5);}
+body[data-exp="neo"] .card{backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);box-shadow:0 1px 2px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.08);}
+body[data-exp="neo"] .card:hover{box-shadow:0 0 28px rgba(79,227,214,0.28), inset 0 1px 0 rgba(255,255,255,0.1);}
+
+/* Button ripple micro-interaction */
+.btn{position:relative;overflow:hidden;}
+.btn .ripple{position:absolute;border-radius:50%;background:rgba(255,255,255,0.5);transform:scale(0);pointer-events:none;}
+@media (prefers-reduced-motion: no-preference){
+  .btn .ripple{animation:btn-ripple 0.6s ease-out;}
+}
+@keyframes btn-ripple{to{transform:scale(2.4);opacity:0;}}
+
+/* Illustrated hero backdrops — one distinct scene per Learning Experience */
+.hero-illustration{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;opacity:1;display:none;}
+.hero-scrim{position:absolute;inset:0;z-index:0;pointer-events:none;background:linear-gradient(90deg, var(--panel) 0%, var(--panel) 18%, transparent 62%);}
+body[data-exp="scholar"] .hero-illo-scholar{display:block;}
+body[data-exp="explorer"] .hero-illo-explorer{display:block;}
+body[data-exp="neo"] .hero-illo-neo{display:block;}
+@media (max-width:860px){.hero-scrim{background:linear-gradient(180deg, var(--panel) 0%, var(--panel) 40%, transparent 85%);}}
 .page-sub{color:var(--ink-dim);font-size:13.5px;margin-bottom:22px;}
 
 .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:14px;}
@@ -176,6 +212,209 @@ body{font-family:var(--font-body);color:var(--ink);}
 [data-exp="neo"] .card.c-purple{border-top-color:#9D7CFF;}
 [data-exp="neo"] .card.c-purple .num{color:#9D7CFF;}
 
+/* ===================== PHASE 1 — STUDENT DASHBOARD (Design System v1) ===================== */
+/* Scoped to #view-dashboard only — parent/teacher dashboards and other views are untouched in this phase. */
+
+.dash-hero{position:relative;overflow:hidden;padding:32px;margin-bottom:32px;display:flex;flex-direction:column;gap:24px;min-height:400px;}
+@media (min-width:861px){.dash-hero{min-height:460px;justify-content:center;padding:44px;}}
+.dash-hero-top{display:flex;align-items:center;gap:18px;position:relative;z-index:1;flex-wrap:wrap;}
+.dash-hero-top > .dash-hero-text{flex:1;min-width:160px;}
+.dash-hero #greeting{font-size:28px;}
+.dash-cta{margin-top:4px;}
+
+/* Mascot stage — the character now sits inside a themed "habitat", not a flat circle */
+.mascot-stage{width:118px;height:118px;flex-shrink:0;border-radius:50%;display:flex;align-items:center;justify-content:center;position:relative;cursor:pointer;}
+body[data-exp="scholar"] .mascot-stage{background:radial-gradient(circle, var(--lamp-glow) 0%, transparent 72%);}
+body[data-exp="explorer"] .mascot-stage{background:linear-gradient(135deg,var(--coral,#FF7A59),var(--accent-2,#7C5CFC));border-radius:34px;}
+body[data-exp="neo"] .mascot-stage{background:radial-gradient(circle, rgba(79,227,214,0.28), transparent 72%);}
+
+.mascot-character{display:none;width:66%;height:66%;position:relative;z-index:1;}
+body[data-exp="scholar"] .mascot-owl{display:block;}
+body[data-exp="explorer"] .mascot-fox{display:block;}
+body[data-exp="neo"] .mascot-bot{display:block;}
+.eyelid{transform-origin:center;}
+@media (prefers-reduced-motion: no-preference){
+  .mascot-owl{animation:owl-bob 3.6s ease-in-out infinite;}
+  .mascot-fox{animation:fox-bob 2.6s ease-in-out infinite;}
+  .mascot-bot{animation:bot-float 3.2s ease-in-out infinite;}
+  .eyelid{animation:mascot-blink 4.5s ease-in-out infinite;}
+  .bot-eye{animation:bot-blink 4s ease-in-out infinite;}
+  .fox-tail{transform-origin:20px 78px;animation:tail-wag 1.8s ease-in-out infinite;}
+  .mascot-character.waving{animation:mascot-nod 0.6s ease !important;}
+  .mascot-character.celebrating{animation:mascot-pop 0.7s ease !important;}
+}
+@keyframes owl-bob{0%,100%{transform:translateY(0);}50%{transform:translateY(-4px);}}
+@keyframes fox-bob{0%,100%{transform:translateY(0) rotate(0deg);}50%{transform:translateY(-5px) rotate(-2deg);}}
+@keyframes bot-float{0%,100%{transform:translateY(0);}50%{transform:translateY(-5px);}}
+@keyframes mascot-blink{0%,92%,100%{transform:scaleY(0);}94%,97%{transform:scaleY(1);}}
+@keyframes bot-blink{0%,90%,100%{opacity:1;}93%,96%{opacity:.15;}}
+@keyframes tail-wag{0%,100%{transform:rotate(0deg);}50%{transform:rotate(9deg);}}
+@keyframes mascot-nod{0%,100%{transform:rotate(0deg);}50%{transform:rotate(-9deg);}}
+@keyframes mascot-pop{0%{transform:scale(1) translateY(0);}30%{transform:scale(1.14) translateY(-9px) rotate(-4deg);}60%{transform:scale(1.06) translateY(-3px) rotate(3deg);}100%{transform:scale(1) translateY(0);}}
+
+.habitat{position:absolute;left:50%;transform:translateX(-50%);bottom:-4px;display:none;}
+.habitat-books{width:58px;height:9px;background:linear-gradient(90deg,#C9A171,#A67C4C);box-shadow:0 4px 0 #8C6339;border-radius:2px;}
+body[data-exp="scholar"] .habitat-books{display:block;}
+.habitat-rock{width:46px;height:10px;background:#E7D9B8;border-radius:50%;}
+body[data-exp="explorer"] .habitat-rock{display:block;}
+.habitat-ring{position:absolute;inset:-12px;border-radius:50%;border:1px solid rgba(79,227,214,.45);display:none;}
+body[data-exp="neo"] .habitat-ring{display:block;}
+@media (prefers-reduced-motion: no-preference){ body[data-exp="neo"] .habitat-ring{animation:orbit-spin 8s linear infinite;} }
+.habitat-ring::before,.habitat-ring::after{content:'';position:absolute;width:5px;height:5px;border-radius:50%;background:var(--cyan);box-shadow:0 0 6px var(--cyan);}
+.habitat-ring::before{top:-2.5px;left:50%;}
+.habitat-ring::after{bottom:-2.5px;left:50%;background:var(--violet);box-shadow:0 0 6px var(--violet);}
+
+/* Gradient progress ring (Duolingo / Synaptix style) — replaces the plain "78%" number */
+.progress-ring{position:relative;width:72px;height:72px;flex-shrink:0;}
+.progress-ring svg{width:100%;height:100%;transform:rotate(-90deg);}
+.progress-ring circle{fill:none;stroke-width:6;}
+.ring-track{stroke:var(--accent-soft);}
+.ring-fill{stroke:var(--accent);stroke-linecap:round;stroke-dasharray:169.6;stroke-dashoffset:calc(169.6 - (169.6 * var(--pct)) / 100);transition:stroke-dashoffset 0.8s ease;}
+body[data-exp="neo"] .ring-fill{stroke:var(--cyan);filter:drop-shadow(0 0 6px rgba(79,227,214,0.55));}
+body[data-exp="explorer"] .ring-fill{stroke:var(--coral,#FF7A59);}
+.ring-label{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.ring-label strong{font-family:var(--font-mono);font-size:14px;color:var(--ink);}
+.ring-label span{font-size:7.5px;color:var(--ink-dim);text-transform:uppercase;letter-spacing:.04em;}
+
+/* Decorative accents inside the hero — off for Scholar (calm on purpose) */
+.dash-hero-signature .deco{position:absolute;}
+body[data-exp="explorer"] .dash-hero-signature .deco{font-size:16px;opacity:0.55;color:var(--accent-2,#7C5CFC);}
+body[data-exp="explorer"] .dash-hero-signature .deco::before{content:'✦';}
+body[data-exp="explorer"] .deco-1{top:16px;right:64px;font-size:20px;}
+body[data-exp="explorer"] .deco-2{top:76px;right:150px;font-size:12px;color:var(--coral,#FF7A59);}
+body[data-exp="explorer"] .deco-3{bottom:22px;right:100px;font-size:14px;}
+body[data-exp="neo"] .dash-hero-signature .deco{width:4px;height:4px;border-radius:50%;background:var(--cyan);box-shadow:0 0 8px var(--cyan);opacity:0.8;}
+body[data-exp="neo"] .deco-2{background:var(--violet);box-shadow:0 0 8px var(--violet);}
+body[data-exp="neo"] .deco-1{top:18px;right:230px;}
+body[data-exp="neo"] .deco-2{top:92px;right:170px;}
+body[data-exp="neo"] .deco-3{bottom:26px;right:270px;}
+
+/* Environment motion — subtle, theme-specific, off by default (Scholar stays calm on purpose) */
+.env-cloud{position:absolute;background:#fff;border-radius:40px;opacity:0;pointer-events:none;}
+body[data-exp="explorer"] .env-cloud{opacity:0.55;}
+.env-leaf{position:absolute;width:7px;height:7px;background:var(--accent-2,#7C5CFC);border-radius:0 60% 0 60%;opacity:0;pointer-events:none;}
+body[data-exp="explorer"] .env-leaf{opacity:0.7;}
+@media (prefers-reduced-motion: no-preference){
+  body[data-exp="explorer"] .env-cloud{animation:cloud-drift 30s linear infinite;}
+  body[data-exp="explorer"] .env-leaf{animation:leaf-fall 6s linear infinite;}
+}
+@keyframes cloud-drift{from{transform:translateX(-16px);}to{transform:translateX(16px);}}
+@keyframes leaf-fall{0%{transform:translateY(-6px) rotate(0deg);opacity:0;}15%{opacity:.7;}100%{transform:translateY(160px) rotate(200deg) translateX(18px);opacity:0;}}
+
+.env-pulse{position:absolute;top:-70px;right:-40px;width:280px;height:280px;border-radius:50%;background:radial-gradient(circle, rgba(79,227,214,0.16), transparent 70%);opacity:0;pointer-events:none;}
+body[data-exp="neo"] .env-pulse{opacity:1;}
+@media (prefers-reduced-motion: no-preference){
+  body[data-exp="neo"] .env-pulse{animation:pulse-glow 5s ease-in-out infinite;}
+}
+@keyframes pulse-glow{0%,100%{opacity:.6;transform:scale(1);}50%{opacity:1;transform:scale(1.05);}}
+
+body[data-exp="scholar"] .dash-hero-signature::after{
+  content:''; position:absolute; top:-30px; right:40px; width:200px; height:280px;
+  background:linear-gradient(200deg, rgba(255,250,235,0.6) 0%, rgba(232,184,92,0.22) 45%, transparent 75%);
+  transform:rotate(8deg); opacity:0.7; pointer-events:none;
+}
+/* Scholar — dust motes + light rays through the window */
+.dust{position:absolute;border-radius:50%;background:var(--lamp-glow,#E8B85C);opacity:0;pointer-events:none;}
+body[data-exp="scholar"] .dust{opacity:0.55;}
+.light-ray{position:absolute;width:3px;height:180px;background:linear-gradient(180deg, rgba(255,245,220,0.55), transparent);opacity:0;pointer-events:none;transform-origin:top center;}
+body[data-exp="scholar"] .light-ray{opacity:0.5;}
+@media (prefers-reduced-motion: no-preference){
+  body[data-exp="scholar"] .dust{animation:dust-float 8s ease-in-out infinite;}
+}
+@keyframes dust-float{0%,100%{transform:translateY(0);opacity:.2;}50%{transform:translateY(-16px);opacity:.6;}}
+
+/* Explorer — layered hills + a drifting bird */
+.hill-layer{position:absolute;bottom:0;left:0;width:100%;pointer-events:none;opacity:0;}
+body[data-exp="explorer"] .hill-layer{opacity:1;}
+.env-bird{position:absolute;opacity:0;pointer-events:none;}
+body[data-exp="explorer"] .env-bird{opacity:0.6;}
+@media (prefers-reduced-motion: no-preference){
+  body[data-exp="explorer"] .env-bird{animation:bird-drift 14s linear infinite;}
+}
+@keyframes bird-drift{0%{transform:translateX(-20px) translateY(0);}50%{transform:translateX(160px) translateY(-14px);}100%{transform:translateX(320px) translateY(0);}}
+
+/* Neo — a second, slower counter-rotating orbit for depth */
+.habitat-ring-outer{position:absolute;inset:-24px;border-radius:50%;border:1px dashed rgba(157,124,255,0.25);display:none;}
+body[data-exp="neo"] .habitat-ring-outer{display:block;}
+@media (prefers-reduced-motion: no-preference){ body[data-exp="neo"] .habitat-ring-outer{animation:orbit-spin-rev 14s linear infinite;} }
+@keyframes orbit-spin-rev{from{transform:rotate(360deg);}to{transform:rotate(0deg);}}
+
+body[data-exp="explorer"] .dash-cta{background:linear-gradient(90deg,var(--coral,#FF7A59),var(--accent-2,#7C5CFC));box-shadow:0 4px 0 var(--shadow-btn,#1A1329),0 12px 24px rgba(255,122,89,0.3);}
+body[data-exp="neo"] .dash-cta{background:linear-gradient(90deg,var(--cyan),var(--violet));box-shadow:0 0 24px rgba(157,124,255,0.45);}
+body[data-exp="scholar"] .dash-cta{box-shadow:0 10px 22px rgba(43,76,63,0.22);}
+
+body[data-exp="scholar"] .dash-hero-signature::before{
+  content:''; position:absolute; top:-60px; left:-60px; width:260px; height:260px; border-radius:50%;
+  background:radial-gradient(circle, var(--lamp-glow) 0%, transparent 70%); opacity:0.28; filter:blur(6px);
+}
+.dash-hero-signature{position:absolute;inset:0;pointer-events:none;z-index:0;}
+
+@keyframes orbit-spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+
+.dash-stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;position:relative;z-index:1;}
+.dash-stat{background:var(--accent-soft);border-radius:calc(var(--radius-card) - 4px);padding:14px 16px;}
+.dash-stat .num{font-family:var(--font-mono);font-size:20px;font-weight:600;color:var(--accent);}
+.dash-stat .lbl{font-size:11px;color:var(--ink-dim);margin-top:2px;}
+
+/* Chip row — quick-glance stats inside the focus card, custom SVG icons only */
+.focus-chip-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;}
+.focus-chip{display:flex;align-items:center;gap:7px;background:var(--bg);border:1px solid var(--border);border-radius:24px;padding:6px 14px 6px 6px;font-size:12.5px;font-weight:600;}
+.focus-chip .ic-badge{width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.focus-chip .ic-badge svg{width:13px;height:13px;}
+[data-exp="neo"] .focus-chip .ic-badge{background:linear-gradient(135deg,var(--cyan),var(--violet));border-radius:7px;}
+
+/* Learning Progress cluster — ring + XP bar + weekly graph + streak dots, replaces plain stat numbers */
+.progress-cluster{margin-top:22px;padding-top:20px;border-top:1px solid var(--border);display:grid;grid-template-columns:auto 1fr;gap:22px;align-items:center;}
+.pc-ring{position:relative;width:66px;height:66px;flex-shrink:0;}
+.pc-ring svg{width:100%;height:100%;transform:rotate(-90deg);}
+.pc-ring circle{fill:none;stroke-width:6;}
+.pc-ring .track{stroke:var(--accent-soft);}
+.pc-ring .fill{stroke:var(--accent);stroke-linecap:round;stroke-dasharray:163.4;transition:stroke-dashoffset 0.8s ease;}
+[data-exp="neo"] .pc-ring .fill{stroke:var(--cyan);filter:drop-shadow(0 0 5px rgba(79,227,214,.55));}
+.pc-ring-label{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-weight:600;font-size:13px;}
+.pc-body{display:flex;flex-direction:column;gap:10px;}
+.pc-caption{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-dim);margin-bottom:3px;}
+.pc-xpbar{height:8px;border-radius:6px;background:var(--accent-soft);overflow:hidden;}
+.pc-xpbar-fill{height:100%;border-radius:6px;background:var(--accent);}
+[data-exp="neo"] .pc-xpbar-fill{background:linear-gradient(90deg,var(--cyan),var(--violet));}
+.pc-week{display:flex;align-items:flex-end;gap:4px;height:26px;}
+.pc-week .bar{flex:1;border-radius:2px 2px 0 0;background:var(--accent);opacity:0.75;}
+[data-exp="neo"] .pc-week .bar{background:linear-gradient(180deg,var(--violet),var(--cyan));opacity:1;}
+.pc-streak{display:flex;gap:4px;}
+.pc-streak .dot{width:8px;height:8px;border-radius:50%;background:var(--accent-soft);}
+.pc-streak .dot.on{background:var(--accent);}
+[data-exp="neo"] .pc-streak .dot.on{background:var(--cyan);}
+@media (max-width:520px){.progress-cluster{grid-template-columns:1fr;}}
+[data-exp="neo"] .dash-stat{background:rgba(255,255,255,0.05);}
+
+/* Asymmetric focus + aside layout — replaces equal-size card grids on the dashboard */
+.dash-layout{display:grid;grid-template-columns:1.6fr 1fr;gap:32px;align-items:start;}
+.dash-focus{padding:28px;}
+.dash-aside{display:flex;flex-direction:column;gap:20px;}
+
+/* Explorer's dotted trail track behind the path-nodes */
+.trail-track{position:relative;height:2px;margin:0 11px 14px;}
+body[data-exp="explorer"] .trail-track{
+  background-image:repeating-linear-gradient(90deg, var(--accent-2,#7C5CFC) 0, var(--accent-2,#7C5CFC) 6px, transparent 6px, transparent 13px);
+  height:3px; opacity:0.5;
+}
+.dash-focus .path-node{position:relative;z-index:1;}
+body[data-exp="explorer"] .dash-focus .path-node{width:28px;height:28px;font-size:12px;}
+
+@media (prefers-reduced-motion: no-preference){
+  .dash-hero, .dash-focus, .dash-aside .card{animation:card-rise 0.5s ease-out backwards;}
+  .dash-aside .card:nth-child(1){animation-delay:0.1s;} .dash-aside .card:nth-child(2){animation-delay:0.17s;}
+  .dash-aside .card:nth-child(3){animation-delay:0.24s;} .dash-aside .card:nth-child(4){animation-delay:0.31s;}
+  .dash-focus{animation-delay:0.06s;}
+}
+
+@media (max-width: 860px){
+  .dash-layout{grid-template-columns:1fr;}
+  .dash-stat-row{grid-template-columns:1fr 1fr 1fr;}
+  .dash-hero-top{justify-content:center;text-align:center;}
+  .dash-hero{padding:22px;}
+}
+
 .chat-window{display:flex;flex-direction:column;gap:12px;margin-bottom:16px;height:52vh;min-height:280px;overflow-y:auto;scroll-behavior:smooth;}
 .msg{max-width:75%;padding:10px 14px;border-radius:14px;font-size:13.5px;line-height:1.55;}
 .msg.bot{background:var(--bg);align-self:flex-start;}
@@ -188,6 +427,78 @@ body{font-family:var(--font-body);color:var(--ink);}
 .ku-grid .card:hover .ku-swatch{transform:scale(1.04);}
 .ku-icon{font-size:28px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.25));}
 .ku-loop{font-size:11px;color:var(--ink-dim);margin-top:6px;}
+
+/* ============ Knowledge Universe — graph engine ============ */
+.ku-toolbar{display:flex;gap:8px;align-items:center;margin-bottom:20px;flex-wrap:wrap;}
+.ku-search{flex:1;min-width:180px;border:1px solid var(--border);border-radius:var(--radius-btn);padding:10px 14px;background:var(--panel);color:var(--ink);font-size:13px;font-family:var(--font-body);}
+.ku-search:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
+.ku-filter-chip{border:1px solid var(--border);background:var(--panel);color:var(--ink-dim);border-radius:20px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font-body);}
+.ku-filter-chip.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+.ku-filter-chip:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+
+.ku-hidden{display:none !important;}
+.ku-universe-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px;margin-bottom:8px;}
+.ku-world-card{position:relative;border-radius:20px;padding:22px 18px;cursor:pointer;overflow:hidden;border:1px solid var(--border);background:var(--panel);transition:transform .2s ease, box-shadow .2s ease;text-align:left;font-family:var(--font-body);}
+.ku-world-card:hover, .ku-world-card:focus-visible{transform:translateY(-4px);box-shadow:0 14px 28px rgba(0,0,0,0.10);}
+.ku-world-icon{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:14px;color:#fff;}
+.ku-world-icon svg{width:20px;height:20px;}
+.ku-world-name{font-weight:700;font-size:14.5px;margin-bottom:2px;color:var(--ink);}
+.ku-world-tag{font-size:11px;color:var(--ink-dim);}
+.ku-world-progress{margin-top:12px;height:5px;border-radius:4px;background:var(--accent-soft);overflow:hidden;}
+.ku-world-progress-fill{height:100%;border-radius:4px;}
+
+.ku-graph{display:none;}
+.ku-graph.active{display:block;}
+@media (prefers-reduced-motion: no-preference){ .ku-graph.active{animation:ku-zoom-in 0.4s ease;} }
+@keyframes ku-zoom-in{from{opacity:0;transform:scale(0.96);}to{opacity:1;transform:scale(1);}}
+.ku-graph-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px;flex-wrap:wrap;}
+.ku-back-btn{background:none;border:1px solid var(--border);border-radius:20px;padding:7px 14px;font-size:12.5px;font-weight:600;color:var(--ink-dim);cursor:pointer;font-family:var(--font-body);}
+.ku-back-btn:hover{border-color:var(--accent);color:var(--accent);}
+.ku-graph-stage{position:relative;width:100%;height:420px;border-radius:24px;overflow:hidden;border:1px solid var(--border);background:var(--bg);}
+.ku-graph-stage svg{position:absolute;inset:0;width:100%;height:100%;}
+.ku-link{stroke:var(--border);stroke-width:0.6;}
+.ku-link.active{stroke:var(--accent);stroke-width:1;opacity:0.75;}
+
+.ku-node{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:none;cursor:pointer;padding:4px;width:92px;font-family:var(--font-body);}
+.ku-node-dot{width:34px;height:34px;border-radius:50%;background:var(--panel);border:2.5px solid var(--border);transition:transform .15s ease, box-shadow .15s ease;}
+.ku-node:hover .ku-node-dot, .ku-node:focus-visible .ku-node-dot{transform:scale(1.14);}
+.ku-node:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:12px;}
+.ku-node-label{font-size:10.5px;font-weight:600;color:var(--ink-dim);text-align:center;line-height:1.25;}
+.ku-node-pct{display:block;font-size:9px;color:var(--accent);font-weight:700;}
+.ku-node-completed .ku-node-dot{background:var(--accent);border-color:var(--accent);}
+.ku-node-current .ku-node-dot{border-color:var(--accent);box-shadow:0 0 0 5px var(--accent-soft);}
+@media (prefers-reduced-motion: no-preference){ .ku-node-current .ku-node-dot{animation:ku-pulse 2s ease-in-out infinite;} }
+@keyframes ku-pulse{0%,100%{box-shadow:0 0 0 5px var(--accent-soft);}50%{box-shadow:0 0 0 9px var(--accent-soft);}}
+.ku-node-weak .ku-node-dot{border-color:#E8A33D;box-shadow:0 0 0 4px rgba(232,163,61,0.18);}
+.ku-node-locked{opacity:0.42;}
+.ku-node-locked .ku-node-dot{border-style:dashed;}
+.ku-dim{opacity:0.15;pointer-events:none;}
+
+.ku-node-panel{position:fixed;right:24px;bottom:24px;width:280px;background:var(--panel);border:1px solid var(--border);border-radius:20px;padding:20px;box-shadow:0 20px 44px rgba(0,0,0,0.18);transform:translateY(24px);opacity:0;pointer-events:none;transition:transform .25s ease, opacity .25s ease;z-index:50;}
+.ku-node-panel.open{transform:translateY(0);opacity:1;pointer-events:auto;}
+.ku-panel-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;}
+.ku-panel-actions button{border:1px solid var(--border);background:var(--bg);border-radius:12px;padding:8px;font-size:11.5px;font-weight:600;cursor:pointer;color:var(--ink);font-family:var(--font-body);}
+.ku-panel-actions button:hover{border-color:var(--accent);color:var(--accent);}
+.ku-panel-close{position:absolute;top:12px;right:14px;background:none;border:none;cursor:pointer;color:var(--ink-dim);font-size:16px;line-height:1;}
+
+/* Neo — neural network feel */
+[data-exp="neo"] .ku-graph-stage{background:rgba(255,255,255,0.03);}
+[data-exp="neo"] .ku-link{stroke:rgba(79,227,214,0.25);}
+[data-exp="neo"] .ku-link.active{stroke:var(--cyan);}
+[data-exp="neo"] .ku-node-dot{background:rgba(255,255,255,0.05);}
+[data-exp="neo"] .ku-node-completed .ku-node-dot{background:var(--cyan);border-color:var(--cyan);}
+[data-exp="neo"] .ku-node-current .ku-node-dot{border-color:var(--cyan);box-shadow:0 0 0 5px rgba(79,227,214,0.18);}
+[data-exp="neo"] .ku-node-panel{backdrop-filter:blur(20px);}
+
+/* Explorer — adventure trail feel */
+[data-exp="explorer"] .ku-link{stroke-dasharray:2 3;}
+[data-exp="explorer"] .ku-node-dot{border-width:3px;}
+[data-exp="explorer"] .ku-world-card:hover{transform:translateY(-4px) rotate(-0.5deg);}
+
+@media (max-width:700px){
+  .ku-node-panel{left:16px;right:16px;width:auto;bottom:16px;}
+  .ku-graph-stage{height:340px;}
+}
 .ku-loop.new{color:var(--amber);font-weight:600;}
 @media (prefers-reduced-motion: no-preference){
   .ku-loop.new{animation:sparkle-pulse 1.8s ease-in-out infinite;}
@@ -211,148 +522,6 @@ body{font-family:var(--font-body);color:var(--ink);}
 
 .bottom-nav{display:none;}
 
-/* ===================== DASHBOARD CONCEPT v2 — WORLD SCENES ===================== */
-/* Visibility is driven entirely by the existing data-exp attribute that
-   setExp() already sets — no new JS state, no duplicated switching logic.
-   Only the world matching the active Learning Experience is shown. */
-.dash-world{display:none;border-radius:28px;overflow:hidden;position:relative;box-shadow:0 20px 46px rgba(0,0,0,0.16);margin-bottom:14px;}
-body[data-exp="scholar"] #dashworld-scholar{display:block;}
-body[data-exp="explorer"] #dashworld-explorer{display:block;}
-body[data-exp="neo"] #dashworld-neo{display:block;}
-
-.dw-content{position:relative;z-index:2;display:flex;align-items:flex-end;gap:26px;padding:40px 32px 0;min-height:300px;}
-.dw-mascot-stage{width:170px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;}
-.dw-mascot-stage svg{width:150px;height:150px;}
-
-/* Shared progress cluster (ring + XP bar + weekly graph + streak dots) */
-.pc-cluster{margin-top:20px;padding-top:18px;border-top:1px solid rgba(0,0,0,0.06);display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:center;}
-.pc-ring{position:relative;width:66px;height:66px;flex-shrink:0;}
-.pc-ring svg{width:100%;height:100%;transform:rotate(-90deg);}
-.pc-ring circle{fill:none;stroke-width:6;}
-.pc-ring .track{opacity:0.28;}
-.pc-ring-label{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:700;}
-.pc-body{display:flex;flex-direction:column;gap:10px;min-width:0;}
-.pc-xpbar{height:8px;border-radius:6px;background:rgba(0,0,0,0.08);overflow:hidden;}
-.pc-xpbar-fill{height:100%;border-radius:6px;width:64%;}
-.pc-week{display:flex;align-items:flex-end;gap:4px;height:26px;}
-.pc-week .bar{flex:1;border-radius:3px 3px 0 0;}
-.pc-streak{display:flex;gap:4px;}
-.pc-streak .dot{width:8px;height:8px;border-radius:50%;}
-.pc-caption{font-size:10px;text-transform:uppercase;letter-spacing:.05em;opacity:.6;margin-bottom:3px;}
-.dw-chip-row{display:flex;gap:8px;flex-wrap:wrap;}
-.dw-chip{display:inline-flex;align-items:center;gap:7px;border-radius:20px;padding:6px 12px 6px 6px;font-size:12px;font-weight:700;}
-.dw-chip .ic-badge{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.dw-chip .ic-badge svg{width:12px;height:12px;}
-.dw-panel{flex:1;min-width:0;border-radius:26px 26px 0 0;padding:26px 30px 24px;}
-
-/* ---- Scholar world: bright premium library ---- */
-.scholar-world{background:linear-gradient(180deg,#FBF3E1 0%,#F5E7C8 45%,#ECD9AC 100%);}
-.scholar-world .window-beam{position:absolute;top:-60px;right:60px;width:380px;height:460px;background:linear-gradient(200deg, rgba(255,250,235,0.9) 0%, rgba(232,184,92,0.35) 45%, transparent 75%);transform:rotate(8deg);filter:blur(2px);}
-.scholar-world .shelf-row{position:absolute;inset:0;display:flex;justify-content:space-between;opacity:0.28;}
-.scholar-world .shelf-col{width:13%;background:repeating-linear-gradient(0deg,#C79B6C 0 34px, #B5895A 34px 38px);}
-.scholar-world .dust{position:absolute;border-radius:50%;background:#E8B85C;opacity:0.55;}
-@media (prefers-reduced-motion: no-preference){
-  .scholar-world .dust{animation:dust-float 9s ease-in-out infinite;}
-  #owl-mascot{animation:owl-bob 3.6s ease-in-out infinite;}
-  .owl-eyelid{animation:owl-blink 4.5s ease-in-out infinite;}
-}
-@keyframes dust-float{0%,100%{transform:translateY(0);opacity:.2;}50%{transform:translateY(-16px);opacity:.65;}}
-@keyframes owl-bob{0%,100%{transform:translateY(0);}50%{transform:translateY(-6px);}}
-@keyframes owl-blink{0%,92%,100%{transform:scaleY(0);}94%,97%{transform:scaleY(1);}}
-.owl-eyelid{fill:#6B4E33;transform-origin:center;}
-.owl-wing-left{transform-origin:62px 78px;transition:transform .5s cubic-bezier(.34,1.56,.64,1);}
-#owl-mascot.wave .owl-wing-left{animation:owl-wave 0.9s ease-in-out;}
-@keyframes owl-wave{0%,100%{transform:rotate(0deg);}30%{transform:rotate(-38deg);}60%{transform:rotate(-15deg);}}
-#owl-mascot.celebrate{animation:owl-celebrate 0.7s ease;}
-@keyframes owl-celebrate{0%{transform:scale(1) translateY(0);}30%{transform:scale(1.12) translateY(-12px) rotate(-4deg);}60%{transform:scale(1.05) translateY(-5px) rotate(3deg);}100%{transform:scale(1) translateY(0);}}
-.scholar-book-stack{width:150px;height:22px;background:linear-gradient(90deg,#C9A171,#A67C4C);border-radius:4px;box-shadow:0 5px 0 #8C6339, 0 12px 18px rgba(90,65,30,.28);position:relative;top:-4px;}
-.dw-panel.scholar-panel{background:#FFFDF8;color:#2A1D13;box-shadow:0 -14px 30px rgba(0,0,0,0.10);}
-.scholar-panel .dw-chip{background:#fff;border:1px solid #F0E7D4;box-shadow:0 3px 10px rgba(0,0,0,0.05);color:#2A1D13;}
-.scholar-panel .dw-chip .ic-badge{background:#2B4C3F;color:#fff;}
-.scholar-panel .pc-ring .track{stroke:#E7DBC0;}
-.scholar-panel .pc-ring .fill{stroke:#2B4C3F;stroke-linecap:round;}
-.scholar-panel .pc-ring-label{color:#2A1D13;}
-.scholar-panel .pc-xpbar-fill{background:linear-gradient(90deg,#2B4C3F,#E8B85C);}
-.scholar-panel .pc-week .bar{background:linear-gradient(180deg,#E8B85C,#2B4C3F);}
-.scholar-panel .pc-streak .dot{background:#EAE0CB;}
-.scholar-panel .pc-streak .dot.on{background:#E8B85C;}
-.scholar-panel .pc-caption{color:#8A7B62;}
-
-/* ---- Explorer world: mountains, forest, adventure ---- */
-.explorer-world{background:linear-gradient(180deg,#BFE3F2 0%,#FFD8A8 42%,#FF9F6B 72%,#7C5CFC 100%);}
-.explorer-world .mountain{position:absolute;bottom:0;left:0;}
-.explorer-world .cloud{position:absolute;background:#fff;border-radius:50px;opacity:.85;}
-.explorer-world .leaf{position:absolute;width:9px;height:9px;background:#7BC47F;border-radius:0 60% 0 60%;opacity:.8;}
-@media (prefers-reduced-motion: no-preference){
-  .explorer-world .cloud{animation:cloud-drift 40s linear infinite;}
-  .explorer-world .leaf{animation:leaf-fall 7s linear infinite;}
-  #fox-mascot{animation:fox-bob 2.6s ease-in-out infinite;}
-  .fox-tail{animation:tail-wag 1.8s ease-in-out infinite;}
-}
-@keyframes cloud-drift{from{transform:translateX(-30px);}to{transform:translateX(30px);}}
-@keyframes leaf-fall{0%{transform:translateY(-10px) rotate(0deg);opacity:0;}10%{opacity:.8;}100%{transform:translateY(240px) rotate(220deg) translateX(26px);opacity:0;}}
-@keyframes fox-bob{0%,100%{transform:translateY(0) rotate(0deg);}50%{transform:translateY(-8px) rotate(-2deg);}}
-.fox-tail{transform-origin:20px 90px;}
-@keyframes tail-wag{0%,100%{transform:rotate(0deg);}50%{transform:rotate(8deg);}}
-#fox-mascot.celebrate{animation:fox-celebrate 0.7s ease;}
-@keyframes fox-celebrate{0%{transform:scale(1) translateY(0);}30%{transform:scale(1.12) translateY(-14px) rotate(3deg);}60%{transform:scale(1.05) translateY(-6px) rotate(-3deg);}100%{transform:scale(1) translateY(0);}}
-.explorer-fox-rock{width:96px;height:20px;background:#D9C79A;border-radius:50%;box-shadow:0 5px 0 #B9A576;margin-top:-6px;}
-.dw-panel.explorer-panel{background:#fff;color:#2B2140;box-shadow:0 -14px 30px rgba(0,0,0,0.14);border-radius:36% 8% 0 0 / 46% 14% 0 0;}
-.explorer-panel .dw-chip{background:linear-gradient(135deg,#FFEFDD,#FFE1EE);color:#2B2140;}
-.explorer-panel .dw-chip .ic-badge{background:#FF7A59;}
-.explorer-panel .dw-chip .ic-badge:nth-of-type(1){background:#FF7A59;}
-.explorer-panel .dw-chip.streak .ic-badge{background:#7C5CFC;}
-.explorer-panel .pc-ring .track{stroke:#F3E7FF;}
-.explorer-panel .pc-ring .fill{stroke:#FF7A59;stroke-linecap:round;}
-.explorer-panel .pc-ring-label{color:#2B2140;}
-.explorer-panel .pc-xpbar-fill{background:linear-gradient(90deg,#FF7A59,#7C5CFC);}
-.explorer-panel .pc-week .bar{background:linear-gradient(180deg,#7C5CFC,#FF7A59);}
-.explorer-panel .pc-streak .dot{background:#F1E7FF;}
-.explorer-panel .pc-streak .dot.on{background:#FF7A59;}
-.explorer-panel .pc-caption{color:#8D7FBE;}
-
-/* ---- Neo world: premium glass, AI robot, orbit ---- */
-.neo-world{background:radial-gradient(circle at 78% 15%, rgba(157,124,255,0.22), transparent 50%),
-                       radial-gradient(circle at 10% 85%, rgba(79,227,214,0.16), transparent 50%),
-                       linear-gradient(180deg,#090C15,#10141F);color:#EAF0FF;}
-.neo-world .ambient-pulse{position:absolute;top:-90px;right:0;width:360px;height:360px;border-radius:50%;background:radial-gradient(circle, rgba(79,227,214,0.16), transparent 70%);}
-@media (prefers-reduced-motion: no-preference){
-  .neo-world .ambient-pulse{animation:pulse-glow 5s ease-in-out infinite;}
-  #bot-mascot{animation:bot-float 3.2s ease-in-out infinite;}
-  .bot-eye{animation:bot-blink 4s ease-in-out infinite;}
-  .orbit-ring{animation:spin-slow 10s linear infinite;}
-}
-@keyframes pulse-glow{0%,100%{opacity:.5;transform:scale(1);}50%{opacity:.9;transform:scale(1.06);}}
-@keyframes bot-float{0%,100%{transform:translateY(0);}50%{transform:translateY(-8px);}}
-@keyframes bot-blink{0%,90%,100%{opacity:1;}93%,96%{opacity:.15;}}
-#bot-mascot.celebrate{animation:bot-celebrate 0.7s ease;}
-@keyframes bot-celebrate{0%{transform:scale(1) translateY(0);}30%{transform:scale(1.1) translateY(-10px);}100%{transform:scale(1) translateY(0);}}
-.dw-mascot-stage.neo-stage{position:relative;}
-.orbit-ring{position:absolute;width:190px;height:190px;border-radius:50%;border:1px solid rgba(79,227,214,0.32);top:0;left:50%;transform:translateX(-50%);}
-.orbit-ring::before,.orbit-ring::after{content:'';position:absolute;width:6px;height:6px;border-radius:50%;background:#4FE3D6;box-shadow:0 0 8px #4FE3D6;}
-.orbit-ring::before{top:-3px;left:50%;}
-.orbit-ring::after{bottom:-3px;left:50%;background:#9D7CFF;box-shadow:0 0 8px #9D7CFF;}
-.dw-panel.neo-panel{background:rgba(255,255,255,0.045);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);border:1px solid rgba(255,255,255,0.08);}
-.neo-panel .dw-chip{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);color:#EAF0FF;font-family:var(--font-mono);}
-.neo-panel .dw-chip .ic-badge{border-radius:6px;background:linear-gradient(135deg,#4FE3D6,#9D7CFF);}
-.neo-panel .dw-chip .ic-badge svg{stroke:#0A0E1A;}
-.neo-panel .pc-ring .track{stroke:rgba(255,255,255,0.08);}
-.neo-panel .pc-ring .fill{stroke:#4FE3D6;stroke-linecap:round;filter:drop-shadow(0 0 5px rgba(79,227,214,.6));}
-.neo-panel .pc-ring-label{color:#EAF0FF;}
-.neo-panel .pc-xpbar-fill{background:linear-gradient(90deg,#4FE3D6,#9D7CFF);}
-.neo-panel .pc-week .bar{background:linear-gradient(180deg,#9D7CFF,#4FE3D6);}
-.neo-panel .pc-streak .dot{background:rgba(255,255,255,0.08);}
-.neo-panel .pc-streak .dot.on{background:#4FE3D6;}
-.neo-panel .pc-caption{color:#7C8EBD;}
-
-@media (max-width: 860px){
-  .dw-content{flex-direction:column;align-items:center;padding:28px 20px 0;text-align:center;}
-  .dw-mascot-stage{width:auto;}
-  .dw-panel{width:100%;border-radius:22px 22px 0 0 !important;}
-  .dw-chip-row{justify-content:center;}
-  .pc-cluster{grid-template-columns:1fr;justify-items:center;text-align:center;}
-}
-
 @media (max-width: 860px){
   .sidebar{display:none;}
   #app.active{flex-direction:column;}
@@ -368,7 +537,8 @@ body[data-exp="neo"] #dashworld-neo{display:block;}
     justify-content:space-around;z-index:50;
   }
   .bottom-nav .bn-item{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10px;color:var(--ink-dim);cursor:pointer;padding:4px 8px;border-radius:10px;}
-  .bottom-nav .bn-item .ic{font-size:18px;}
+  .bottom-nav .bn-item .ic{display:flex;align-items:center;justify-content:center;}
+  .bottom-nav .bn-item .ic svg{width:18px;height:18px;display:block;}
   .bottom-nav .bn-item.active{color:var(--accent);}
   .controls{flex-direction:column;align-items:flex-start;}
 }
@@ -404,7 +574,7 @@ body[data-exp="neo"] #dashworld-neo{display:block;}
       <button class="btn" id="role-continue-btn" onclick="continueAsRole()">Continue</button>
     </div>
     <div class="row" style="border:none;font-size:12.5px;">
-      <span id="login-classboard">Class 8 · CBSE</span>
+      <span>Class 8 · CBSE</span>
       <span>🔥 18 day streak</span>
     </div>
   </div>
@@ -413,192 +583,185 @@ body[data-exp="neo"] #dashworld-neo{display:block;}
 <div id="app">
   <div class="sidebar">
     <div class="brand"><span class="mark"></span> BAA OS</div>
-    <div class="nav-item active" data-view="dashboard" onclick="showView('dashboard')"><span class="ic">🏠</span> Dashboard</div>
-    <div class="nav-item" data-view="tutor" onclick="showView('tutor')"><span class="ic">🤖</span> AI Tutor</div>
-    <div class="nav-item" data-view="ku" onclick="showView('ku')"><span class="ic">🌌</span> Knowledge Universe</div>
-    <div class="nav-item" data-view="homework" onclick="showView('homework')"><span class="ic">📄</span> Homework</div>
-    <div class="nav-item" data-view="career" onclick="showView('career')"><span class="ic">🚀</span> Career</div>
-    <div class="nav-item" data-view="settings" onclick="showView('settings')"><span class="ic">⚙️</span> Settings</div>
+    <div class="nav-item active" data-view="dashboard" onclick="showView('dashboard')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9a1 1 0 0 0 1 1H9a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1h2.5a1 1 0 0 0 1-1v-9"/></svg></span> Dashboard</div>
+    <div class="nav-item" data-view="tutor" onclick="showView('tutor')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v7A2.5 2.5 0 0 1 17.5 15H10l-4 3.5V15H6.5A2.5 2.5 0 0 1 4 12.5z"/><path d="M9 8.5h6M9 11h4"/></svg></span> AI Tutor</div>
+    <div class="nav-item" data-view="ku" onclick="showView('ku')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7.5"/><ellipse cx="12" cy="12" rx="7.5" ry="3"/><path d="M12 4.5v15"/></svg></span> Knowledge Universe</div>
+    <div class="nav-item" data-view="homework" onclick="showView('homework')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h7l4 4v14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M14 3v4h4"/><path d="M8.5 12.5h7M8.5 16h5"/></svg></span> Homework</div>
+    <div class="nav-item" data-view="career" onclick="showView('career')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5c2.5 1.8 4 5 4 8.5 0 1.6-.3 3-.8 4.2l-3.2 3.3-3.2-3.3c-.5-1.2-.8-2.6-.8-4.2 0-3.5 1.5-6.7 4-8.5Z"/><circle cx="12" cy="10.5" r="1.6"/><path d="M9 15l-2.5 2.5M15 15l2.5 2.5M10 19.5l2-2 2 2"/></svg></span> Career</div>
+    <div class="nav-item" data-view="settings" onclick="showView('settings')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.5-2-3.4-2.3.9a7 7 0 0 0-2-1.2L14 3h-4l-.4 2.6a7 7 0 0 0-2 1.2l-2.3-.9-2 3.4 2 1.5A7 7 0 0 0 5 12c0 .4 0 .8.1 1.2l-2 1.5 2 3.4 2.3-.9c.6.5 1.3.9 2 1.2L10 21h4l.4-2.6c.7-.3 1.4-.7 2-1.2l2.3.9 2-3.4-2-1.5c.1-.4.1-.8.1-1.2Z"/></svg></span> Settings</div>
     <div class="sidebar-foot" id="mode-badge">Mode: AI</div>
   </div>
 
   <div class="main">
 
     <section class="view active" id="view-dashboard">
-      <div style="display:flex;align-items:center;gap:14px;margin-bottom:4px;">
-        <div class="mascot-avatar" id="mascot">🦉</div>
-        <div>
-          <h1 class="page-title" id="greeting" style="margin-bottom:0;">Good morning, Bhavesh</h1>
-          <p class="page-sub" id="subtext" style="margin-bottom:0;">18-day streak · today's plan is ready.</p>
+      <div class="card dash-hero">
+        <div class="dash-hero-signature" aria-hidden="true">
+          <span class="deco deco-1"></span><span class="deco deco-2"></span><span class="deco deco-3"></span>
+          <div class="env-pulse"></div>
+          <div class="env-cloud" style="width:70px;height:24px;top:20px;left:56%;"></div>
+          <div class="env-cloud" style="width:44px;height:18px;top:50px;left:70%;"></div>
+          <span class="env-leaf" style="left:60%;top:0;animation-delay:0s;"></span>
+          <span class="env-leaf" style="left:74%;top:0;animation-delay:2s;"></span>
+          <span class="dust" style="width:4px;height:4px;top:60px;left:62%;animation-delay:0s;"></span>
+          <span class="dust" style="width:3px;height:3px;top:110px;left:70%;animation-delay:1.6s;"></span>
+          <span class="dust" style="width:5px;height:5px;top:85px;left:78%;animation-delay:3s;"></span>
+          <span class="light-ray" style="top:-20px;left:64%;transform:rotate(12deg);"></span>
+          <span class="light-ray" style="top:-20px;left:74%;transform:rotate(12deg);height:140px;"></span>
+          <svg class="env-bird" viewBox="0 0 20 10" width="16" height="8" style="top:30px;left:10%;"><path d="M0 6 Q5 0 10 6 Q15 0 20 6" fill="none" stroke="var(--ink)" stroke-width="1.4" stroke-linecap="round" opacity="0.5"/></svg>
+          <svg class="hero-illustration hero-illo-scholar" viewBox="0 0 900 400" preserveAspectRatio="xMidYMid slice">
+            <rect x="0" y="0" width="900" height="400" fill="var(--panel)"/>
+            <rect x="0" y="300" width="900" height="100" fill="var(--accent-soft)" opacity="0.5"/>
+            <g opacity="0.55">
+              <rect x="40" y="40" width="70" height="260" fill="#C9A171"/><rect x="120" y="40" width="70" height="260" fill="#B5895A"/>
+              <rect x="200" y="40" width="70" height="260" fill="#C9A171"/><rect x="600" y="40" width="70" height="260" fill="#B5895A"/>
+              <rect x="680" y="40" width="70" height="260" fill="#C9A171"/><rect x="760" y="40" width="70" height="260" fill="#B5895A"/>
+              <rect x="840" y="40" width="60" height="260" fill="#C9A171"/>
+              <g stroke="#8C6339" stroke-width="3" opacity="0.6">
+                <line x1="20" y1="100" x2="900" y2="100"/><line x1="20" y1="170" x2="900" y2="170"/><line x1="20" y1="240" x2="900" y2="240"/>
+              </g>
+            </g>
+            <circle cx="470" cy="90" r="120" fill="var(--lamp-glow)" opacity="0.20"/>
+            <path d="M330 0 L420 0 L470 130 L280 130 Z" fill="var(--lamp-glow)" opacity="0.10"/>
+            <path d="M420 0 L520 0 L560 150 L370 150 Z" fill="var(--lamp-glow)" opacity="0.08"/>
+            <path d="M360 300 V220 C360 213 367 208 380 212 L440 232 L440 306 L380 292 C367 298 360 300 360 300Z" fill="var(--panel)" stroke="var(--accent)" stroke-width="2" opacity="0.6"/>
+            <path d="M540 300 V220 C540 213 533 208 520 212 L460 232 L460 306 L520 292 C533 298 540 300 540 300Z" fill="var(--panel)" stroke="var(--accent)" stroke-width="2" opacity="0.6"/>
+          </svg>
+          <svg class="hero-illustration hero-illo-explorer" viewBox="0 0 900 400" preserveAspectRatio="xMidYMid slice">
+            <rect x="0" y="0" width="900" height="400" fill="var(--panel)"/>
+            <circle cx="760" cy="70" r="46" fill="var(--lamp-glow,#FFD98A)" opacity="0.35"/>
+            <path d="M0 260 L120 150 L260 230 L420 110 L580 220 L720 130 L900 210 L900 400 L0 400Z" fill="var(--accent-2,#7C5CFC)" opacity="0.16"/>
+            <path d="M0 300 L150 210 L320 280 L480 170 L650 260 L820 190 L900 250 L900 400 L0 400Z" fill="var(--accent-2,#7C5CFC)" opacity="0.26"/>
+            <path d="M0 400 C150 370 250 400 380 375 C520 348 650 390 900 360 L900 400Z" fill="var(--accent-soft)" opacity="0.7"/>
+            <path d="M0 385 C180 400 320 372 460 392 C620 412 760 380 900 395" fill="none" stroke="var(--cyan,#8FD8E8)" stroke-width="10" opacity="0.25"/>
+            <path d="M420 375 V310" stroke="var(--ink)" stroke-width="3" opacity="0.35"/>
+            <path d="M420 310 L462 325 L420 340 Z" fill="var(--coral,#FF7A59)" opacity="0.85"/>
+          </svg>
+          <svg class="hero-illustration hero-illo-neo" viewBox="0 0 900 400" preserveAspectRatio="xMidYMid slice">
+            <rect x="0" y="0" width="900" height="400" fill="var(--panel)"/>
+            <g stroke="var(--cyan)" stroke-width="1" opacity="0.10">
+              <line x1="0" y1="60" x2="900" y2="60"/><line x1="0" y1="130" x2="900" y2="130"/><line x1="0" y1="200" x2="900" y2="200"/><line x1="0" y1="270" x2="900" y2="270"/><line x1="0" y1="340" x2="900" y2="340"/>
+              <line x1="120" y1="0" x2="120" y2="400"/><line x1="280" y1="0" x2="280" y2="400"/><line x1="440" y1="0" x2="440" y2="400"/><line x1="600" y1="0" x2="600" y2="400"/><line x1="760" y1="0" x2="760" y2="400"/>
+            </g>
+            <circle cx="700" cy="110" r="160" fill="var(--cyan)" opacity="0.10"/>
+            <circle cx="780" cy="260" r="120" fill="var(--violet)" opacity="0.10"/>
+            <g fill="none" stroke="var(--cyan)" stroke-width="1" opacity="0.45">
+              <polygon points="650,70 700,100 700,160 650,190 600,160 600,100"/>
+              <line x1="650" y1="70" x2="650" y2="190"/><line x1="600" y1="100" x2="700" y2="160"/><line x1="600" y1="160" x2="700" y2="100"/>
+            </g>
+            <circle cx="650" cy="70" r="4" fill="var(--violet)"/><circle cx="700" cy="160" r="4" fill="var(--cyan)"/><circle cx="600" cy="160" r="4" fill="var(--violet)"/>
+          </svg>
+          <div class="hero-scrim" aria-hidden="true"></div>
         </div>
-      </div>
-      <!-- SCHOLAR world -->
-      <div class="dash-world scholar-world" id="dashworld-scholar">
-        <div class="window-beam"></div>
-        <div class="shelf-row"><div class="shelf-col"></div><div class="shelf-col"></div><div class="shelf-col"></div><div class="shelf-col"></div><div class="shelf-col"></div></div>
-        <span class="dust" style="width:4px;height:4px;top:70px;left:58%;animation-delay:0s;"></span>
-        <span class="dust" style="width:3px;height:3px;top:120px;left:66%;animation-delay:1.4s;"></span>
-        <span class="dust" style="width:5px;height:5px;top:96px;left:74%;animation-delay:2.6s;"></span>
-        <div class="dw-content">
-          <div class="dw-mascot-stage">
-            <svg id="owl-mascot" viewBox="0 0 140 140">
-              <ellipse cx="70" cy="82" rx="42" ry="46" fill="#7A5C3D"/>
-              <path d="M40 40 Q50 14 62 38" fill="#7A5C3D"/>
-              <path d="M78 38 Q90 14 100 40" fill="#7A5C3D"/>
-              <path class="owl-wing-left" d="M30 82 Q10 105 32 118 Q30 96 30 82Z" fill="#5C4529"/>
-              <path d="M110 82 Q130 105 108 118 Q110 96 110 82Z" fill="#5C4529"/>
-              <circle cx="54" cy="70" r="17" fill="#FFF9EC"/>
-              <circle cx="86" cy="70" r="17" fill="#FFF9EC"/>
-              <circle cx="54" cy="70" r="7" fill="#2A1D13"/>
-              <circle cx="86" cy="70" r="7" fill="#2A1D13"/>
-              <rect class="owl-eyelid" x="37" y="53" width="34" height="34" rx="17"/>
-              <rect class="owl-eyelid" x="69" y="53" width="34" height="34" rx="17"/>
-              <path d="M64 82 L70 96 L76 82 Z" fill="#E8B85C"/>
+        <div class="dash-hero-top">
+          <div class="mascot-stage" onmouseenter="mascotReact('wave')" title="Say hi">
+            <svg id="owl" class="mascot-character mascot-owl" viewBox="0 0 100 100">
+              <ellipse cx="50" cy="58" rx="30" ry="33" fill="#7A5C3D"/>
+              <path d="M28 28 Q36 10 46 27" fill="#7A5C3D"/><path d="M54 27 Q64 10 72 28" fill="#7A5C3D"/>
+              <path class="wing-left" d="M22 58 Q8 76 24 86 Q22 68 22 58Z" fill="#5C4529"/>
+              <circle cx="39" cy="50" r="12" fill="#FFF9EC"/><circle cx="61" cy="50" r="12" fill="#FFF9EC"/>
+              <circle class="pupil" cx="39" cy="50" r="5" fill="#2A1D13"/><circle class="pupil" cx="61" cy="50" r="5" fill="#2A1D13"/>
+              <rect class="eyelid" x="27" y="38" width="24" height="24" rx="12" fill="#7A5C3D"/>
+              <rect class="eyelid" x="49" y="38" width="24" height="24" rx="12" fill="#7A5C3D"/>
+              <path d="M46 58 L50 68 L54 58Z" fill="#E8B85C"/>
             </svg>
-            <div class="scholar-book-stack"></div>
+            <svg id="fox" class="mascot-character mascot-fox" viewBox="0 0 100 100">
+              <path class="fox-tail" d="M20 68 Q2 80 8 98 Q22 90 25 72Z" fill="#FF9F6B"/>
+              <path d="M50 22 L70 6 L64 28Z" fill="#FF7A59"/><path d="M50 22 L30 6 L36 28Z" fill="#FF7A59"/>
+              <ellipse cx="50" cy="54" rx="32" ry="30" fill="#FF9F6B"/>
+              <path d="M32 68 Q50 84 68 68 L63 74 Q50 80 37 74Z" fill="#FFF6EC"/>
+              <circle cx="40" cy="48" r="11" fill="#fff"/><circle cx="60" cy="48" r="11" fill="#fff"/>
+              <circle class="pupil" cx="41" cy="49" r="4.5" fill="#2B2140"/><circle class="pupil" cx="59" cy="49" r="4.5" fill="#2B2140"/>
+              <rect class="eyelid" x="29" y="37" width="22" height="22" rx="11" fill="#FF9F6B"/>
+              <rect class="eyelid" x="49" y="37" width="22" height="22" rx="11" fill="#FF9F6B"/>
+              <path d="M45 60 L50 66 L55 60Z" fill="#2B2140"/>
+            </svg>
+            <svg id="bot" class="mascot-character mascot-bot" viewBox="0 0 100 100">
+              <rect x="24" y="30" width="52" height="44" rx="16" fill="rgba(255,255,255,0.07)" stroke="var(--cyan)" stroke-width="1.3"/>
+              <circle class="bot-eye" cx="42" cy="52" r="5" fill="var(--cyan)"/>
+              <circle class="bot-eye" cx="58" cy="52" r="5" fill="var(--violet)"/>
+              <path d="M50 10v16M40 12l6 6M60 12l-6 6" stroke="var(--cyan)" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            <div class="habitat habitat-books" aria-hidden="true"></div>
+            <div class="habitat habitat-rock" aria-hidden="true"></div>
+            <div class="habitat-ring" aria-hidden="true"></div>
+            <div class="habitat-ring-outer" aria-hidden="true"></div>
           </div>
-          <div class="dw-panel scholar-panel">
-            <div class="dw-chip-row">
-              <span class="dw-chip"><span class="ic-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></svg></span>2,450 XP</span>
-              <span class="dw-chip"><span class="ic-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v3.5a5 5 0 0 1-10 0V4Z"/><path d="M7 5H4.5A2.5 2.5 0 0 0 7 9M17 5h2.5A2.5 2.5 0 0 1 17 9M12 12v3.5M9.5 19h5v-2.5h-5Z"/></svg></span>Rank #4</span>
-            </div>
-            <div class="pc-cluster">
-              <div class="pc-ring">
-                <svg viewBox="0 0 64 64"><circle class="track" cx="32" cy="32" r="27"/><circle class="fill" cx="32" cy="32" r="27" stroke-width="6" stroke-dasharray="169.6" stroke-dashoffset="42"/></svg>
-                <div class="pc-ring-label">78%</div>
-              </div>
-              <div class="pc-body">
-                <div><div class="pc-caption">Weekly XP goal</div><div class="pc-xpbar"><div class="pc-xpbar-fill"></div></div></div>
-                <div class="pc-week"><div class="bar" style="height:40%"></div><div class="bar" style="height:65%"></div><div class="bar" style="height:35%"></div><div class="bar" style="height:80%"></div><div class="bar" style="height:55%"></div><div class="bar" style="height:90%"></div><div class="bar" style="height:70%"></div></div>
-                <div><div class="pc-caption">18-day streak</div><div class="pc-streak"><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span></div></div>
-              </div>
-            </div>
+          <div class="dash-hero-text">
+            <h1 class="page-title" id="greeting" style="margin-bottom:0;">Good morning, Bhavesh</h1>
+            <p class="page-sub" id="subtext" style="margin-bottom:0;">18-day streak · today's plan is ready.</p>
           </div>
         </div>
       </div>
 
-      <!-- EXPLORER world -->
-      <div class="dash-world explorer-world" id="dashworld-explorer">
-        <svg class="mountain" viewBox="0 0 1180 200" width="100%" height="180" preserveAspectRatio="none" style="opacity:.35;"><path d="M0 200 L120 90 L260 160 L400 60 L560 150 L720 80 L900 170 L1050 100 L1180 160 L1180 200Z" fill="#8B6BE0"/></svg>
-        <svg class="mountain" viewBox="0 0 1180 160" width="100%" height="140" preserveAspectRatio="none" style="opacity:.5;"><path d="M0 160 L150 70 L320 130 L480 40 L650 120 L820 60 L1000 140 L1180 90 L1180 160Z" fill="#A98BF2"/></svg>
-        <div class="cloud" style="width:90px;height:32px;top:28px;left:8%;"></div>
-        <div class="cloud" style="width:56px;height:22px;top:56px;left:72%;"></div>
-        <div class="cloud" style="width:44px;height:18px;top:86px;left:40%;"></div>
-        <span class="leaf" style="left:20%;animation-delay:0s;"></span>
-        <span class="leaf" style="left:45%;animation-delay:2.2s;background:#F7C873;"></span>
-        <span class="leaf" style="left:65%;animation-delay:4.1s;"></span>
-        <span class="leaf" style="left:85%;animation-delay:1.3s;background:#F7C873;"></span>
-        <div class="dw-content">
-          <div class="dw-mascot-stage">
-            <svg id="fox-mascot" viewBox="0 0 140 140">
-              <path class="fox-tail" d="M30 95 Q0 110 10 135 Q30 125 34 100Z" fill="#FF9F6B"/>
-              <path d="M70 30 L100 8 L92 40Z" fill="#FF7A59"/>
-              <path d="M70 30 L40 8 L48 40Z" fill="#FF7A59"/>
-              <ellipse cx="70" cy="72" rx="46" ry="42" fill="#FF9F6B"/>
-              <path d="M45 92 Q70 112 95 92 L88 100 Q70 108 52 100Z" fill="#FFF6EC"/>
-              <circle cx="55" cy="66" r="15" fill="#fff"/><circle cx="85" cy="66" r="15" fill="#fff"/>
-              <circle cx="56" cy="68" r="6.5" fill="#2B2140"/><circle cx="86" cy="68" r="6.5" fill="#2B2140"/>
-              <path d="M65 82 L70 90 L75 82Z" fill="#2B2140"/>
-            </svg>
-            <div class="explorer-fox-rock"></div>
-          </div>
-          <div class="dw-panel explorer-panel">
-            <div class="dw-chip-row">
-              <span class="dw-chip"><span class="ic-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></svg></span>2,450 XP</span>
-              <span class="dw-chip streak"><span class="ic-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2c1.2 3.2-1.8 4.3-1.8 7.4A2.8 2.8 0 0 0 13 12.2"/><path d="M7.8 13.2a4.2 4.2 0 1 0 8.4 0"/></svg></span>18-day streak</span>
-            </div>
-            <div class="pc-cluster">
-              <div class="pc-ring">
-                <svg viewBox="0 0 64 64"><circle class="track" cx="32" cy="32" r="27"/><circle class="fill" cx="32" cy="32" r="27" stroke-width="6" stroke-dasharray="169.6" stroke-dashoffset="42"/></svg>
-                <div class="pc-ring-label">78%</div>
-              </div>
-              <div class="pc-body">
-                <div><div class="pc-caption">Weekly XP goal</div><div class="pc-xpbar"><div class="pc-xpbar-fill"></div></div></div>
-                <div class="pc-week"><div class="bar" style="height:40%"></div><div class="bar" style="height:65%"></div><div class="bar" style="height:35%"></div><div class="bar" style="height:80%"></div><div class="bar" style="height:55%"></div><div class="bar" style="height:90%"></div><div class="bar" style="height:70%"></div></div>
-                <div><div class="pc-caption">Rank #4 this week</div><div class="pc-streak"><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span></div></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- NEO world -->
-      <div class="dash-world neo-world" id="dashworld-neo">
-        <div class="ambient-pulse"></div>
-        <div class="dw-content">
-          <div class="dw-mascot-stage neo-stage">
-            <div class="orbit-ring"></div>
-            <svg id="bot-mascot" viewBox="0 0 120 120">
-              <rect x="30" y="34" width="60" height="52" rx="18" fill="rgba(255,255,255,0.06)" stroke="#4FE3D6" stroke-width="1.3"/>
-              <circle class="bot-eye" cx="50" cy="60" r="6" fill="#4FE3D6"/>
-              <circle class="bot-eye" cx="70" cy="60" r="6" fill="#9D7CFF"/>
-              <path d="M60 12v18M48 14l6 6M72 14l-6 6" stroke="#4FE3D6" stroke-width="1.6" stroke-linecap="round"/>
-            </svg>
-          </div>
-          <div class="dw-panel neo-panel">
-            <div class="dw-chip-row">
-              <span class="dw-chip"><span class="ic-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></svg></span>2,450 XP</span>
-              <span class="dw-chip"><span class="ic-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="6"/><path d="M12 8v4l3 2"/></svg></span>Rank #4</span>
-            </div>
-            <div class="pc-cluster" style="border-top-color:rgba(255,255,255,0.08);">
-              <div class="pc-ring">
-                <svg viewBox="0 0 64 64"><circle class="track" cx="32" cy="32" r="27"/><circle class="fill" cx="32" cy="32" r="27" stroke-width="6" stroke-dasharray="169.6" stroke-dashoffset="42"/></svg>
-                <div class="pc-ring-label">78%</div>
-              </div>
-              <div class="pc-body">
-                <div><div class="pc-caption">Weekly sync goal</div><div class="pc-xpbar"><div class="pc-xpbar-fill"></div></div></div>
-                <div class="pc-week"><div class="bar" style="height:40%"></div><div class="bar" style="height:65%"></div><div class="bar" style="height:35%"></div><div class="bar" style="height:80%"></div><div class="bar" style="height:55%"></div><div class="bar" style="height:90%"></div><div class="bar" style="height:70%"></div></div>
-                <div><div class="pc-caption">18-day streak</div><div class="pc-streak"><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span></div></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="grid2">
-        <div class="card">
+      <div class="dash-layout">
+        <div class="card dash-focus">
           <div class="eyebrow">Continue learning · Story mode</div>
-          <div style="font-weight:600;font-size:15.5px;margin-bottom:4px;">Chapter 5: The Bridge Problem</div>
-          <p style="font-size:12.5px;color:var(--ink-dim);line-height:1.6;margin:0 0 10px;">The old bridge has collapsed. To rebuild it safely, you need to solve 3 more linear equations before the river rises tonight.</p>
-          <svg viewBox="0 0 300 70" style="width:100%;height:56px;margin-bottom:4px;" aria-hidden="true">
+          <div style="font-weight:600;font-size:17px;margin-bottom:6px;">Chapter 5: The Bridge Problem</div>
+          <p style="font-size:13px;color:var(--ink-dim);line-height:1.65;margin:0 0 16px;">The old bridge has collapsed. To rebuild it safely, you need to solve 3 more linear equations before the river rises tonight.</p>
+          <div class="focus-chip-row">
+            <div class="focus-chip"><span class="ic-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></svg></span>2,450 XP</div>
+            <div class="focus-chip"><span class="ic-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v3.5a5 5 0 0 1-10 0V4Z"/><path d="M7 5H4.5A2.5 2.5 0 0 0 7 9M17 5h2.5A2.5 2.5 0 0 1 17 9M12 12v3.5M9.5 19h5v-2.5h-5Z"/></svg></span>Rank #4</div>
+          </div>
+          <svg viewBox="0 0 300 70" style="width:100%;height:56px;margin-bottom:2px;" aria-hidden="true">
             <path d="M10,55 C60,10 90,70 140,35 C180,8 210,60 250,30 C265,18 275,35 290,20"
                   fill="none" stroke="var(--border)" stroke-width="5" stroke-linecap="round"/>
             <path d="M10,55 C60,10 90,70 140,35" fill="none" stroke="var(--accent)" stroke-width="5" stroke-linecap="round"/>
           </svg>
-          <div style="display:flex;justify-content:space-between;margin-bottom:10px;">
+          <div class="trail-track" aria-hidden="true"></div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:18px;">
             <span class="path-node done">1</span><span class="path-node done">2</span><span class="path-node current">3</span><span class="path-node">4</span><span class="path-node">5</span>
           </div>
-          <button class="btn" onclick="showView('tutor')">Continue the quest →</button>
-        </div>
-        <div class="card">
-          <div class="eyebrow">AI Tutor</div>
-          <div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:12px;">
-            <div style="width:36px;height:36px;border-radius:50%;background:var(--accent);flex-shrink:0;position:relative;">
-              <span class="live-dot" style="position:absolute;top:-2px;right:-2px;width:8px;height:8px;border-radius:50%;background:var(--green);"></span>
+          <button class="btn dash-cta" onclick="mascotReact('celebrate'); setTimeout(function(){showView('tutor');}, 550);">Continue the quest →</button>
+
+          <div class="progress-cluster">
+            <div class="pc-ring">
+              <svg viewBox="0 0 60 60" aria-hidden="true"><circle class="track" cx="30" cy="30" r="26"/><circle class="fill" cx="30" cy="30" r="26" style="--pct:78;stroke-dashoffset:calc(163.4 - (163.4 * var(--pct)) / 100);"/></svg>
+              <div class="pc-ring-label">78%</div>
             </div>
-            <div style="font-size:13px;color:var(--ink-dim);line-height:1.6;background:var(--bg);border-radius:12px;padding:10px 14px;">Ask anything, any time — I've got your last 3 chapters in mind.</div>
+            <div class="pc-body">
+              <div><div class="pc-caption">Weekly XP goal</div><div class="pc-xpbar"><div class="pc-xpbar-fill" style="width:64%;"></div></div></div>
+              <div class="pc-week" aria-hidden="true">
+                <div class="bar" style="height:40%"></div><div class="bar" style="height:65%"></div><div class="bar" style="height:35%"></div>
+                <div class="bar" style="height:80%"></div><div class="bar" style="height:55%"></div><div class="bar" style="height:90%"></div><div class="bar" style="height:70%"></div>
+              </div>
+              <div><div class="pc-caption">18-day streak</div><div class="pc-streak">
+                <span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span>
+              </div></div>
+            </div>
           </div>
-          <button class="btn" onclick="showView('tutor')">Start a conversation</button>
         </div>
-      </div>
-      <div class="grid3">
-        <div class="card">
-          <div class="eyebrow">Subject strength</div>
-          <div class="row"><span>Mathematics</span><span class="status-dot"><span class="shape">▲</span></span><span class="pill">85%</span></div>
-          <div class="row"><span>Science</span><span class="status-dot"><span class="shape">●</span></span><span class="pill">78%</span></div>
-          <div class="row"><span>English</span><span class="status-dot"><span class="shape">■</span></span><span class="pill">72%</span></div>
-        </div>
-        <div class="card">
-          <div class="eyebrow">Knowledge universe</div>
-          <div class="ku-swatch" style="background:var(--blue);"></div>
-          <div style="font-weight:600;font-size:13.5px;">The Solar System</div>
-          <div style="font-size:11.5px;color:var(--ink-dim);">Space · today's pick</div>
-          <button class="btn outline" style="margin-top:10px;" onclick="showView('ku')">Explore</button>
-        </div>
-        <div class="card">
-          <div class="eyebrow">Homework</div>
-          <div class="row"><span>Linear Algebra set</span><span class="pill">pending</span></div>
-          <div class="row"><span>Essay: impact of AI</span><span class="pill" style="background:#FEE2E2;color:#B91C1C;">overdue</span></div>
-          <button class="btn outline" style="margin-top:6px;" onclick="showView('homework')">View all</button>
+
+        <div class="dash-aside">
+          <div class="card">
+            <div class="eyebrow">AI Tutor</div>
+            <div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:12px;">
+              <div style="width:36px;height:36px;border-radius:50%;background:var(--accent);flex-shrink:0;position:relative;">
+                <span class="live-dot" style="position:absolute;top:-2px;right:-2px;width:8px;height:8px;border-radius:50%;background:var(--green);"></span>
+              </div>
+              <div style="font-size:13px;color:var(--ink-dim);line-height:1.6;background:var(--bg);border-radius:12px;padding:10px 14px;">Ask anything, any time — I've got your last 3 chapters in mind.</div>
+            </div>
+            <button class="btn" onclick="showView('tutor')">Start a conversation</button>
+          </div>
+          <div class="card">
+            <div class="eyebrow">Subject strength</div>
+            <div class="row"><span>Mathematics</span><span class="status-dot"><span class="shape">▲</span></span><span class="pill">85%</span></div>
+            <div class="row"><span>Science</span><span class="status-dot"><span class="shape">●</span></span><span class="pill">78%</span></div>
+            <div class="row"><span>English</span><span class="status-dot"><span class="shape">■</span></span><span class="pill">72%</span></div>
+          </div>
+          <div class="card">
+            <div class="eyebrow">Knowledge universe</div>
+            <div class="ku-swatch" style="background:var(--blue);"><svg class="ku-icon" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="28" height="28" style="filter:drop-shadow(0 2px 4px rgba(0,0,0,0.25));"><circle cx="12" cy="12" r="5"/><ellipse cx="12" cy="12" rx="9" ry="3" transform="rotate(-20 12 12)"/></svg></div>
+            <div style="font-weight:600;font-size:13.5px;">The Solar System</div>
+            <div style="font-size:11.5px;color:var(--ink-dim);">Space · today's pick</div>
+            <button class="btn outline" style="margin-top:10px;" onclick="showView('ku')">Explore</button>
+          </div>
+          <div class="card">
+            <div class="eyebrow">Homework</div>
+            <div class="row"><span>Linear Algebra set</span><span class="pill">pending</span></div>
+            <div class="row"><span>Essay: impact of AI</span><span class="pill" style="background:#FEE2E2;color:#B91C1C;">overdue</span></div>
+            <button class="btn outline" style="margin-top:6px;" onclick="showView('homework')">View all</button>
+          </div>
         </div>
       </div>
     </section>
@@ -624,7 +787,46 @@ body[data-exp="neo"] #dashworld-neo{display:block;}
 
     <section class="view" id="view-ku">
       <h1 class="page-title">Knowledge Universe</h1>
-      <p class="page-sub">Discover → Read → Watch → Interact → Play → Experiment → Discuss → Teach AI → Quiz → Project → Reflect → Certificate</p>
+      <p class="page-sub">Every subject is a world, every topic a place on the map. Travel through what you know — and what's next.</p>
+
+      <div class="ku-toolbar">
+        <input type="text" class="ku-search" placeholder="Search subjects and topics…" oninput="kuSearch(this.value)" aria-label="Search Knowledge Universe">
+        <button class="ku-filter-chip active" data-filter="all" onclick="kuFilter('all')">All</button>
+        <button class="ku-filter-chip" data-filter="completed" onclick="kuFilter('completed')">Completed</button>
+        <button class="ku-filter-chip" data-filter="incomplete" onclick="kuFilter('incomplete')">Incomplete</button>
+        <button class="ku-filter-chip" data-filter="weak" onclick="kuFilter('weak')">Needs review</button>
+        <button class="ku-filter-chip" data-filter="recommended" onclick="kuFilter('recommended')">Recommended</button>
+      </div>
+
+      <div id="ku-universe" class="ku-universe-grid"></div>
+
+      <div id="ku-graph" class="ku-graph">
+        <div class="ku-graph-header">
+          <div>
+            <div class="eyebrow" id="ku-graph-tagline">Subject map</div>
+            <h2 id="ku-graph-title" style="margin:2px 0 0;font-size:20px;"></h2>
+          </div>
+          <button class="ku-back-btn" onclick="closeKUGraph()">← Back to Universe</button>
+        </div>
+        <div class="ku-graph-stage">
+          <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><g id="ku-graph-lines"></g></svg>
+          <div id="ku-graph-nodes"></div>
+        </div>
+      </div>
+
+      <div class="ku-node-panel" id="ku-node-panel">
+        <button class="ku-panel-close" onclick="document.getElementById('ku-node-panel').classList.remove('open')" aria-label="Close">✕</button>
+        <div class="eyebrow" id="ku-panel-meta">In progress</div>
+        <h3 id="ku-panel-title" style="margin:2px 0 12px;font-size:15.5px;"></h3>
+        <div class="ku-panel-actions">
+          <button onclick="askAboutTopic('Explain')">Explain</button>
+          <button onclick="askAboutTopic('Give me practice on')">Practice</button>
+          <button onclick="askAboutTopic('Quiz me on')">Quiz</button>
+          <button onclick="askAboutTopic('Tell me more about')">Ask AI</button>
+        </div>
+      </div>
+
+      <div class="eyebrow" style="margin:30px 0 12px;">Daily discovery</div>
       <div class="ku-grid">
         <div class="card"><div class="ku-swatch" style="background:var(--blue);"><span class="ku-icon">🪐</span></div><div style="font-weight:600;font-size:13.5px;">The Solar System</div><div style="font-size:11.5px;color:var(--ink-dim);">Space</div><div class="ku-loop">75% through the loop</div></div>
         <div class="card"><div class="ku-swatch" style="background:var(--amber);"><span class="ku-icon">🏺</span></div><div style="font-weight:600;font-size:13.5px;">Indus Valley Civilization</div><div style="font-size:11.5px;color:var(--ink-dim);">History</div><div class="ku-loop new">✨ New</div></div>
@@ -661,25 +863,6 @@ body[data-exp="neo"] #dashworld-neo{display:block;}
     <section class="view" id="view-settings">
       <h1 class="page-title">Settings</h1>
       <p class="page-sub">Learning Experience, Appearance, and Accessibility combine independently.</p>
-      <div class="card" style="margin-bottom:14px;">
-        <div class="eyebrow">Profile</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px;">
-          <div>
-            <label style="font-size:11px;color:var(--ink-dim);display:block;margin-bottom:4px;">Name</label>
-            <input type="text" id="profile-name" style="width:100%;border:1px solid var(--border);border-radius:var(--radius-btn);padding:9px 11px;font-family:var(--font-body);font-size:13px;background:var(--bg);color:var(--ink);" />
-          </div>
-          <div>
-            <label style="font-size:11px;color:var(--ink-dim);display:block;margin-bottom:4px;">Class</label>
-            <input type="text" id="profile-class" style="width:100%;border:1px solid var(--border);border-radius:var(--radius-btn);padding:9px 11px;font-family:var(--font-body);font-size:13px;background:var(--bg);color:var(--ink);" />
-          </div>
-          <div>
-            <label style="font-size:11px;color:var(--ink-dim);display:block;margin-bottom:4px;">Board</label>
-            <input type="text" id="profile-board" style="width:100%;border:1px solid var(--border);border-radius:var(--radius-btn);padding:9px 11px;font-family:var(--font-body);font-size:13px;background:var(--bg);color:var(--ink);" />
-          </div>
-        </div>
-        <button class="btn" onclick="saveProfile()">Save profile</button>
-        <span id="profile-saved-msg" style="font-size:11.5px;color:var(--green);margin-left:10px;display:none;">✓ Saved</span>
-      </div>
       <div class="card">
         <div class="eyebrow">Learning experience</div>
         <div class="controls">
@@ -702,11 +885,11 @@ body[data-exp="neo"] #dashworld-neo{display:block;}
   </div>
 
   <div class="bottom-nav">
-    <div class="bn-item active" data-view="dashboard" onclick="showView('dashboard')"><span class="ic">🏠</span>Home</div>
-    <div class="bn-item" data-view="tutor" onclick="showView('tutor')"><span class="ic">🤖</span>Tutor</div>
-    <div class="bn-item" data-view="ku" onclick="showView('ku')"><span class="ic">🌌</span>Explore</div>
-    <div class="bn-item" data-view="homework" onclick="showView('homework')"><span class="ic">📄</span>Homework</div>
-    <div class="bn-item" data-view="settings" onclick="showView('settings')"><span class="ic">⚙️</span>Settings</div>
+    <div class="bn-item active" data-view="dashboard" onclick="showView('dashboard')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9a1 1 0 0 0 1 1H9a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1h2.5a1 1 0 0 0 1-1v-9"/></svg></span>Home</div>
+    <div class="bn-item" data-view="tutor" onclick="showView('tutor')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v7A2.5 2.5 0 0 1 17.5 15H10l-4 3.5V15H6.5A2.5 2.5 0 0 1 4 12.5z"/><path d="M9 8.5h6M9 11h4"/></svg></span>Tutor</div>
+    <div class="bn-item" data-view="ku" onclick="showView('ku')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7.5"/><ellipse cx="12" cy="12" rx="7.5" ry="3"/><path d="M12 4.5v15"/></svg></span>Explore</div>
+    <div class="bn-item" data-view="homework" onclick="showView('homework')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h7l4 4v14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M14 3v4h4"/><path d="M8.5 12.5h7M8.5 16h5"/></svg></span>Homework</div>
+    <div class="bn-item" data-view="settings" onclick="showView('settings')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.5-2-3.4-2.3.9a7 7 0 0 0-2-1.2L14 3h-4l-.4 2.6a7 7 0 0 0-2 1.2l-2.3-.9-2 3.4 2 1.5A7 7 0 0 0 5 12c0 .4 0 .8.1 1.2l-2 1.5 2 3.4 2.3-.9c.6.5 1.3.9 2 1.2L10 21h4l.4-2.6c.7-.3 1.4-.7 2-1.2l2.3.9 2-3.4-2-1.5c.1-.4.1-.8.1-1.2Z"/></svg></span>Settings</div>
   </div>
 </div>
 
@@ -813,69 +996,69 @@ function enterApp(mode){
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').classList.add('active');
   document.getElementById('mode-badge').textContent = 'Mode: ' + (mode === 'ai' ? 'AI' : 'Custom');
+  playDashboardIntro();
 }
+let dashIntroPlayed = false;
+function playDashboardIntro(){
+  if(dashIntroPlayed) return;
+  dashIntroPlayed = true;
+  if(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const ring = document.querySelector('.pc-ring .fill');
+  if(ring){
+    const target = ring.style.getPropertyValue('--pct');
+    ring.style.setProperty('--pct','0');
+    requestAnimationFrame(()=>{ setTimeout(()=>{ ring.style.setProperty('--pct', target); }, 150); });
+  }
+  const xpFill = document.querySelector('.pc-xpbar-fill');
+  if(xpFill){
+    const target = xpFill.style.width;
+    xpFill.style.width = '0%';
+    requestAnimationFrame(()=>{ setTimeout(()=>{ xpFill.style.transition = 'width 0.9s ease'; xpFill.style.width = target; }, 150); });
+  }
+  document.querySelectorAll('.pc-week .bar').forEach((bar, i)=>{
+    const target = bar.style.height;
+    bar.style.height = '0%';
+    setTimeout(()=>{ bar.style.transition = 'height 0.5s ease'; bar.style.height = target; }, 200 + i*60);
+  });
+}
+// Mascot reaction system — the active experience's mascot (owl/fox/bot) reacts to real interactions.
+// wave(): hovering the mascot. celebrate(): a genuine action, e.g. resuming a lesson from the hero CTA.
+// Hooking this to XP/streak/badge events happens once those are backed by real state (functionality phase).
+function activeMascotId(){
+  const exp = document.body.getAttribute('data-exp');
+  return exp === 'explorer' ? 'fox' : exp === 'neo' ? 'bot' : 'owl';
+}
+function mascotReact(kind){
+  const el = document.getElementById(activeMascotId());
+  if(!el) return;
+  const cls = kind === 'wave' ? 'waving' : 'celebrating';
+  el.classList.remove('waving','celebrating');
+  void el.offsetWidth;
+  el.classList.add(cls);
+  el.addEventListener('animationend', function handler(){ el.classList.remove(cls); el.removeEventListener('animationend', handler); });
+}
+document.addEventListener('click', function(e){
+  const btn = e.target.closest('.btn');
+  if(!btn) return;
+  const rect = btn.getBoundingClientRect();
+  const size = Math.max(rect.width, rect.height);
+  const span = document.createElement('span');
+  span.className = 'ripple';
+  span.style.width = span.style.height = size + 'px';
+  span.style.left = (e.clientX - rect.left - size/2) + 'px';
+  span.style.top = (e.clientY - rect.top - size/2) + 'px';
+  btn.appendChild(span);
+  span.addEventListener('animationend', () => span.remove());
+  setTimeout(() => span.remove(), 700);
+});
 function showView(name){
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById('view-'+name).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active', n.dataset.view===name));
   document.querySelectorAll('.bn-item').forEach(n=>n.classList.toggle('active', n.dataset.view===name));
   if(name === 'homework') renderHomework();
+  if(name === 'ku') renderKUUniverse();
   if(name === 'career') renderCareer();
-  if(name === 'settings') fillProfileInputs();
-  if(name === 'dashboard') reactMascot('wave');
-}
-
-// ================= DASHBOARD MASCOTS: react to real events, no demo buttons =================
-// Picks the mascot matching the currently active Learning Experience and
-// plays a short reaction. Called from real app events below (profile saved,
-// homework submitted, career step completed, dashboard opened) — never on
-// a timer and never from a manually-clicked demo trigger.
-function reactMascot(kind){
-  const exp = document.body.getAttribute('data-exp');
-  const mascotId = {scholar:'owl-mascot', explorer:'fox-mascot', neo:'bot-mascot'}[exp];
-  if(!mascotId) return;
-  const el = document.getElementById(mascotId);
-  if(!el) return;
-  el.classList.remove(kind);
-  void el.offsetWidth; // restart animation
-  el.classList.add(kind);
-  setTimeout(() => el.classList.remove(kind), 900);
-}
-
-// ================= PROFILE: editable, persisted, reflected across the app =================
-const PROFILE_DEFAULT = {name:'Bhavesh', klass:'Class 8', board:'CBSE'};
-function loadProfile(){
-  try{
-    const saved = JSON.parse(localStorage.getItem('baa-profile') || 'null');
-    if(saved) return saved;
-  }catch(e){}
-  return PROFILE_DEFAULT;
-}
-function applyProfile(){
-  const p = loadProfile();
-  const g = document.getElementById('greeting');
-  if(g) g.textContent = g.textContent.replace(/,\s*\S+$/, ', ' + p.name);
-  const lcb = document.getElementById('login-classboard');
-  if(lcb) lcb.textContent = `${p.klass} · ${p.board}`;
-}
-function fillProfileInputs(){
-  const p = loadProfile();
-  document.getElementById('profile-name').value = p.name;
-  document.getElementById('profile-class').value = p.klass;
-  document.getElementById('profile-board').value = p.board;
-}
-function saveProfile(){
-  const p = {
-    name: document.getElementById('profile-name').value.trim() || PROFILE_DEFAULT.name,
-    klass: document.getElementById('profile-class').value.trim() || PROFILE_DEFAULT.klass,
-    board: document.getElementById('profile-board').value.trim() || PROFILE_DEFAULT.board,
-  };
-  localStorage.setItem('baa-profile', JSON.stringify(p));
-  applyProfile();
-  reactMascot('wave');
-  const msg = document.getElementById('profile-saved-msg');
-  msg.style.display = 'inline';
-  setTimeout(() => msg.style.display = 'none', 2000);
 }
 
 // ================= CAREER: clickable, persisted dream pipeline =================
@@ -896,6 +1079,185 @@ function loadCareerState(){
 function saveCareerState(steps){
   localStorage.setItem('baa-career', JSON.stringify(steps));
 }
+/* ============ Knowledge Universe — data + engine ============ */
+const KU_ICONS = {
+  math: '<path d="M12 3 3 20h18Z"/><path d="M9 14h6"/>',
+  science: '<path d="M9 3v6l-5 9a2 2 0 0 0 1.8 3h12.4a2 2 0 0 0 1.8-3l-5-9V3"/><path d="M8 3h8"/>',
+  history: '<path d="M4 21h16M6 21V9M10 21V9M14 21V9M18 21V9M4 9l8-6 8 6"/>',
+  geography: '<circle cx="12" cy="12" r="8"/><path d="M4 12h16M12 4c3 3 3 13 0 16M12 4c-3 3-3 13 0 16" fill="none"/>',
+  english: '<path d="M4 5c3-2 6-2 8 0v14c-2-2-5-2-8 0Z"/><path d="M20 5c-3-2-6-2-8 0v14c2-2 5-2 8 0Z"/>',
+  computer: '<path d="M8 8 3 12l5 4M16 8l5 4-5 4"/>'
+};
+const KU_SUBJECTS = [
+  {id:'math', name:'Mathematics', tag:'Blue geometric world', color:'#3B82F6', nodes:[
+    {id:1,label:'Numbers & Operations',state:'completed',pct:100,x:12,y:68,links:[]},
+    {id:2,label:'Fractions & Decimals',state:'completed',pct:100,x:28,y:48,links:[1]},
+    {id:3,label:'Algebra Basics',state:'current',pct:45,x:46,y:64,links:[2]},
+    {id:4,label:'Geometry Foundations',state:'unlocked',pct:0,x:46,y:30,links:[2]},
+    {id:5,label:'Linear Equations',state:'locked',pct:0,x:66,y:48,links:[3]},
+    {id:6,label:'Data & Probability',state:'weak',pct:30,x:66,y:80,links:[3]},
+    {id:7,label:'Advanced Algebra',state:'locked',pct:0,x:84,y:34,links:[5]}
+  ]},
+  {id:'science', name:'Science', tag:'Living ecosystem', color:'#22C55E', nodes:[
+    {id:1,label:'Living Things',state:'completed',pct:100,x:12,y:60,links:[]},
+    {id:2,label:'Cells & Life',state:'completed',pct:100,x:30,y:40,links:[1]},
+    {id:3,label:'Ecosystems',state:'current',pct:55,x:48,y:60,links:[1,2]},
+    {id:4,label:'Human Body',state:'unlocked',pct:0,x:48,y:24,links:[2]},
+    {id:5,label:'Forces & Motion',state:'weak',pct:25,x:66,y:40,links:[3]},
+    {id:6,label:'Energy',state:'locked',pct:0,x:66,y:76,links:[3]},
+    {id:7,label:'Chemistry Basics',state:'locked',pct:0,x:84,y:55,links:[5]}
+  ]},
+  {id:'history', name:'History', tag:'Ancient civilizations', color:'#B45309', nodes:[
+    {id:1,label:'Early Civilizations',state:'completed',pct:100,x:12,y:55,links:[]},
+    {id:2,label:'Ancient Egypt',state:'completed',pct:100,x:30,y:34,links:[1]},
+    {id:3,label:'Indus Valley',state:'current',pct:60,x:48,y:55,links:[1]},
+    {id:4,label:'Ancient Greece',state:'unlocked',pct:0,x:48,y:80,links:[1]},
+    {id:5,label:'Roman Empire',state:'locked',pct:0,x:66,y:65,links:[4]},
+    {id:6,label:'Medieval World',state:'weak',pct:20,x:66,y:28,links:[2]},
+    {id:7,label:'Modern History',state:'locked',pct:0,x:84,y:50,links:[5]}
+  ]},
+  {id:'geography', name:'Geography', tag:'Earth & terrain', color:'#0D9488', nodes:[
+    {id:1,label:'Maps & Directions',state:'completed',pct:100,x:12,y:50,links:[]},
+    {id:2,label:'Landforms',state:'completed',pct:100,x:30,y:30,links:[1]},
+    {id:3,label:'Climate & Weather',state:'current',pct:40,x:48,y:50,links:[1]},
+    {id:4,label:'Rivers & Oceans',state:'weak',pct:25,x:48,y:75,links:[1]},
+    {id:5,label:'Countries & Capitals',state:'unlocked',pct:0,x:66,y:34,links:[2,3]},
+    {id:6,label:'Natural Resources',state:'locked',pct:0,x:66,y:70,links:[4]},
+    {id:7,label:'Human Geography',state:'locked',pct:0,x:84,y:50,links:[5]}
+  ]},
+  {id:'english', name:'English', tag:'Library world', color:'#A16207', nodes:[
+    {id:1,label:'Grammar Basics',state:'completed',pct:100,x:12,y:55,links:[]},
+    {id:2,label:'Vocabulary Building',state:'completed',pct:100,x:30,y:34,links:[1]},
+    {id:3,label:'Reading Comprehension',state:'current',pct:50,x:48,y:55,links:[1,2]},
+    {id:4,label:'Creative Writing',state:'unlocked',pct:0,x:48,y:80,links:[2]},
+    {id:5,label:'Poetry & Prose',state:'weak',pct:20,x:66,y:38,links:[3]},
+    {id:6,label:'Essay Writing',state:'locked',pct:0,x:66,y:76,links:[4]},
+    {id:7,label:'Public Speaking',state:'locked',pct:0,x:84,y:55,links:[5]}
+  ]},
+  {id:'computer', name:'Computer', tag:'Digital cyber world', color:'#7C3AED', nodes:[
+    {id:1,label:'Computational Thinking',state:'completed',pct:100,x:12,y:55,links:[]},
+    {id:2,label:'Coding Logic',state:'completed',pct:100,x:30,y:34,links:[1]},
+    {id:3,label:'Loops & Conditionals',state:'current',pct:55,x:48,y:55,links:[1,2]},
+    {id:4,label:'Functions',state:'unlocked',pct:0,x:48,y:80,links:[2]},
+    {id:5,label:'Data Structures',state:'weak',pct:20,x:66,y:38,links:[3]},
+    {id:6,label:'Algorithms',state:'locked',pct:0,x:66,y:76,links:[4]},
+    {id:7,label:'Web Basics',state:'locked',pct:0,x:84,y:55,links:[5]}
+  ]}
+];
+let kuActiveFilter = 'all', kuCurrentSubject = null;
+function kuStateLabel(s){ return {completed:'Completed',current:'In progress',unlocked:'Ready to start',locked:'Locked',weak:'Needs review'}[s] || s; }
+function kuWorldTagline(){
+  const exp = document.body.getAttribute('data-exp');
+  return exp === 'explorer' ? 'Adventure map' : exp === 'neo' ? 'Neural network' : 'Library map';
+}
+function renderKUUniverse(){
+  const grid = document.getElementById('ku-universe');
+  if(!grid || grid.dataset.rendered) return;
+  grid.dataset.rendered = '1';
+  grid.innerHTML = KU_SUBJECTS.map(s=>{
+    const done = s.nodes.filter(n=>n.state==='completed').length;
+    const pct = Math.round(done / s.nodes.length * 100);
+    return '<button class="ku-world-card" data-name="'+s.name+'" onclick="openKUSubject(\''+s.id+'\')">'
+      + '<div class="ku-world-icon" style="background:'+s.color+';"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'+KU_ICONS[s.id]+'</svg></div>'
+      + '<div class="ku-world-name">'+s.name+'</div><div class="ku-world-tag">'+s.tag+'</div>'
+      + '<div class="ku-world-progress"><div class="ku-world-progress-fill" style="width:'+pct+'%;background:'+s.color+';"></div></div>'
+      + '</button>';
+  }).join('');
+}
+function openKUSubject(id){
+  kuCurrentSubject = id;
+  document.getElementById('ku-universe').classList.add('ku-hidden');
+  document.querySelector('.ku-toolbar').classList.add('ku-hidden');
+  document.getElementById('ku-graph').classList.add('active');
+  renderKUGraph(id);
+}
+function closeKUGraph(){
+  document.getElementById('ku-graph').classList.remove('active');
+  document.getElementById('ku-universe').classList.remove('ku-hidden');
+  document.querySelector('.ku-toolbar').classList.remove('ku-hidden');
+  document.getElementById('ku-node-panel').classList.remove('open');
+  kuCurrentSubject = null;
+}
+function renderKUGraph(subjectId){
+  const subj = KU_SUBJECTS.find(s=>s.id===subjectId);
+  if(!subj) return;
+  document.getElementById('ku-graph-title').textContent = subj.name;
+  document.getElementById('ku-graph-tagline').textContent = kuWorldTagline();
+  const linesEl = document.getElementById('ku-graph-lines');
+  const nodesEl = document.getElementById('ku-graph-nodes');
+  linesEl.innerHTML = '';
+  nodesEl.innerHTML = '';
+  subj.nodes.forEach(n=>{
+    n.links.forEach(targetId=>{
+      const t = subj.nodes.find(x=>x.id===targetId);
+      if(!t) return;
+      const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+      line.setAttribute('x1', n.x); line.setAttribute('y1', n.y);
+      line.setAttribute('x2', t.x); line.setAttribute('y2', t.y);
+      const active = (n.state==='completed' && t.state !== 'locked');
+      line.setAttribute('class', 'ku-link' + (active ? ' active' : ''));
+      linesEl.appendChild(line);
+    });
+  });
+  subj.nodes.forEach(n=>{
+    const btn = document.createElement('button');
+    btn.className = 'ku-node ku-node-' + n.state;
+    btn.style.left = n.x + '%'; btn.style.top = n.y + '%';
+    btn.dataset.state = n.state;
+    btn.setAttribute('aria-label', n.label + ', ' + kuStateLabel(n.state) + (n.pct ? ', ' + n.pct + '% complete' : ''));
+    const pctHtml = (n.state==='current' || n.state==='weak') ? '<span class="ku-node-pct">'+n.pct+'%</span>' : '';
+    btn.innerHTML = '<span class="ku-node-dot" aria-hidden="true"></span><span class="ku-node-label">'+n.label+pctHtml+'</span>';
+    btn.onclick = function(){ openKUNode(subjectId, n.id); };
+    nodesEl.appendChild(btn);
+  });
+  applyKUFilter();
+}
+function openKUNode(subjectId, nodeId){
+  const subj = KU_SUBJECTS.find(s=>s.id===subjectId);
+  const n = subj.nodes.find(x=>x.id===nodeId);
+  if(!n) return;
+  const panel = document.getElementById('ku-node-panel');
+  document.getElementById('ku-panel-title').textContent = n.label;
+  document.getElementById('ku-panel-meta').textContent = kuStateLabel(n.state) + (n.pct ? ' · ' + n.pct + '% complete' : '');
+  panel.dataset.topic = n.label;
+  panel.classList.add('open');
+}
+function askAboutTopic(action){
+  const panel = document.getElementById('ku-node-panel');
+  const topic = panel.dataset.topic || '';
+  panel.classList.remove('open');
+  showView('tutor');
+  const box = document.getElementById('chat-input-box');
+  if(box){ box.value = action + ' ' + topic; box.focus(); }
+}
+function kuSearch(value){
+  const q = value.trim().toLowerCase();
+  document.querySelectorAll('.ku-world-card').forEach(card=>{
+    card.style.display = (!q || card.dataset.name.toLowerCase().includes(q)) ? '' : 'none';
+  });
+  document.querySelectorAll('.ku-node').forEach(btn=>{
+    const label = btn.querySelector('.ku-node-label').textContent.toLowerCase();
+    if(q && !label.includes(q)) btn.classList.add('ku-dim'); else if(kuActiveFilter==='all') btn.classList.remove('ku-dim');
+  });
+  if(!q) applyKUFilter();
+}
+function kuFilter(kind){
+  kuActiveFilter = kind;
+  document.querySelectorAll('.ku-filter-chip').forEach(c=>c.classList.toggle('active', c.dataset.filter===kind));
+  applyKUFilter();
+}
+function applyKUFilter(){
+  document.querySelectorAll('.ku-node').forEach(btn=>{
+    const state = btn.dataset.state;
+    let match = true;
+    if(kuActiveFilter==='completed') match = state==='completed';
+    else if(kuActiveFilter==='incomplete') match = state!=='completed';
+    else if(kuActiveFilter==='weak') match = state==='weak';
+    else if(kuActiveFilter==='recommended') match = (state==='current' || state==='unlocked');
+    btn.classList.toggle('ku-dim', !match);
+  });
+}
+
 function renderCareer(){
   const steps = loadCareerState();
   const wrap = document.getElementById('career-steps');
@@ -905,7 +1267,7 @@ function renderCareer(){
     el.className = 'step' + (s.done ? ' done' : '');
     el.style.cursor = 'pointer';
     el.textContent = (s.done ? '✓ ' : '') + s.title;
-    el.onclick = () => { s.done = !s.done; saveCareerState(steps); renderCareer(); if(s.done) reactMascot('celebrate'); };
+    el.onclick = () => { s.done = !s.done; saveCareerState(steps); renderCareer(); };
     wrap.appendChild(el);
   });
   const doneCount = steps.filter(s=>s.done).length;
@@ -951,7 +1313,6 @@ function renderHomework(){
         hw.status = 'submitted';
         saveHwState(items);
         renderHomework();
-        reactMascot('celebrate');
       };
     }
     list.appendChild(row);
@@ -1172,7 +1533,6 @@ function checkTutorBackend(){
 checkTutorBackend();
 
 (function restoreState(){
-  applyProfile();
   const savedExp = localStorage.getItem('baa-exp');
   const savedAppearance = localStorage.getItem('baa-appearance');
   const savedA11y = localStorage.getItem('baa-a11y') === '1';
@@ -1190,6 +1550,7 @@ checkTutorBackend();
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app').classList.add('active');
     document.getElementById('mode-badge').textContent = 'Mode: ' + (savedMode === 'ai' ? 'AI' : 'Custom');
+    playDashboardIntro();
   } else if(savedRole === 'parent' || savedRole === 'teacher'){
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app-' + savedRole).style.display = 'block';
