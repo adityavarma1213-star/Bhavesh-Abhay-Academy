@@ -912,9 +912,10 @@ function closeWorld(name){
 }
 
 /* ================= AI TUTOR CHAT (production backend) ================= */
-// Frontend and api/chat.js are deployed together in the same Vercel
-// project, so a relative path is correct and avoids CORS entirely.
-const CHAT_API_URL = '/api/chat';
+// Point this at your deployed Vercel backend, e.g.
+// 'https://baa-os-tutor.vercel.app/api/chat'. Left relative ('/api/chat')
+// works out of the box if you ever host the frontend on Vercel too.
+const CHAT_API_URL = 'https://bhavesh-abhay-academy.vercel.app/api/chat';
 
 const MAX_CHAT_CHARS = 1000;
 const CHAT_HISTORY_KEY = 'baaOsChatHistory';
@@ -1043,27 +1044,24 @@ async function sendChat(overrideText){
   let accumulated = '';
 
   try{
-    const reqBody = { messages: chatHistory, studentName };
-    console.log('[CHAT] URL:', CHAT_API_URL);
-    console.log('[CHAT] Request:', reqBody);
-
     const response = await fetch(CHAT_API_URL, {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(reqBody)
+      body: JSON.stringify({ messages: chatHistory, studentName })
     });
 
-    console.log('[CHAT] Response:', response.status);
+    // ===== TEMPORARY DEBUG LOGGING (frontend) — checkpoint 1: fetch() =====
+    console.log('[FE-DEBUG] fetch resolved. ok:', response.ok, 'status:', response.status,
+      'content-type:', response.headers.get('content-type'), 'has body:', !!response.body);
+    // ===== END checkpoint 1 =====
 
     if(!response.ok || !response.body){
-      let msg = `AI Tutor error (${response.status}): couldn't connect right now.`;
+      let msg = "I'm having trouble connecting right now, but I'd love to help — try asking again in a moment!";
       try{
         const errJson = await response.json();
         if (response.status === 429) msg = "I'm getting a lot of questions right now — give me a few seconds and try again!";
-        else if (errJson && errJson.error) msg = `(${response.status}) ${errJson.error}`;
-      }catch(parseErr){
-        console.error('[CHAT ERROR] failed to parse error body', parseErr);
-      }
+        else if (errJson && errJson.error) msg = errJson.error;
+      }catch{}
       throw new Error(msg);
     }
 
@@ -1075,51 +1073,122 @@ async function sendChat(overrideText){
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
-    console.log('[CHAT] Stream started');
+
+    // ===== TEMPORARY DEBUG LOGGING (frontend) — checkpoint 2: getReader() =====
+    console.log('[FE-DEBUG] Reader obtained, entering read loop.');
+    let feChunkIndex = 0;
+    // ===== END checkpoint 2 =====
 
     while(true){
       const {done, value} = await reader.read();
-      if(done){ console.log('[CHAT] Stream finished'); break; }
-      buffer += decoder.decode(value, {stream:true});
+
+      // ===== TEMPORARY DEBUG LOGGING — checkpoint 3: reader.read() =====
+      console.log('[FE-DEBUG] reader.read() #' + feChunkIndex, 'done:', done,
+        'byteLength:', value ? value.byteLength : 0);
+      // ===== END checkpoint 3 =====
+
+      if(done) break;
+
+      const decodedChunk = decoder.decode(value, {stream:true});
+
+      // ===== TEMPORARY DEBUG LOGGING — checkpoint 4: TextDecoder.decode() =====
+      console.log('[FE-DEBUG] decoded chunk #' + feChunkIndex + ':', JSON.stringify(decodedChunk));
+      feChunkIndex++;
+      // ===== END checkpoint 4 =====
+
+      buffer += decodedChunk;
+
+      // ===== TEMPORARY DEBUG LOGGING — checkpoint 5: buffer =====
+      console.log('[FE-DEBUG] buffer after append (len ' + buffer.length + '):', JSON.stringify(buffer));
+      // ===== END checkpoint 5 =====
+
       const events = buffer.split('\n\n');
       buffer = events.pop(); // keep any incomplete event for next chunk
 
+      // ===== TEMPORARY DEBUG LOGGING — checkpoint 6: buffer.split('\n\n') =====
+      console.log('[FE-DEBUG] split into', events.length, 'complete event(s); remainder buffer:', JSON.stringify(buffer));
+      // ===== END checkpoint 6 =====
+
       for(const evt of events){
         const dataLine = evt.split('\n').find(l => l.startsWith('data:'));
+
+        // ===== TEMPORARY DEBUG LOGGING — checkpoint 7: extraction of data: lines =====
+        console.log('[FE-DEBUG] event block:', JSON.stringify(evt), '| dataLine found:', !!dataLine);
+        // ===== END checkpoint 7 =====
+
         if(!dataLine) continue;
         const jsonStr = dataLine.slice(5).trim();
         if(!jsonStr || jsonStr === '[DONE]') continue;
         let parsed;
-        try{ parsed = JSON.parse(jsonStr); }catch{ continue; }
+        try{
+          parsed = JSON.parse(jsonStr);
+          // ===== TEMPORARY DEBUG LOGGING — checkpoint 8: JSON.parse() success =====
+          console.log('[FE-DEBUG] JSON.parse succeeded:', parsed);
+          // ===== END checkpoint 8 =====
+        }catch(parseErr){
+          // ===== TEMPORARY DEBUG LOGGING — checkpoint 8: JSON.parse() failure =====
+          console.log('[FE-DEBUG] JSON.parse FAILED on:', JSON.stringify(jsonStr), 'error:', parseErr && parseErr.message);
+          // ===== END checkpoint 8 =====
+          continue;
+        }
 
         if(parsed.error){
+          console.log('[FE-DEBUG] parsed.error present, throwing:', parsed.error);
           throw new Error(parsed.error.message || 'stream interrupted');
         }
 
         const blockReason = parsed.promptFeedback && parsed.promptFeedback.blockReason;
         if(blockReason){
+          console.log('[FE-DEBUG] blockReason present, throwing:', blockReason);
           throw new Error("I can't help with that one — try rephrasing your question!");
         }
 
         const candidate = parsed.candidates && parsed.candidates[0];
+
+        // ===== TEMPORARY DEBUG LOGGING — checkpoint 9: parsed.candidates =====
+        console.log('[FE-DEBUG] parsed.candidates:', parsed.candidates, '| candidate[0]:', candidate);
+        // ===== END checkpoint 9 =====
+
         if(candidate && candidate.finishReason === 'SAFETY'){
+          console.log('[FE-DEBUG] finishReason SAFETY, throwing.');
           throw new Error("I can't help with that one — try rephrasing your question!");
         }
+
+        // ===== TEMPORARY DEBUG LOGGING — checkpoint 10: content.parts =====
+        console.log('[FE-DEBUG] candidate.content:', candidate && candidate.content,
+          '| content.parts:', candidate && candidate.content && candidate.content.parts,
+          '| finishReason:', candidate && candidate.finishReason);
+        // ===== END checkpoint 10 =====
 
         const textPart = candidate && candidate.content && candidate.content.parts
           ? candidate.content.parts.map(p => p.text || '').join('')
           : '';
+
+        // ===== TEMPORARY DEBUG LOGGING — checkpoint 11: textPart =====
+        console.log('[FE-DEBUG] textPart:', JSON.stringify(textPart), '(length ' + textPart.length + ')');
+        // ===== END checkpoint 11 =====
+
         if(textPart){
           accumulated += textPart;
           const rendered = renderMarkdown(accumulated);
           aiBubble.innerHTML = rendered.innerHTML;
           renderMathIn(aiBubble);
           log.scrollTop = log.scrollHeight;
+
+          // ===== TEMPORARY DEBUG LOGGING — checkpoint 12: accumulated =====
+          console.log('[FE-DEBUG] accumulated updated (length ' + accumulated.length + '):', JSON.stringify(accumulated));
+          // ===== END checkpoint 12 =====
         }
       }
     }
 
+    // ===== TEMPORARY DEBUG LOGGING — checkpoint 13/14: final accumulated + fallback condition =====
+    console.log('[FE-DEBUG] Stream loop done. Final accumulated (length ' + accumulated.length + '):',
+      JSON.stringify(accumulated), '| fallback will trigger:', !accumulated.trim());
+    // ===== END checkpoint 13/14 =====
+
     if(!accumulated.trim()){
+      console.log('[FE-DEBUG] FALLBACK MESSAGE TRIGGERED — accumulated was empty/whitespace-only at loop end.');
       accumulated = "I'm having a little trouble thinking right now — try asking me again!";
       aiBubble.textContent = accumulated;
     }
@@ -1127,7 +1196,6 @@ async function sendChat(overrideText){
     saveChatHistory();
 
   }catch(e){
-    console.error('[CHAT ERROR]', e);
     typing.remove();
     if(aiBubble && !accumulated.trim()) aiBubble.remove();
     // Roll back the user's turn from memory so Retry resends cleanly.
@@ -1136,11 +1204,7 @@ async function sendChat(overrideText){
       saveChatHistory();
     }
     lastFailedMessage = text;
-    const isNetworkFailure = e instanceof TypeError; // fetch() throws TypeError on network/DNS/CORS failure
-    const friendly = isNetworkFailure
-      ? "I can't reach the AI Tutor right now — check your connection and try again."
-      : (e.message || "Something went wrong — please try again.");
-    appendErrorMsg(friendly, text);
+    appendErrorMsg(e.message || "Something went wrong — please try again.", text);
   }finally{
     setChatBusy(false);
     log.scrollTop = log.scrollHeight;
