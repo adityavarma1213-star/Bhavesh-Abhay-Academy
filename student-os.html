@@ -912,10 +912,9 @@ function closeWorld(name){
 }
 
 /* ================= AI TUTOR CHAT (production backend) ================= */
-// Point this at your deployed Vercel backend, e.g.
-// 'https://baa-os-tutor.vercel.app/api/chat'. Left relative ('/api/chat')
-// works out of the box if you ever host the frontend on Vercel too.
-const CHAT_API_URL = 'https://YOUR-VERCEL-PROJECT.vercel.app/api/chat';
+// Frontend and api/chat.js are deployed together in the same Vercel
+// project, so a relative path is correct and avoids CORS entirely.
+const CHAT_API_URL = '/api/chat';
 
 const MAX_CHAT_CHARS = 1000;
 const CHAT_HISTORY_KEY = 'baaOsChatHistory';
@@ -1044,19 +1043,27 @@ async function sendChat(overrideText){
   let accumulated = '';
 
   try{
+    const reqBody = { messages: chatHistory, studentName };
+    console.log('[CHAT] URL:', CHAT_API_URL);
+    console.log('[CHAT] Request:', reqBody);
+
     const response = await fetch(CHAT_API_URL, {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ messages: chatHistory, studentName })
+      body: JSON.stringify(reqBody)
     });
 
+    console.log('[CHAT] Response:', response.status);
+
     if(!response.ok || !response.body){
-      let msg = "I'm having trouble connecting right now, but I'd love to help — try asking again in a moment!";
+      let msg = `AI Tutor error (${response.status}): couldn't connect right now.`;
       try{
         const errJson = await response.json();
         if (response.status === 429) msg = "I'm getting a lot of questions right now — give me a few seconds and try again!";
-        else if (errJson && errJson.error) msg = errJson.error;
-      }catch{}
+        else if (errJson && errJson.error) msg = `(${response.status}) ${errJson.error}`;
+      }catch(parseErr){
+        console.error('[CHAT ERROR] failed to parse error body', parseErr);
+      }
       throw new Error(msg);
     }
 
@@ -1068,10 +1075,11 @@ async function sendChat(overrideText){
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
+    console.log('[CHAT] Stream started');
 
     while(true){
       const {done, value} = await reader.read();
-      if(done) break;
+      if(done){ console.log('[CHAT] Stream finished'); break; }
       buffer += decoder.decode(value, {stream:true});
       const events = buffer.split('\n\n');
       buffer = events.pop(); // keep any incomplete event for next chunk
@@ -1119,6 +1127,7 @@ async function sendChat(overrideText){
     saveChatHistory();
 
   }catch(e){
+    console.error('[CHAT ERROR]', e);
     typing.remove();
     if(aiBubble && !accumulated.trim()) aiBubble.remove();
     // Roll back the user's turn from memory so Retry resends cleanly.
