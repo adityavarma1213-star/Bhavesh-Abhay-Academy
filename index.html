@@ -542,12 +542,198 @@ body[data-exp="explorer"] .dash-focus .path-node{width:28px;height:28px;font-siz
   .bottom-nav .bn-item.active{color:var(--accent);}
   .controls{flex-direction:column;align-items:flex-start;}
 }
+
+/* ===================== IDENTITY & ACCOUNT SYSTEM (Production Milestone 1) ===================== */
+/* Additive only — reuses existing tokens (--accent, --panel, --border, --ink, --radius-*, fonts). */
+
+#welcome-screen, #profile-select-screen, #signup-screen{
+  display:none; align-items:center; justify-content:center; min-height:100vh; padding:24px; background:var(--bg);
+}
+.id-shell{max-width:480px;width:100%;}
+.id-shell.wide{max-width:640px;}
+.id-logo{font-family:var(--font-display);font-weight:700;font-size:22px;text-align:center;margin-bottom:8px;}
+.id-tagline{text-align:center;color:var(--ink-dim);font-size:14.5px;margin-bottom:34px;}
+.id-actions{display:flex;flex-direction:column;gap:12px;}
+.id-actions .btn{width:100%;justify-content:center;padding:13px 18px;font-size:14px;}
+.id-divider{display:flex;align-items:center;gap:12px;margin:6px 0;color:var(--ink-soft);font-size:11.5px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.06em;}
+.id-divider::before,.id-divider::after{content:'';flex:1;height:1px;background:var(--border);}
+.link-btn{background:none;border:none;color:var(--accent);font-family:var(--font-body);font-size:13px;font-weight:600;cursor:pointer;padding:0;text-decoration:underline;text-underline-offset:2px;}
+.id-foot-link{text-align:center;margin-top:22px;font-size:13px;color:var(--ink-dim);}
+
+/* ---- Profile Selection ("who's learning") ---- */
+.profile-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:16px;margin-bottom:8px;}
+.profile-tile{background:var(--panel);border:var(--card-border);border-radius:var(--radius-card);padding:20px 14px;text-align:center;cursor:pointer;transition:transform 0.2s ease, box-shadow 0.2s ease;box-shadow:0 1px 2px rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.5);position:relative;}
+.profile-tile:hover{transform:translateY(-4px);box-shadow:0 10px 24px rgba(0,0,0,0.12);}
+.profile-tile:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+.profile-avatar{width:64px;height:64px;border-radius:50%;background:var(--accent-soft);display:flex;align-items:center;justify-content:center;font-size:30px;margin:0 auto 12px;overflow:hidden;}
+.profile-avatar img{width:100%;height:100%;object-fit:cover;}
+.profile-tile .pname{font-family:var(--font-display);font-weight:700;font-size:15px;margin-bottom:4px;}
+.profile-tile .pmeta{font-size:11.5px;color:var(--ink-dim);line-height:1.5;}
+.profile-tile .prole{position:absolute;top:10px;right:10px;font-size:9.5px;}
+.profile-tile.locked::after{content:'🔒';position:absolute;top:10px;left:12px;font-size:13px;}
+.add-profile-tile{border:2px dashed var(--border);background:transparent;box-shadow:none;color:var(--ink-dim);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:150px;}
+.add-profile-tile .plus{width:44px;height:44px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;}
+
+/* ---- Account type tabs (signup) ---- */
+.auth-tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:24px;}
+.auth-tabs button{border:1px solid var(--border);background:var(--panel);color:var(--ink-dim);border-radius:var(--radius-btn);padding:11px 6px;font-size:11.5px;font-weight:700;font-family:var(--font-body);cursor:pointer;text-align:center;line-height:1.4;}
+.auth-tabs button .tic{display:block;font-size:18px;margin-bottom:4px;}
+.auth-tabs button.active{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);}
+@media (max-width:560px){.auth-tabs{grid-template-columns:repeat(2,1fr);}}
+
+/* ---- Forms ---- */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.form-grid.single{grid-template-columns:1fr;}
+.form-field{display:flex;flex-direction:column;gap:6px;}
+.form-field.span2{grid-column:1 / -1;}
+.form-field label{font-size:12px;font-weight:600;color:var(--ink-dim);font-family:var(--font-body);}
+.form-field .hint{font-size:11px;color:var(--ink-soft);font-weight:400;}
+.form-field input, .form-field select{
+  border:1px solid var(--border);border-radius:var(--radius-btn);padding:10.5px 13px;font-size:13.5px;
+  font-family:var(--font-body);background:var(--bg);color:var(--ink);width:100%;
+}
+.form-field input:focus, .form-field select:focus{outline:2px solid var(--accent);outline-offset:1px;}
+.form-actions{display:flex;gap:10px;margin-top:22px;}
+.form-actions .btn{flex:1;justify-content:center;}
+
+/* ---- Avatar picker ---- */
+.avatar-picker{display:flex;align-items:center;gap:16px;margin-bottom:22px;}
+.avatar-preview{width:72px;height:72px;border-radius:50%;background:var(--accent-soft);display:flex;align-items:center;justify-content:center;font-size:32px;overflow:hidden;flex-shrink:0;}
+.avatar-preview img{width:100%;height:100%;object-fit:cover;}
+.avatar-emoji-grid{display:flex;flex-wrap:wrap;gap:6px;max-width:220px;}
+.avatar-emoji-grid button{width:34px;height:34px;border-radius:50%;border:1px solid var(--border);background:var(--panel);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.avatar-emoji-grid button.active{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft);}
+.avatar-upload-btn{font-size:11.5px;color:var(--accent);font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:2px;}
+
+/* ---- OTP ---- */
+.otp-row{display:flex;gap:8px;margin:4px 0 2px;}
+.otp-box{width:42px;height:48px;text-align:center;font-size:18px;font-weight:700;border:1px solid var(--border);border-radius:var(--radius-btn);background:var(--bg);color:var(--ink);font-family:var(--font-mono);}
+.otp-box:focus{outline:2px solid var(--accent);}
+
+/* ---- Toggle rows / checkboxes reuse .toggle ---- */
+.form-field.checkbox-row{flex-direction:row;align-items:center;gap:8px;}
+
+/* ---- Modal ---- */
+.modal-backdrop{position:fixed;inset:0;background:rgba(10,12,18,0.55);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;z-index:200;padding:20px;}
+.modal-backdrop.open{display:flex;}
+.modal-panel{background:var(--panel);border:var(--card-border);border-radius:var(--radius-card);padding:24px;max-width:480px;width:100%;max-height:86vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);}
+.modal-panel h3{font-size:17px;margin-bottom:4px;}
+.modal-close-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+.modal-close-row button{background:none;border:none;font-size:20px;cursor:pointer;color:var(--ink-dim);line-height:1;}
+.mp-list{display:flex;flex-direction:column;gap:10px;margin:14px 0;}
+.mp-row{display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--border);border-radius:var(--radius-btn);}
+.mp-row .profile-avatar{width:38px;height:38px;font-size:16px;margin:0;flex-shrink:0;}
+.mp-row .mp-name{font-weight:700;font-size:13.5px;flex:1;min-width:0;}
+.mp-row .mp-sub{font-size:11px;color:var(--ink-dim);}
+.mp-row-actions{display:flex;gap:6px;}
+.mp-row-actions button{border:1px solid var(--border);background:transparent;border-radius:8px;padding:6px 9px;font-size:11px;cursor:pointer;color:var(--ink-dim);font-family:var(--font-body);font-weight:600;}
+.mp-row-actions button.danger{color:#DC2626;border-color:#FCA5A5;}
+.mp-row-actions button:hover{background:var(--accent-soft);color:var(--accent);}
+
+/* ---- account switcher (sidebar / dashboard headers) ---- */
+.account-switch{display:flex;align-items:center;gap:8px;}
+.account-switch button{background:none;border:1px solid var(--border);border-radius:var(--radius-btn);padding:6px 10px;font-size:11px;font-weight:600;color:var(--ink-dim);cursor:pointer;font-family:var(--font-body);}
+.account-switch button:hover{color:var(--ink);}
+
+/* ---- Profile page (student) ---- */
+.profile-hero{display:flex;align-items:center;gap:20px;flex-wrap:wrap;}
+.profile-hero .profile-avatar{width:88px;height:88px;font-size:38px;}
+.profile-hero h1{margin-bottom:2px;}
+.stat-mini-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:12px;margin-top:18px;}
+.stat-mini{background:var(--accent-soft);border-radius:calc(var(--radius-card) - 4px);padding:12px 14px;}
+.stat-mini .num{font-family:var(--font-display);font-weight:700;font-size:19px;color:var(--accent);}
+.stat-mini .lbl{font-size:11px;color:var(--ink-dim);margin-top:2px;}
+.tag-chip{display:inline-block;background:var(--accent-soft);color:var(--accent);font-size:11.5px;font-weight:600;padding:5px 11px;border-radius:99px;margin:0 6px 6px 0;}
+
+/* ===================== PERSONALIZATION ENGINE ===================== */
+.dna-wrap{display:flex;gap:20px;align-items:center;flex-wrap:wrap;}
+.dna-radar-svg{flex-shrink:0;}
+.dna-traits{flex:1;min-width:220px;display:flex;flex-direction:column;gap:9px;}
+.dna-trait{display:flex;align-items:center;gap:8px;font-size:11.5px;}
+.dna-trait .dt-label{width:118px;color:var(--ink-dim);flex-shrink:0;}
+.dna-trait .dt-bar{flex:1;height:6px;background:var(--accent-soft);border-radius:99px;overflow:hidden;}
+.dna-trait .dt-fill{display:block;height:100%;background:var(--accent);border-radius:99px;transition:width 0.8s ease;width:0;}
+[data-exp="neo"] .dna-trait .dt-fill{background:linear-gradient(90deg,var(--cyan),var(--violet));}
+.dna-trait .dt-val{width:32px;text-align:right;font-family:var(--font-mono);color:var(--ink-dim);}
+.goal-chip{display:inline-flex;align-items:center;gap:6px;background:var(--accent-soft);color:var(--accent);font-size:12px;font-weight:600;padding:6px 12px;border-radius:99px;margin:0 6px 6px 0;border:none;cursor:pointer;font-family:var(--font-body);}
+.goal-chip.selected{background:var(--accent);color:#fff;}
+.insight-item{display:flex;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;color:var(--ink-dim);line-height:1.55;}
+.insight-item:last-child{border-bottom:none;}
+.conf-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);font-size:12.5px;}
+.conf-row:last-child{border-bottom:none;}
+.conf-row .cs{width:90px;flex-shrink:0;font-weight:600;}
+.conf-row .cbar{flex:1;height:6px;border-radius:99px;background:var(--accent-soft);position:relative;overflow:hidden;}
+.conf-row .cbar .k{position:absolute;top:0;left:0;height:100%;background:var(--ink-soft);opacity:0.30;border-radius:99px;}
+.conf-row .cbar .c{position:absolute;top:0;left:0;height:100%;background:var(--accent);border-radius:99px;}
+.conf-row .csupport{width:104px;text-align:right;flex-shrink:0;font-size:10.5px;}
+@media (max-width:640px){ .dna-wrap{flex-direction:column;} .dna-radar-svg{width:220px;height:220px;} }
+@media (prefers-reduced-motion: reduce){ .dna-trait .dt-fill{transition:none;} }
+.achv-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);}
+.achv-row:last-child{border-bottom:none;}
+.achv-icon{width:36px;height:36px;border-radius:10px;background:var(--accent-soft);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
+.error-text{color:#DC2626;font-size:11.5px;margin-top:4px;min-height:14px;}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--panel);padding:12px 20px;border-radius:var(--radius-btn);font-size:13px;font-weight:600;z-index:400;opacity:0;pointer-events:none;transition:opacity 0.25s ease, transform 0.25s ease;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+@media (prefers-reduced-motion: reduce){
+  .profile-tile, .modal-backdrop, .toast{transition:none !important;}
+}
 </style>
 </head>
 <body data-exp="neo" data-appearance="dark">
 
+<!-- ============ WELCOME SCREEN (new entry point) ============ -->
+<div id="welcome-screen">
+  <div class="id-shell">
+    <div class="id-logo">🎓 BAA OS</div>
+    <div class="id-tagline">Continue Learning — your AI learning operating system.</div>
+    <div class="id-actions">
+      <button class="btn" onclick="idGoLogin()">Login</button>
+      <button class="btn outline" onclick="idGoSignup()">Create Account</button>
+      <div class="id-divider">or</div>
+      <button class="btn outline" onclick="idContinueAsGuest()">Continue as Guest</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ PROFILE SELECTION ("who's learning") ============ -->
+<div id="profile-select-screen">
+  <div class="id-shell wide">
+    <div class="id-logo">🎓 Who's learning?</div>
+    <div class="id-tagline">Pick a profile to continue.</div>
+    <div class="profile-grid" id="profile-grid"></div>
+    <div class="id-foot-link"><button class="link-btn" onclick="idGoWelcome()">Use a different account</button></div>
+  </div>
+</div>
+
+<!-- ============ CREATE ACCOUNT / SIGN UP ============ -->
+<div id="signup-screen">
+  <div class="id-shell wide">
+    <div class="id-logo">🎓 Create your account</div>
+    <div class="id-tagline">Choose how you'll use BAA OS.</div>
+    <div class="auth-tabs" id="auth-tabs">
+      <button data-v="student" class="active" onclick="idSetAccountType('student')"><span class="tic">🎓</span>Student</button>
+      <button data-v="parent" onclick="idSetAccountType('parent')"><span class="tic">👨‍👩‍👧</span>Parent</button>
+      <button data-v="teacher" onclick="idSetAccountType('teacher')"><span class="tic">👨‍🏫</span>Teacher</button>
+      <button data-v="admin" onclick="idSetAccountType('admin')"><span class="tic">🏫</span>School Admin</button>
+    </div>
+    <div id="signup-form-host"></div>
+    <div class="id-foot-link">Already have an account? <button class="link-btn" onclick="idGoLogin()">Log in</button></div>
+  </div>
+</div>
+
+<!-- ============ SIGN IN (email/mobile/Student ID + password/PIN) ============ -->
+<div id="signin-screen" style="display:none;align-items:center;justify-content:center;min-height:100vh;padding:24px;background:var(--bg);">
+  <div class="id-shell">
+    <div class="id-logo">🎓 Log in</div>
+    <div class="id-tagline" id="signin-tagline">Enter your details to continue.</div>
+    <div class="form-grid single" id="signin-form-host"></div>
+  </div>
+</div>
+
 <div id="login-screen">
   <div class="login-box">
+    <div class="id-foot-link" style="margin-bottom:8px;"><button class="link-btn" onclick="idGoWelcome()">&larr; Back</button></div>
     <div class="brand">🎓 BAA OS</div>
     <div class="greet">Welcome back, Bhavesh — how do you want to learn today?</div>
     <div class="greet" style="margin-bottom:14px;">I am a…</div>
@@ -588,8 +774,13 @@ body[data-exp="explorer"] .dash-focus .path-node{width:28px;height:28px;font-siz
     <div class="nav-item" data-view="ku" onclick="showView('ku')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7.5"/><ellipse cx="12" cy="12" rx="7.5" ry="3"/><path d="M12 4.5v15"/></svg></span> Knowledge Universe</div>
     <div class="nav-item" data-view="homework" onclick="showView('homework')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h7l4 4v14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M14 3v4h4"/><path d="M8.5 12.5h7M8.5 16h5"/></svg></span> Homework</div>
     <div class="nav-item" data-view="career" onclick="showView('career')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5c2.5 1.8 4 5 4 8.5 0 1.6-.3 3-.8 4.2l-3.2 3.3-3.2-3.3c-.5-1.2-.8-2.6-.8-4.2 0-3.5 1.5-6.7 4-8.5Z"/><circle cx="12" cy="10.5" r="1.6"/><path d="M9 15l-2.5 2.5M15 15l2.5 2.5M10 19.5l2-2 2 2"/></svg></span> Career</div>
+    <div class="nav-item" data-view="profile" onclick="showView('profile')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.6 3.1-6.5 7-6.5s7 2.9 7 6.5"/></svg></span> Profile</div>
     <div class="nav-item" data-view="settings" onclick="showView('settings')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.5-2-3.4-2.3.9a7 7 0 0 0-2-1.2L14 3h-4l-.4 2.6a7 7 0 0 0-2 1.2l-2.3-.9-2 3.4 2 1.5A7 7 0 0 0 5 12c0 .4 0 .8.1 1.2l-2 1.5 2 3.4 2.3-.9c.6.5 1.3.9 2 1.2L10 21h4l.4-2.6c.7-.3 1.4-.7 2-1.2l2.3.9 2-3.4-2-1.5c.1-.4.1-.8.1-1.2Z"/></svg></span> Settings</div>
     <div class="sidebar-foot" id="mode-badge">Mode: AI</div>
+    <div class="sidebar-foot account-switch" style="margin-top:8px;">
+      <button onclick="openManageProfiles()" title="Switch profile">👤 Switch</button>
+      <button onclick="idLockProfile()" title="Lock this profile">🔒 Lock</button>
+    </div>
   </div>
 
   <div class="main">
@@ -762,6 +953,27 @@ body[data-exp="explorer"] .dash-focus .path-node{width:28px;height:28px;font-siz
             <div class="row"><span>Essay: impact of AI</span><span class="pill" style="background:#FEE2E2;color:#B91C1C;">overdue</span></div>
             <button class="btn outline" style="margin-top:6px;" onclick="showView('homework')">View all</button>
           </div>
+          <div class="card">
+            <div class="eyebrow">Learning DNA</div>
+            <div id="dash-dna-top" style="font-size:12.5px;color:var(--ink-dim);line-height:1.5;"></div>
+            <button class="btn outline" style="margin-top:10px;" onclick="showView('profile')">View Learning DNA</button>
+          </div>
+          <div class="card">
+            <div class="eyebrow">Today's goal</div>
+            <div id="dash-today-goal" style="font-weight:600;font-size:13.5px;"></div>
+          </div>
+          <div class="card">
+            <div class="eyebrow">Confidence</div>
+            <div id="dash-confidence" style="font-size:12.5px;color:var(--ink-dim);line-height:1.5;"></div>
+          </div>
+          <div class="card">
+            <div class="eyebrow">Dream career</div>
+            <div id="dash-dream" style="font-weight:600;font-size:13.5px;"></div>
+          </div>
+          <div class="card">
+            <div class="eyebrow">AI insight</div>
+            <div id="dash-insight" style="font-size:12px;color:var(--ink-dim);line-height:1.5;"></div>
+          </div>
         </div>
       </div>
     </section>
@@ -860,6 +1072,88 @@ body[data-exp="explorer"] .dash-focus .path-node{width:28px;height:28px;font-siz
       </div>
     </section>
 
+    <section class="view" id="view-profile">
+      <div class="profile-hero card" style="margin-bottom:20px;">
+        <div class="profile-avatar" id="profile-page-avatar">🦉</div>
+        <div>
+          <h1 id="profile-page-name">Bhavesh</h1>
+          <p class="page-sub" style="margin-bottom:6px;" id="profile-page-meta">Class 8 · CBSE</p>
+          <div id="profile-page-tags"></div>
+        </div>
+      </div>
+
+      <div class="stat-mini-grid" style="margin-bottom:20px;">
+        <div class="stat-mini"><div class="num" id="profile-stat-level">1</div><div class="lbl">Level</div></div>
+        <div class="stat-mini"><div class="num" id="profile-stat-xp">0</div><div class="lbl">XP</div></div>
+        <div class="stat-mini"><div class="num" id="profile-stat-streak">0</div><div class="lbl">Day streak</div></div>
+        <div class="stat-mini"><div class="num" id="profile-stat-certs">0</div><div class="lbl">Certificates</div></div>
+      </div>
+
+      <div class="grid2" style="margin-bottom:20px;">
+        <div class="card">
+          <div class="eyebrow">Learning DNA</div>
+          <div class="row"><span>Learning style</span><span class="pill" id="profile-learning-style">Visual · Structured</span></div>
+          <div class="row"><span>Best focus window</span><span class="pill" id="profile-focus-window">6–8 PM</span></div>
+          <div class="row" style="border-bottom:none;"><span>Pace</span><span class="pill" id="profile-pace">Fast, retains best with practice</span></div>
+          <div class="dna-wrap" id="dna-wrap" style="margin-top:16px;"></div>
+        </div>
+        <div class="card">
+          <div class="eyebrow">Dream career</div>
+          <p style="font-size:13.5px;color:var(--ink-dim);line-height:1.6;margin-bottom:10px;" id="profile-dream-career">Aerospace Engineer — building the next generation of flight.</p>
+          <div id="profile-career-progress-text" class="eyebrow" style="margin-bottom:6px;">2 of 5 milestones complete</div>
+          <div class="bar-track"><div class="bar-fill" id="profile-career-bar" style="width:40%;"></div></div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:20px;">
+        <div class="eyebrow">Learning Twin</div>
+        <div id="twin-body"></div>
+      </div>
+
+      <div class="card" style="margin-bottom:20px;">
+        <div class="eyebrow">Confidence Engine</div>
+        <p style="font-size:12px;color:var(--ink-dim);margin:0 0 4px;">Knowledge and confidence aren't the same — this tracks the gap per subject.</p>
+        <div id="confidence-body"></div>
+      </div>
+
+      <div class="card" style="margin-bottom:20px;">
+        <div class="eyebrow">Goals</div>
+        <div id="profile-goals-list"></div>
+        <button class="btn outline" style="margin-top:10px;" onclick="showView('settings')">Manage goals</button>
+      </div>
+
+      <div class="card" style="margin-bottom:20px;">
+        <div class="eyebrow">Recent Growth</div>
+        <div id="recent-growth-body" style="font-size:13px;color:var(--ink-dim);line-height:1.6;"></div>
+      </div>
+
+      <div class="grid2" style="margin-bottom:20px;">
+        <div class="card">
+          <div class="eyebrow">Achievements</div>
+          <div class="achv-row"><span class="achv-icon">🏅</span><div><div style="font-weight:700;font-size:13px;">Problem Solver</div><div style="font-size:11.5px;color:var(--ink-dim);">Completed 50 practice problems</div></div></div>
+          <div class="achv-row"><span class="achv-icon">🔥</span><div><div style="font-weight:700;font-size:13px;">12-Day Streak</div><div style="font-size:11.5px;color:var(--ink-dim);">Studied every day this week</div></div></div>
+          <div class="achv-row"><span class="achv-icon">🚀</span><div><div style="font-weight:700;font-size:13px;">Quantum Scholar</div><div style="font-size:11.5px;color:var(--ink-dim);">Reached Level 14</div></div></div>
+        </div>
+        <div class="card">
+          <div class="eyebrow">Certificates</div>
+          <div class="row"><span>📜 Foundations of Algebra</span><span class="pill">issued</span></div>
+          <div class="row"><span>📜 Newtonian Mechanics I</span><span class="pill">issued</span></div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:20px;">
+        <div class="eyebrow">Learning Insights</div>
+        <div id="insights-body"></div>
+      </div>
+
+      <div class="card">
+        <div class="eyebrow">Learning story</div>
+        <p style="font-size:13.5px;color:var(--ink-dim);line-height:1.7;" id="profile-learning-story">
+          You started this term steady in Physics and have kept building — three weeks of consistent practice pushed your Learning IQ up and your confidence with it. Chemistry has been a slower climb, but every review session is closing the gap.
+        </p>
+      </div>
+    </section>
+
     <section class="view" id="view-settings">
       <h1 class="page-title">Settings</h1>
       <p class="page-sub">Learning Experience, Appearance, and Accessibility combine independently.</p>
@@ -880,6 +1174,53 @@ body[data-exp="explorer"] .dash-focus .path-node{width:28px;height:28px;font-siz
           ♿ Accessible mode (dyslexia-friendly font, larger spacing, shape + color cues)
         </label>
       </div>
+
+      <div class="card" style="margin-top:16px;" id="pz-settings-card">
+        <div class="eyebrow">Personalization</div>
+        <div class="form-field" style="margin-bottom:12px;">
+          <label for="pz-learning-style">Learning style</label>
+          <select id="pz-learning-style" onchange="pzUpdateTwin()"></select>
+        </div>
+        <div class="form-field" style="margin-bottom:12px;">
+          <label for="pz-reading-pace">Reading pace</label>
+          <select id="pz-reading-pace" onchange="pzUpdateTwin()"></select>
+        </div>
+        <div class="form-field" style="margin-bottom:12px;">
+          <label for="pz-study-time">Preferred study time</label>
+          <select id="pz-study-time" onchange="pzUpdateTwin()"></select>
+        </div>
+        <div class="form-field" style="margin-bottom:12px;">
+          <label for="pz-session-length">Average study session (minutes)</label>
+          <input type="number" id="pz-session-length" min="10" max="180" onchange="pzUpdateTwin()" />
+        </div>
+        <div class="form-field" style="margin-bottom:4px;">
+          <label for="pz-difficulty">Difficulty preference</label>
+          <select id="pz-difficulty" onchange="pzUpdateTwin()">
+            <option value="easy">Easy</option><option value="balanced">Balanced</option><option value="challenge">Challenge</option>
+          </select>
+        </div>
+        <div class="eyebrow" style="margin-top:16px;">Learning goal</div>
+        <div id="pz-goals-chips" style="margin-bottom:8px;"></div>
+        <div class="form-field" style="flex-direction:row;gap:8px;">
+          <input type="text" id="pz-custom-goal" placeholder="Custom goal…" style="flex:1;" />
+          <button class="btn outline" type="button" onclick="pzAddCustomGoal()">Add</button>
+        </div>
+        <div class="eyebrow" style="margin-top:18px;">Dream career</div>
+        <div id="pz-dream-chips" style="margin-bottom:8px;"></div>
+        <div class="form-field" style="flex-direction:row;gap:8px;">
+          <input type="text" id="pz-custom-dream" placeholder="Custom dream…" style="flex:1;" />
+          <button class="btn outline" type="button" onclick="pzSetCustomDream()">Set</button>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:16px;">
+        <div class="eyebrow">Account &amp; profiles</div>
+        <div class="row"><span>Manage profiles</span><button class="btn outline" onclick="openManageProfiles()">Open</button></div>
+        <div class="row"><span>Add another student</span><button class="btn outline" onclick="idGoAddStudent()">Add student</button></div>
+        <div class="row"><span>Lock this profile</span><button class="btn outline" onclick="idLockProfile()">Lock</button></div>
+        <div class="row"><span>Export this profile</span><button class="btn outline" onclick="idExportActiveProfile()">Export</button></div>
+        <div class="row" style="border-bottom:none;"><span>Log out</span><button class="btn outline" onclick="idLogout()">Logout</button></div>
+      </div>
     </section>
 
   </div>
@@ -889,6 +1230,7 @@ body[data-exp="explorer"] .dash-focus .path-node{width:28px;height:28px;font-siz
     <div class="bn-item" data-view="tutor" onclick="showView('tutor')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v7A2.5 2.5 0 0 1 17.5 15H10l-4 3.5V15H6.5A2.5 2.5 0 0 1 4 12.5z"/><path d="M9 8.5h6M9 11h4"/></svg></span>Tutor</div>
     <div class="bn-item" data-view="ku" onclick="showView('ku')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7.5"/><ellipse cx="12" cy="12" rx="7.5" ry="3"/><path d="M12 4.5v15"/></svg></span>Explore</div>
     <div class="bn-item" data-view="homework" onclick="showView('homework')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h7l4 4v14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M14 3v4h4"/><path d="M8.5 12.5h7M8.5 16h5"/></svg></span>Homework</div>
+    <div class="bn-item" data-view="profile" onclick="showView('profile')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.6 3.1-6.5 7-6.5s7 2.9 7 6.5"/></svg></span>Profile</div>
     <div class="bn-item" data-view="settings" onclick="showView('settings')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.5-2-3.4-2.3.9a7 7 0 0 0-2-1.2L14 3h-4l-.4 2.6a7 7 0 0 0-2 1.2l-2.3-.9-2 3.4 2 1.5A7 7 0 0 0 5 12c0 .4 0 .8.1 1.2l-2 1.5 2 3.4 2.3-.9c.6.5 1.3.9 2 1.2L10 21h4l.4-2.6c.7-.3 1.4-.7 2-1.2l2.3.9 2-3.4-2-1.5c.1-.4.1-.8.1-1.2Z"/></svg></span>Settings</div>
   </div>
 </div>
@@ -897,7 +1239,11 @@ body[data-exp="explorer"] .dash-focus .path-node{width:28px;height:28px;font-siz
 <div id="app-parent" style="display:none;max-width:900px;margin:0 auto;padding:26px 24px 60px;">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
     <div style="font-family:var(--font-display);font-weight:700;font-size:18px;">👨‍👩‍👧 Parent Dashboard</div>
-    <button class="btn outline" onclick="backToLogin()">Switch role</button>
+    <div class="account-switch">
+      <button onclick="openManageProfiles()">Switch child</button>
+      <button onclick="backToLogin()">Switch role</button>
+      <button onclick="idLogout()">Logout</button>
+    </div>
   </div>
   <p class="page-sub">Good evening! Here's how Bhavesh is doing.</p>
   <div class="grid4">
@@ -933,7 +1279,10 @@ body[data-exp="explorer"] .dash-focus .path-node{width:28px;height:28px;font-siz
 <div id="app-teacher" style="display:none;max-width:900px;margin:0 auto;padding:26px 24px 60px;">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
     <div style="font-family:var(--font-display);font-weight:700;font-size:18px;">👨‍🏫 Teacher Dashboard</div>
-    <button class="btn outline" onclick="backToLogin()">Switch role</button>
+    <div class="account-switch">
+      <button onclick="backToLogin()">Switch role</button>
+      <button onclick="idLogout()">Logout</button>
+    </div>
   </div>
   <p class="page-sub">Class 8 — Mathematics</p>
   <div class="grid4">
@@ -963,6 +1312,82 @@ body[data-exp="explorer"] .dash-focus .path-node{width:28px;height:28px;font-siz
   </div>
 </div>
 
+<!-- ============ SCHOOL ADMINISTRATOR DASHBOARD (new role, own view) ============ -->
+<div id="app-admin" style="display:none;max-width:900px;margin:0 auto;padding:26px 24px 60px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+    <div style="font-family:var(--font-display);font-weight:700;font-size:18px;" id="admin-school-name">🏫 School Administrator</div>
+    <div class="account-switch">
+      <button onclick="openManageProfiles()">Switch profile</button>
+      <button onclick="idLogout()">Logout</button>
+    </div>
+  </div>
+  <p class="page-sub">School-wide overview across every class and teacher.</p>
+  <div class="grid4">
+    <div class="card stat c-blue"><div class="num" id="admin-stat-teachers">14</div><div class="lbl">Teachers</div></div>
+    <div class="card stat c-green"><div class="num" id="admin-stat-students">612</div><div class="lbl">Students</div></div>
+    <div class="card stat c-purple"><div class="num" id="admin-stat-classes">22</div><div class="lbl">Active classes</div></div>
+    <div class="card stat c-amber"><div class="num" id="admin-stat-avg">81%</div><div class="lbl">School average</div></div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="eyebrow">Teachers</div>
+      <div class="row"><span>Mr. Raghav Nair</span><span class="pill">Physics · Class 8-10</span></div>
+      <div class="row"><span>Ms. Priya Kulkarni</span><span class="pill">English · Class 6-9</span></div>
+      <div class="row"><span>Mr. Devansh Rao</span><span class="pill">Computer Science · Class 9-10</span></div>
+    </div>
+    <div class="card">
+      <div class="eyebrow">Analytics</div>
+      <div class="row"><span>Attendance (school-wide)</span><span class="pill">93%</span></div>
+      <div class="row"><span>Homework completion</span><span class="pill">87%</span></div>
+      <div class="row"><span>At-risk students</span><span class="pill" style="background:#FEE2E2;color:#B91C1C;">19</span></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="eyebrow">Settings</div>
+    <div class="row"><span>Manage teacher accounts</span><span class="pill">manage</span></div>
+    <div class="row"><span>Manage student roster</span><span class="pill">manage</span></div>
+    <div class="row"><span>School profile &amp; branding</span><span class="pill">edit</span></div>
+  </div>
+</div>
+
+<!-- ============ SHARED: modal for Manage Profiles, toast for confirmations ============ -->
+<div class="modal-backdrop" id="manage-profiles-modal" role="dialog" aria-modal="true" aria-labelledby="mp-title">
+  <div class="modal-panel">
+    <div class="modal-close-row">
+      <h3 id="mp-title">Manage profiles</h3>
+      <button onclick="closeManageProfiles()" aria-label="Close">&times;</button>
+    </div>
+    <div class="mp-list" id="mp-list"></div>
+    <div class="form-actions" style="margin-top:6px;">
+      <button class="btn outline" onclick="idExportActiveProfile()">Export profile</button>
+      <label class="btn outline" style="cursor:pointer;">
+        Import profile
+        <input type="file" accept="application/json" id="mp-import-input" style="display:none;" onchange="idImportProfile(this.files[0])" />
+      </label>
+    </div>
+    <div class="form-actions">
+      <button class="btn" onclick="closeManageProfiles(); idGoAddStudent();">+ Add student</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="lock-modal" role="dialog" aria-modal="true" aria-labelledby="lock-title">
+  <div class="modal-panel" style="max-width:340px;">
+    <div class="modal-close-row">
+      <h3 id="lock-title">🔒 Enter PIN</h3>
+      <button onclick="closeLockModal()" aria-label="Close">&times;</button>
+    </div>
+    <div class="form-field">
+      <label for="lock-pin-input">4-digit PIN</label>
+      <input type="password" inputmode="numeric" maxlength="4" id="lock-pin-input" autocomplete="off" />
+      <div class="error-text" id="lock-pin-error"></div>
+    </div>
+    <div class="form-actions"><button class="btn" style="width:100%;" onclick="idSubmitUnlockPin()">Unlock</button></div>
+  </div>
+</div>
+
+<div class="toast" id="id-toast"></div>
+
 <script>
 function setRole(role){
   document.querySelectorAll('#seg-role button').forEach(b=>b.classList.toggle('active', b.dataset.v===role));
@@ -980,6 +1405,7 @@ function continueAsRole(){
   localStorage.setItem('baa-role', role);
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app-' + role).style.display = 'block';
+  if(window.syncProfileFromLegacyLogin) syncProfileFromLegacyLogin(role, null);
 }
 function backToLogin(){
   localStorage.removeItem('baa-role');
@@ -997,6 +1423,7 @@ function enterApp(mode){
   document.getElementById('app').classList.add('active');
   document.getElementById('mode-badge').textContent = 'Mode: ' + (mode === 'ai' ? 'AI' : 'Custom');
   playDashboardIntro();
+  if(window.syncProfileFromLegacyLogin) syncProfileFromLegacyLogin('student', mode);
 }
 let dashIntroPlayed = false;
 function playDashboardIntro(){
@@ -1059,6 +1486,7 @@ function showView(name){
   if(name === 'homework') renderHomework();
   if(name === 'ku') renderKUUniverse();
   if(name === 'career') renderCareer();
+  if(name === 'profile' && window.renderProfilePage) renderProfilePage();
 }
 
 // ================= CAREER: clickable, persisted dream pipeline =================
@@ -1071,13 +1499,15 @@ const CAREER_DEFAULTS = [
 ];
 function loadCareerState(){
   try{
-    const saved = JSON.parse(localStorage.getItem('baa-career') || 'null');
+    const key = window.scopedKey ? scopedKey('baa-career') : 'baa-career';
+    const saved = JSON.parse(localStorage.getItem(key) || 'null');
     if(saved) return saved;
   }catch(e){}
   return CAREER_DEFAULTS;
 }
 function saveCareerState(steps){
-  localStorage.setItem('baa-career', JSON.stringify(steps));
+  const key = window.scopedKey ? scopedKey('baa-career') : 'baa-career';
+  localStorage.setItem(key, JSON.stringify(steps));
 }
 /* ============ Knowledge Universe — data + engine ============ */
 const KU_ICONS = {
@@ -1285,13 +1715,15 @@ const HW_DEFAULTS = [
 ];
 function loadHwState(){
   try{
-    const saved = JSON.parse(localStorage.getItem('baa-homework') || 'null');
+    const key = window.scopedKey ? scopedKey('baa-homework') : 'baa-homework';
+    const saved = JSON.parse(localStorage.getItem(key) || 'null');
     if(saved) return saved;
   }catch(e){}
   return HW_DEFAULTS;
 }
 function saveHwState(items){
-  localStorage.setItem('baa-homework', JSON.stringify(items));
+  const key = window.scopedKey ? scopedKey('baa-homework') : 'baa-homework';
+  localStorage.setItem(key, JSON.stringify(items));
 }
 function pillStyle(status){
   if(status === 'overdue') return 'background:#FEE2E2;color:#B91C1C;';
@@ -1546,6 +1978,7 @@ checkTutorBackend();
 
   const savedRole = localStorage.getItem('baa-role');
   const savedMode = localStorage.getItem('baa-mode');
+  if(localStorage.getItem('baa-profiles')){ return; } // new identity system takes over screen routing below
   if(savedRole === 'student' && savedMode){
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app').classList.add('active');
@@ -1556,6 +1989,894 @@ checkTutorBackend();
     document.getElementById('app-' + savedRole).style.display = 'block';
   }
 })();
+</script>
+
+<script>
+/* ============================================================================
+   IDENTITY & ACCOUNT SYSTEM — Production Milestone 1
+   Additive layer. Does not remove or rewrite Dashboard / Knowledge Universe /
+   Homework / Career / Settings / Scholar / Explorer / Neo.
+   Storage model: baa-profiles (array), baa-active-profile (id), baa-settings.
+   NOTE: password/PIN "hashing" below is a lightweight client-side obfuscation
+   for this offline prototype only — a real backend must do proper hashing.
+   ============================================================================ */
+
+const ID_TOP_SCREENS = ['welcome-screen','profile-select-screen','signup-screen','signin-screen','login-screen'];
+const AVATAR_EMOJIS = ['👦','👧','🧑','👨','👩','🧑\u200d🎓','🐱','🦊','🐼','🦉','🐸','🐧','🐨','🦁'];
+
+/* ---------------- storage helpers ---------------- */
+function uid(prefix){ return prefix + '_' + Math.random().toString(36).slice(2,9) + Date.now().toString(36).slice(-4); }
+function hashStr(s){ let h = 0; s = String(s||''); for(let i=0;i<s.length;i++){ h = ((h<<5)-h) + s.charCodeAt(i); h |= 0; } return 'h' + Math.abs(h).toString(36); }
+function getProfiles(){ try{ return JSON.parse(localStorage.getItem('baa-profiles') || '[]'); }catch(e){ return []; } }
+function setProfiles(list){ localStorage.setItem('baa-profiles', JSON.stringify(list)); }
+function getActiveProfileId(){ return localStorage.getItem('baa-active-profile') || ''; }
+function setActiveProfileId(id){ if(id) localStorage.setItem('baa-active-profile', id); else localStorage.removeItem('baa-active-profile'); }
+function getActiveProfile(){ const id = getActiveProfileId(); return getProfiles().find(p => p.id === id) || null; }
+function saveProfile(p){ const list = getProfiles(); const i = list.findIndex(x=>x.id===p.id); if(i>-1) list[i]=p; else list.push(p); setProfiles(list); }
+function getSettings(){ try{ return JSON.parse(localStorage.getItem('baa-settings') || '{}'); }catch(e){ return {}; } }
+function setSettings(s){ localStorage.setItem('baa-settings', JSON.stringify(Object.assign(getSettings(), s))); }
+function scopedKey(base){ const id = getActiveProfileId(); return base + ':' + (id || 'guest'); }
+window.scopedKey = scopedKey;
+
+function showToast(msg){
+  const t = document.getElementById('id-toast');
+  if(!t) return;
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(showToast._tm);
+  showToast._tm = setTimeout(()=> t.classList.remove('show'), 2600);
+}
+
+/* ---------------- screen routing ---------------- */
+function hideAllTopScreens(){
+  ID_TOP_SCREENS.forEach(id => { const el = document.getElementById(id); if(el) el.style.display = 'none'; });
+  document.getElementById('app').classList.remove('active');
+  document.getElementById('app-parent').style.display = 'none';
+  document.getElementById('app-teacher').style.display = 'none';
+  document.getElementById('app-admin').style.display = 'none';
+}
+function idGoWelcome(){ hideAllTopScreens(); document.getElementById('welcome-screen').style.display = 'flex'; }
+function idGoProfileSelect(){ hideAllTopScreens(); renderProfileGrid(); document.getElementById('profile-select-screen').style.display = 'flex'; }
+function idGoSignup(){ hideAllTopScreens(); addChildContext = null; idSetAccountType('student'); document.getElementById('signup-screen').style.display = 'flex'; }
+function idGoLogin(){ hideAllTopScreens(); renderSigninForm(); document.getElementById('signin-screen').style.display = 'flex'; }
+function idGoAddStudent(){ hideAllTopScreens(); const active = getActiveProfile(); addChildContext = (active && (active.accountType === 'parent')) ? active.id : (active ? null : null); idSetAccountType('student'); document.getElementById('signup-screen').style.display = 'flex'; }
+
+/* ---------------- generic form builder ---------------- */
+function ffield(f){
+  const req = f.required ? 'required' : '';
+  const spanCls = f.span2 ? ' span2' : '';
+  let input;
+  if(f.type === 'select'){
+    input = `<select name="${f.name}" id="fld-${f.name}" ${req}>` + f.options.map(o=>`<option value="${o.v}">${o.l}</option>`).join('') + `</select>`;
+  } else {
+    input = `<input type="${f.type}" name="${f.name}" id="fld-${f.name}" ${req} placeholder="${f.placeholder||''}" ${f.maxlength?`maxlength="${f.maxlength}"`:''} autocomplete="off" />`;
+  }
+  return `<div class="form-field${spanCls}"><label for="fld-${f.name}">${f.label}${f.required?'':' <span class="hint">(optional)</span>'}</label>${input}${f.hint?`<span class="hint">${f.hint}</span>`:''}</div>`;
+}
+function getFormValues(container, fields){
+  const out = {};
+  fields.forEach(f => { const el = container.querySelector('#fld-'+f.name); out[f.name] = el ? el.value.trim() : ''; });
+  return out;
+}
+
+/* ---------------- avatar picker (student / add-student forms) ---------------- */
+let pendingAvatarEmoji = '🧑\u200d🎓';
+let pendingAvatarPhoto = '';
+function avatarPickerHTML(){
+  const emojis = AVATAR_EMOJIS.map(e => `<button type="button" class="${e===pendingAvatarEmoji?'active':''}" onclick="idPickEmoji('${e}')">${e}</button>`).join('');
+  return `
+  <div class="avatar-picker">
+    <div class="avatar-preview" id="avatar-preview">${pendingAvatarPhoto ? `<img src="${pendingAvatarPhoto}" alt="" />` : pendingAvatarEmoji}</div>
+    <div>
+      <div class="avatar-emoji-grid">${emojis}</div>
+      <label class="avatar-upload-btn">Upload a photo instead
+        <input type="file" accept="image/*" style="display:none;" onchange="idUploadAvatar(this.files[0])" />
+      </label>
+    </div>
+  </div>`;
+}
+function idPickEmoji(e){
+  pendingAvatarEmoji = e; pendingAvatarPhoto = '';
+  document.querySelectorAll('.avatar-emoji-grid button').forEach(b => b.classList.toggle('active', b.textContent === e));
+  document.getElementById('avatar-preview').innerHTML = e;
+}
+function idUploadAvatar(file){
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => { pendingAvatarPhoto = reader.result; document.getElementById('avatar-preview').innerHTML = `<img src="${pendingAvatarPhoto}" alt="" />`; };
+  reader.readAsDataURL(file);
+}
+
+/* ---------------- signup: account type tabs ---------------- */
+let currentAccountType = 'student';
+let addChildContext = null;
+let usePinInsteadOfEmail = false;
+
+function idSetAccountType(type){
+  currentAccountType = type;
+  document.querySelectorAll('#auth-tabs button').forEach(b => b.classList.toggle('active', b.dataset.v === type));
+  pendingAvatarEmoji = '🧑\u200d🎓'; pendingAvatarPhoto = ''; usePinInsteadOfEmail = false;
+  renderSignupForm(type);
+}
+
+const STUDENT_FIELDS = [
+  {name:'name', label:'Full name', type:'text', required:true, span2:true},
+  {name:'dob', label:'Date of birth', type:'date'},
+  {name:'classGrade', label:'Class', type:'text', required:true, placeholder:'e.g. Class 9'},
+  {name:'board', label:'Board', type:'select', options:[{v:'CBSE',l:'CBSE'},{v:'ICSE',l:'ICSE'},{v:'IB',l:'IB'},{v:'State Board',l:'State Board'},{v:'Other',l:'Other'}]},
+  {name:'school', label:'School', type:'text'},
+  {name:'country', label:'Country', type:'text', placeholder:'e.g. India'},
+  {name:'language', label:'Language', type:'select', options:[{v:'English',l:'English'},{v:'Hindi',l:'Hindi'},{v:'Spanish',l:'Spanish'},{v:'French',l:'French'},{v:'Other',l:'Other'}]},
+  {name:'exp', label:'Learning experience', type:'select', options:[{v:'scholar',l:'🎓 Scholar'},{v:'explorer',l:'🚀 Explorer'},{v:'neo',l:'🤖 Neo'}]},
+];
+function renderSignupForm(type){
+  const host = document.getElementById('signup-form-host');
+  if(type === 'student'){
+    host.innerHTML = avatarPickerHTML() + `
+    <div class="form-grid" id="student-signup-fields">${STUDENT_FIELDS.map(ffield).join('')}</div>
+    <label class="toggle" style="margin:14px 0 4px;">
+      <input type="checkbox" id="no-email-toggle" onchange="idToggleNoEmail(this.checked)" />
+      I don't have an email — use a Student ID + PIN instead
+    </label>
+    <div class="form-grid" id="student-credential-fields">
+      <div class="form-field"><label for="fld-email">Email</label><input type="email" id="fld-email" placeholder="you@example.com" /></div>
+      <div class="form-field"><label for="fld-mobile">Mobile</label><input type="tel" id="fld-mobile" placeholder="+91 98765 43210" /></div>
+      <div class="form-field"><label for="fld-password">Password</label><input type="password" id="fld-password" placeholder="At least 6 characters" /></div>
+      <div class="form-field"><label for="fld-pin">4-digit PIN</label><input type="password" id="fld-pin" inputmode="numeric" maxlength="4" placeholder="••••" /></div>
+    </div>
+    <div class="error-text" id="student-signup-error"></div>
+    <div class="form-actions">
+      <button class="btn" style="width:100%;" onclick="idSubmitStudentSignup()">${addChildContext ? 'Add child' : 'Create account'}</button>
+    </div>`;
+  } else if(type === 'parent'){
+    host.innerHTML = `
+    <div class="form-grid">
+      <div class="form-field span2"><label for="fld-name">Full name</label><input type="text" id="fld-name" required /></div>
+      <div class="form-field"><label for="fld-email">Email</label><input type="email" id="fld-email" placeholder="you@example.com" /></div>
+      <div class="form-field"><label for="fld-mobile">Mobile</label><input type="tel" id="fld-mobile" placeholder="+91 98765 43210" /></div>
+      <div class="form-field"><label for="fld-password">Password</label><input type="password" id="fld-password" required placeholder="At least 6 characters" /></div>
+      <div class="form-field"><label for="fld-country">Country</label><input type="text" id="fld-country" /></div>
+    </div>
+    <div class="hint" style="margin-top:8px;display:block;">You'll add your first child right after this step.</div>
+    <div class="error-text" id="parent-signup-error"></div>
+    <div class="form-actions"><button class="btn" style="width:100%;" onclick="idSubmitParentSignup()">Continue</button></div>`;
+  } else if(type === 'teacher'){
+    host.innerHTML = `
+    <div class="form-grid">
+      <div class="form-field span2"><label for="fld-name">Full name</label><input type="text" id="fld-name" required /></div>
+      <div class="form-field span2"><label for="fld-email">Email</label><input type="email" id="fld-email" required /></div>
+      <div class="form-field"><label for="fld-school">School</label><input type="text" id="fld-school" /></div>
+      <div class="form-field"><label for="fld-subject">Subject</label><input type="text" id="fld-subject" placeholder="e.g. Mathematics" /></div>
+      <div class="form-field span2"><label for="fld-password">Password</label><input type="password" id="fld-password" required placeholder="At least 6 characters" /></div>
+    </div>
+    <div class="error-text" id="teacher-signup-error"></div>
+    <div class="form-actions"><button class="btn" style="width:100%;" onclick="idSubmitTeacherSignup()">Create account</button></div>`;
+  } else {
+    host.innerHTML = `
+    <div class="form-grid">
+      <div class="form-field span2"><label for="fld-name">Your full name</label><input type="text" id="fld-name" required /></div>
+      <div class="form-field span2"><label for="fld-school">School name</label><input type="text" id="fld-school" required /></div>
+      <div class="form-field span2"><label for="fld-email">Work email</label><input type="email" id="fld-email" required /></div>
+      <div class="form-field span2"><label for="fld-password">Password</label><input type="password" id="fld-password" required placeholder="At least 6 characters" /></div>
+    </div>
+    <div class="error-text" id="admin-signup-error"></div>
+    <div class="form-actions"><button class="btn" style="width:100%;" onclick="idSubmitAdminSignup()">Create account</button></div>`;
+  }
+}
+function idToggleNoEmail(on){
+  usePinInsteadOfEmail = on;
+  const emailField = document.getElementById('fld-email').closest('.form-field');
+  const pwField = document.getElementById('fld-password').closest('.form-field');
+  emailField.style.opacity = on ? '0.4' : '1';
+  pwField.style.opacity = on ? '0.4' : '1';
+  document.getElementById('fld-email').disabled = on;
+  document.getElementById('fld-password').disabled = on;
+}
+
+/* ---------------- signup submit handlers ---------------- */
+function baseProfile(accountType){
+  return {
+    id: uid('p'), accountType, avatarEmoji: pendingAvatarEmoji, avatarPhoto: pendingAvatarPhoto,
+    streakDays: 0, xp: 0, level: 1, locked: false, isGuest: false, parentId: null, childrenIds: [],
+    exp: 'neo', mode: 'ai', createdAt: new Date().toISOString(),
+  };
+}
+function idSubmitStudentSignup(){
+  const host = document.getElementById('signup-form-host');
+  const vals = getFormValues(host, STUDENT_FIELDS);
+  const errEl = document.getElementById('student-signup-error');
+  if(!vals.name || !vals.classGrade){ errEl.textContent = 'Full name and class are required.'; return; }
+  const email = document.getElementById('fld-email').value.trim();
+  const mobile = document.getElementById('fld-mobile').value.trim();
+  const password = document.getElementById('fld-password').value;
+  const pin = document.getElementById('fld-pin').value;
+  if(usePinInsteadOfEmail && (!pin || pin.length !== 4)){ errEl.textContent = 'Enter a 4-digit PIN.'; return; }
+  errEl.textContent = '';
+
+  const p = Object.assign(baseProfile('student'), vals, {
+    email: usePinInsteadOfEmail ? '' : email,
+    mobile,
+    passwordHash: password ? hashStr(password) : '',
+    pinHash: pin ? hashStr(pin) : '',
+    authMethod: usePinInsteadOfEmail ? 'pin' : (password ? 'password' : 'guest'),
+    studentIdCode: usePinInsteadOfEmail ? ('BAA-' + Math.random().toString(36).slice(2,8).toUpperCase()) : '',
+    parentId: addChildContext,
+  });
+  saveProfile(p);
+  if(addChildContext){
+    const parent = getProfiles().find(x=>x.id===addChildContext);
+    if(parent){ parent.childrenIds = (parent.childrenIds||[]).concat(p.id); saveProfile(parent); }
+  }
+  if(p.studentIdCode) showToast('Student ID created: ' + p.studentIdCode + ' — save this to log in!');
+  addChildContext = null;
+  if(p.parentId){
+    setActiveProfileId(p.parentId);
+    enterAdultProfile(getProfiles().find(x=>x.id===p.parentId));
+  } else {
+    enterStudentProfile(p);
+  }
+}
+function idSubmitParentSignup(){
+  const name = document.getElementById('fld-name').value.trim();
+  const email = document.getElementById('fld-email').value.trim();
+  const mobile = document.getElementById('fld-mobile').value.trim();
+  const password = document.getElementById('fld-password').value;
+  const country = document.getElementById('fld-country').value.trim();
+  const errEl = document.getElementById('parent-signup-error');
+  if(!name || !password || (!email && !mobile)){ errEl.textContent = 'Name, password, and an email or mobile are required.'; return; }
+  errEl.textContent = '';
+  const p = Object.assign(baseProfile('parent'), { name, email, mobile, country, passwordHash: hashStr(password), authMethod: 'password' });
+  saveProfile(p);
+  setActiveProfileId(p.id);
+  showToast('Parent account created — now add your first child.');
+  addChildContext = p.id;
+  idSetAccountType('student');
+}
+function idSubmitTeacherSignup(){
+  const name = document.getElementById('fld-name').value.trim();
+  const email = document.getElementById('fld-email').value.trim();
+  const school = document.getElementById('fld-school').value.trim();
+  const subject = document.getElementById('fld-subject').value.trim();
+  const password = document.getElementById('fld-password').value;
+  const errEl = document.getElementById('teacher-signup-error');
+  if(!name || !email || !password){ errEl.textContent = 'Name, email, and password are required.'; return; }
+  errEl.textContent = '';
+  const p = Object.assign(baseProfile('teacher'), { name, email, school, subject, passwordHash: hashStr(password), authMethod: 'password' });
+  saveProfile(p);
+  setActiveProfileId(p.id);
+  enterAdultProfile(p);
+}
+function idSubmitAdminSignup(){
+  const name = document.getElementById('fld-name').value.trim();
+  const school = document.getElementById('fld-school').value.trim();
+  const email = document.getElementById('fld-email').value.trim();
+  const password = document.getElementById('fld-password').value;
+  const errEl = document.getElementById('admin-signup-error');
+  if(!name || !school || !email || !password){ errEl.textContent = 'All fields are required.'; return; }
+  errEl.textContent = '';
+  const p = Object.assign(baseProfile('admin'), { name, school, email, passwordHash: hashStr(password), authMethod: 'password' });
+  saveProfile(p);
+  setActiveProfileId(p.id);
+  enterAdultProfile(p);
+}
+
+/* ---------------- guest mode ---------------- */
+function idContinueAsGuest(){
+  const p = Object.assign(baseProfile('student'), {
+    name: 'Guest Student', classGrade: 'Class 8', board: 'CBSE', isGuest: true, authMethod: 'guest',
+  });
+  saveProfile(p);
+  enterStudentProfile(p);
+}
+
+/* ---------------- sign in ---------------- */
+function renderSigninForm(){
+  const host = document.getElementById('signin-form-host');
+  host.innerHTML = `
+    <div class="form-field"><label for="fld-identifier">Email, mobile, or Student ID</label><input type="text" id="fld-identifier" placeholder="you@example.com or BAA-XXXXXX" /></div>
+    <div class="form-field"><label for="fld-secret">Password or PIN</label><input type="password" id="fld-secret" placeholder="••••••••" /></div>
+    <div id="otp-area"></div>
+    <label class="toggle" style="margin:2px 0;"><input type="checkbox" id="remember-me-check" /> Remember me on this device</label>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin:2px 0 4px;">
+      <button class="link-btn" onclick="idSendOtp()">Send OTP instead</button>
+      <button class="link-btn" onclick="idForgotPassword()">Forgot password?</button>
+    </div>
+    <div class="error-text" id="signin-error"></div>
+    <div class="form-actions"><button class="btn" style="width:100%;" onclick="idSubmitSignin()">Log in</button></div>`;
+}
+function idSendOtp(){
+  document.getElementById('otp-area').innerHTML = `
+    <div class="form-field"><label>Enter the 6-digit code sent to your mobile</label>
+      <div class="otp-row">${[0,1,2,3,4,5].map(i=>`<input class="otp-box" maxlength="1" inputmode="numeric" id="otp-${i}" />`).join('')}</div>
+      <span class="hint">Demo mode: backend OTP delivery isn't connected yet — any 6 digits will verify.</span>
+    </div>
+    <button class="btn outline" type="button" onclick="idVerifyOtp()">Verify OTP</button>`;
+  const boxes = [0,1,2,3,4,5].map(i=>document.getElementById('otp-'+i));
+  boxes.forEach((b,i) => b.addEventListener('input', () => { if(b.value && boxes[i+1]) boxes[i+1].focus(); }));
+}
+function idVerifyOtp(){
+  const code = [0,1,2,3,4,5].map(i=>document.getElementById('otp-'+i).value).join('');
+  if(code.length === 6) showToast('OTP verified (demo) — continue logging in.');
+}
+function idForgotPassword(){
+  const host = document.getElementById('signin-form-host');
+  document.getElementById('signin-tagline').textContent = "We'll send a reset link to your email.";
+  host.innerHTML = `
+    <div class="form-field"><label for="fld-reset-email">Email</label><input type="email" id="fld-reset-email" placeholder="you@example.com" /></div>
+    <div class="form-actions"><button class="btn" style="width:100%;" onclick="idSendResetLink()">Send reset link</button></div>
+    <div class="id-foot-link"><button class="link-btn" onclick="idGoLogin()">&larr; Back to login</button></div>`;
+}
+function idSendResetLink(){
+  const email = document.getElementById('fld-reset-email').value.trim();
+  if(!email){ return; }
+  showToast('If an account exists for ' + email + ', a reset link has been sent (demo).');
+  idGoLogin();
+}
+function idSubmitSignin(){
+  const identifier = document.getElementById('fld-identifier').value.trim().toLowerCase();
+  const secret = document.getElementById('fld-secret').value;
+  const errEl = document.getElementById('signin-error');
+  if(!identifier || !secret){ errEl.textContent = 'Enter your details to continue.'; return; }
+  const match = getProfiles().find(p =>
+    (p.email && p.email.toLowerCase() === identifier) ||
+    (p.mobile && p.mobile.toLowerCase() === identifier) ||
+    (p.studentIdCode && p.studentIdCode.toLowerCase() === identifier)
+  );
+  if(!match || (match.passwordHash !== hashStr(secret) && match.pinHash !== hashStr(secret))){
+    errEl.textContent = 'We could not find a match. Check your details and try again.';
+    return;
+  }
+  errEl.textContent = '';
+  setSettings({ rememberMe: !!document.getElementById('remember-me-check').checked });
+  setActiveProfileId(match.id);
+  if(match.accountType === 'student') enterStudentProfile(match); else enterAdultProfile(match);
+}
+
+/* ---------------- legacy bridge (existing role/mode picker) ---------------- */
+function syncProfileFromLegacyLogin(role, mode){
+  let profile = getActiveProfile();
+  if(!profile){
+    const list = getProfiles();
+    profile = list.find(p => p.accountType === role && p.authMethod === 'legacy');
+    if(!profile){
+      profile = Object.assign(baseProfile(role), {
+        name: role === 'student' ? 'Bhavesh' : (role === 'parent' ? 'Parent' : 'Teacher'),
+        classGrade: 'Class 8', board: 'CBSE', authMethod: 'legacy', streakDays: 18,
+      });
+    }
+  }
+  if(mode) profile.mode = mode;
+  profile.exp = document.body.getAttribute('data-exp') || profile.exp;
+  saveProfile(profile);
+  setActiveProfileId(profile.id);
+}
+
+/* ---------------- entering an area ---------------- */
+function enterStudentProfile(profile){
+  hideAllTopScreens();
+  setActiveProfileId(profile.id);
+  if(profile.exp){ setExp(profile.exp); }
+  document.getElementById('app').classList.add('active');
+  const modeLabel = profile.mode === 'custom' ? 'Custom' : 'AI';
+  document.getElementById('mode-badge').textContent = 'Mode: ' + modeLabel;
+  document.getElementById('greeting').textContent = greetingFor(profile);
+  playDashboardIntro();
+  if(window.renderPersonalizationEngine) renderPersonalizationEngine(profile);
+}
+function enterAdultProfile(profile){
+  hideAllTopScreens();
+  setActiveProfileId(profile.id);
+  document.getElementById('app-' + profile.accountType).style.display = 'block';
+  if(profile.accountType === 'admin' && profile.school){
+    const el = document.getElementById('admin-school-name');
+    if(el) el.textContent = '🏫 ' + profile.school;
+  }
+}
+function greetingFor(profile){
+  const hour = new Date().getHours();
+  const part = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  return part + ', ' + (profile.name || 'there').split(' ')[0];
+}
+
+/* ---------------- profile selection screen ---------------- */
+function renderProfileGrid(){
+  const grid = document.getElementById('profile-grid');
+  const profiles = getProfiles();
+  const roleLabel = { student:'', parent:'Parent', teacher:'Teacher', admin:'Admin' };
+  grid.innerHTML = profiles.map(p => `
+    <button type="button" class="profile-tile ${p.locked?'locked':''}" onclick="selectProfileTile('${p.id}')">
+      ${roleLabel[p.accountType] ? `<span class="pill prole">${roleLabel[p.accountType]}</span>` : ''}
+      <div class="profile-avatar">${p.avatarPhoto ? `<img src="${p.avatarPhoto}" alt="" />` : (p.avatarEmoji || '🙂')}</div>
+      <div class="pname">${p.name || 'Student'}</div>
+      <div class="pmeta">${p.accountType === 'student' ? [p.classGrade, expLabel(p.exp), (p.streakDays||0)+' day streak'].filter(Boolean).join(' · ') : (p.school || p.accountType)}</div>
+    </button>`).join('') + `
+    <button type="button" class="profile-tile add-profile-tile" onclick="idGoAddStudent()">
+      <span class="plus">+</span> Add student
+    </button>`;
+}
+function expLabel(v){ return v === 'scholar' ? 'Scholar' : v === 'explorer' ? 'Explorer' : v === 'neo' ? 'Neo' : ''; }
+let pendingUnlockProfileId = null;
+function selectProfileTile(id){
+  const p = getProfiles().find(x=>x.id===id);
+  if(!p) return;
+  if(p.locked && p.pinHash){ pendingUnlockProfileId = id; openLockModal(); return; }
+  if(p.accountType === 'student') enterStudentProfile(p); else enterAdultProfile(p);
+}
+
+/* ---------------- lock / unlock ---------------- */
+function idLockProfile(){
+  const p = getActiveProfile();
+  if(!p) return;
+  if(!p.pinHash){ showToast('Set a PIN on this profile first (Manage profiles → edit) to enable locking.'); return; }
+  p.locked = true; saveProfile(p);
+  idGoProfileSelect();
+}
+function openLockModal(){ document.getElementById('lock-modal').classList.add('open'); document.getElementById('lock-pin-input').value=''; document.getElementById('lock-pin-error').textContent=''; }
+function closeLockModal(){ document.getElementById('lock-modal').classList.remove('open'); pendingUnlockProfileId = null; }
+function idSubmitUnlockPin(){
+  const pin = document.getElementById('lock-pin-input').value;
+  const p = getProfiles().find(x=>x.id===pendingUnlockProfileId);
+  if(!p) return;
+  if(hashStr(pin) !== p.pinHash){ document.getElementById('lock-pin-error').textContent = 'Incorrect PIN.'; return; }
+  p.locked = false; saveProfile(p);
+  closeLockModal();
+  if(p.accountType === 'student') enterStudentProfile(p); else enterAdultProfile(p);
+}
+
+/* ---------------- manage profiles modal ---------------- */
+function openManageProfiles(){
+  renderManageProfilesList();
+  document.getElementById('manage-profiles-modal').classList.add('open');
+}
+function closeManageProfiles(){ document.getElementById('manage-profiles-modal').classList.remove('open'); }
+function renderManageProfilesList(){
+  const list = document.getElementById('mp-list');
+  const profiles = getProfiles();
+  const activeId = getActiveProfileId();
+  list.innerHTML = profiles.map(p => `
+    <div class="mp-row">
+      <div class="profile-avatar">${p.avatarPhoto ? `<img src="${p.avatarPhoto}" alt="" />` : (p.avatarEmoji||'🙂')}</div>
+      <div style="min-width:0;">
+        <div class="mp-name">${p.name || 'Student'} ${p.id===activeId ? '<span class="hint">(current)</span>' : ''}</div>
+        <div class="mp-sub">${p.accountType}${p.classGrade ? ' · '+p.classGrade : ''}</div>
+      </div>
+      <div class="mp-row-actions">
+        ${p.id!==activeId ? `<button onclick="switchProfile('${p.id}')">Switch</button>` : ''}
+        <button class="danger" onclick="idDeleteProfile('${p.id}')">Delete</button>
+      </div>
+    </div>`).join('') || '<p class="hint">No profiles yet.</p>';
+}
+function switchProfile(id){
+  const p = getProfiles().find(x=>x.id===id);
+  if(!p) return;
+  closeManageProfiles();
+  selectProfileTile(id);
+}
+function idDeleteProfile(id){
+  if(!confirm('Delete this profile? This cannot be undone.')) return;
+  let profiles = getProfiles().filter(p => p.id !== id);
+  setProfiles(profiles);
+  localStorage.removeItem('baa-career:' + id);
+  localStorage.removeItem('baa-homework:' + id);
+  if(getActiveProfileId() === id){ setActiveProfileId(''); }
+  renderManageProfilesList();
+  if(profiles.length === 0){ closeManageProfiles(); idGoWelcome(); }
+}
+
+/* ---------------- export / import ---------------- */
+function idExportActiveProfile(){
+  const p = getActiveProfile();
+  if(!p){ showToast('No active profile to export.'); return; }
+  const payload = {
+    profile: p,
+    career: JSON.parse(localStorage.getItem('baa-career:'+p.id) || 'null'),
+    homework: JSON.parse(localStorage.getItem('baa-homework:'+p.id) || 'null'),
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = (p.name || 'profile').replace(/\s+/g,'-').toLowerCase() + '-baa-export.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+  showToast('Profile exported.');
+}
+function idImportProfile(file){
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try{
+      const payload = JSON.parse(reader.result);
+      if(!payload.profile || !payload.profile.id) throw new Error('bad file');
+      payload.profile.id = uid('p'); // avoid collisions
+      saveProfile(payload.profile);
+      if(payload.career) localStorage.setItem('baa-career:'+payload.profile.id, JSON.stringify(payload.career));
+      if(payload.homework) localStorage.setItem('baa-homework:'+payload.profile.id, JSON.stringify(payload.homework));
+      renderManageProfilesList();
+      showToast('Profile imported: ' + (payload.profile.name || 'Unnamed'));
+    }catch(e){ showToast('Could not read that file.'); }
+  };
+  reader.readAsText(file);
+}
+
+/* ---------------- logout ---------------- */
+function idLogout(){
+  setActiveProfileId('');
+  hideAllTopScreens();
+  if(getProfiles().length > 0) idGoProfileSelect(); else idGoWelcome();
+}
+
+/* ---------------- profile page (student view) ---------------- */
+function renderProfilePage(){
+  const p = getActiveProfile();
+  if(!p) return;
+  document.getElementById('profile-page-avatar').innerHTML = p.avatarPhoto ? `<img src="${p.avatarPhoto}" alt="" />` : (p.avatarEmoji || '🦉');
+  document.getElementById('profile-page-name').textContent = p.name || 'Student';
+  document.getElementById('profile-page-meta').textContent = [p.classGrade, p.board, p.school].filter(Boolean).join(' · ') || 'Class 8 · CBSE';
+  document.getElementById('profile-page-tags').innerHTML = [expLabel(p.exp)||'Neo', p.isGuest ? 'Guest' : 'Registered'].filter(Boolean).map(t=>`<span class="tag-chip">${t}</span>`).join('');
+  document.getElementById('profile-stat-level').textContent = p.level || 14;
+  document.getElementById('profile-stat-xp').textContent = (p.xp || 3260).toLocaleString();
+  document.getElementById('profile-stat-streak').textContent = p.streakDays || 0;
+  document.getElementById('profile-stat-certs').textContent = 2;
+  document.getElementById('profile-learning-style').textContent = expLabel(p.exp) ? expLabel(p.exp) + ' learner' : 'Visual · Structured';
+}
+window.renderProfilePage = renderProfilePage;
+
+/* ==================================================================
+   PERSONALIZATION ENGINE
+   The brain of BAA OS. Every profile carries its own learningTwin,
+   learningDNA, confidenceModel, learningGoals, dreamCareer, and
+   learningInsights — never global data. Every future module (AI
+   Tutor, Homework, Knowledge Universe, Career, Study Planner,
+   Analytics) reads/writes through the functions below.
+   ================================================================== */
+
+const DNA_TRAITS = [
+  {key:'logicalThinking', label:'Logical Thinking'},
+  {key:'creativity', label:'Creativity'},
+  {key:'memory', label:'Memory'},
+  {key:'communication', label:'Communication'},
+  {key:'reading', label:'Reading'},
+  {key:'problemSolving', label:'Problem Solving'},
+  {key:'mathematics', label:'Mathematics'},
+  {key:'science', label:'Science'},
+  {key:'language', label:'Language'},
+  {key:'confidence', label:'Confidence'},
+  {key:'studyConsistency', label:'Study Consistency'},
+  {key:'curiosity', label:'Curiosity'},
+];
+const PZ_LEARNING_STYLES = ['Visual','Story Based','Practice Based','Video Based'];
+const PZ_READING_PACES = ['Fast Reader','Average Reader','Slow Reader'];
+const PZ_STUDY_TIMES = ['Morning','Afternoon','Evening','Night'];
+const PZ_SUBJECTS = ['Mathematics','Science','English','Geometry','History','Coding'];
+const PZ_GOAL_OPTIONS = ['Score Above 90%','Improve Mathematics','Olympiad','JEE','NEET','Coding','Communication','Public Speaking'];
+const PZ_DREAM_OPTIONS = ['Doctor','Engineer','Scientist','Teacher','Artist','Entrepreneur','Pilot','IAS','IPS','CA','Lawyer','Designer'];
+
+function pzRand(min,max){ return Math.round(min + Math.random()*(max-min)); }
+function pzPick(arr){ return arr[pzRand(0, arr.length-1)]; }
+
+/* ---------------- Module 1: Learning DNA (initial estimate; evolves later) ---------------- */
+function generateLearningDNA(){
+  const dna = {};
+  DNA_TRAITS.forEach(t => { dna[t.key] = pzRand(58, 90); });
+  return dna;
+}
+
+/* ---------------- Module 2: Learning Twin ---------------- */
+function generateLearningTwin(){
+  return {
+    learningStyle: pzPick(PZ_LEARNING_STYLES),
+    readingPace: pzPick(PZ_READING_PACES),
+    avgStudySession: pzRand(25, 55),
+    preferredStudyTime: pzPick(PZ_STUDY_TIMES),
+    weakTopics: ['Geometry', 'Chemical Bonding'],
+    strongTopics: ['Algebra', 'Mechanics'],
+    attentionPattern: 'Focused in short bursts, dips after ~30 min',
+    learningVelocity: pzRand(60, 95),
+    currentConfidence: pzRand(55, 85),
+    revisionFrequency: 'Every 3–4 days',
+    recentImprovement: '+' + pzRand(3, 12) + '% this month',
+  };
+}
+
+/* ---------------- Module 3: Confidence Engine ---------------- */
+function generateConfidenceModel(){
+  return PZ_SUBJECTS.map(s => {
+    const knowledge = pzRand(55, 95);
+    const confidence = Math.max(20, knowledge - pzRand(5, 35));
+    const gap = knowledge - confidence;
+    const support = gap > 25 ? 'Needs Revision' : gap > 15 ? 'Low' : gap > 8 ? 'Medium' : 'High Confidence';
+    return {subject: s, knowledge, confidence, support};
+  });
+}
+
+/* ---------------- Module 6: Learning Insights (sample generator; AI-ready architecture) ---------------- */
+function generateInsights(p){
+  const twin = p.learningTwin || {};
+  const dna = p.learningDNA || {};
+  const ranked = Object.entries(dna).sort((a,b) => b[1]-a[1]);
+  const best = ranked[0];
+  const bestLabel = best ? (DNA_TRAITS.find(t => t.key === best[0]) || {}).label : null;
+  const lines = [];
+  lines.push('You learn best in the ' + (twin.preferredStudyTime || 'evening').toLowerCase() + '.');
+  if(bestLabel) lines.push(bestLabel + ' is your strongest trait right now.');
+  const weakest = (p.confidenceModel || []).slice().sort((a,b) => (a.knowledge-a.confidence) < (b.knowledge-b.confidence) ? 1 : -1)[0];
+  lines.push(weakest ? weakest.subject + ' needs more revision.' : 'Mathematics needs more revision.');
+  lines.push('Your consistency has ' + (pzRand(0,1) ? 'increased' : 'held steady') + ' this week.');
+  lines.push(twin.readingPace === 'Fast Reader' ? 'Reading speed stays fast and steady.' : 'Reading speed is improving with practice.');
+  return lines;
+}
+
+/* ---------------- Data model: fill in missing personalization fields on a profile ---------------- */
+function ensurePersonalization(p){
+  if(!p || p.accountType !== 'student') return p;
+  let changed = false;
+  if(!p.learningDNA){ p.learningDNA = generateLearningDNA(); changed = true; }
+  if(!p.learningTwin){ p.learningTwin = generateLearningTwin(); changed = true; }
+  if(!p.confidenceModel){ p.confidenceModel = generateConfidenceModel(); changed = true; }
+  if(!p.learningGoals){ p.learningGoals = ['Score Above 90%', 'Improve Mathematics']; changed = true; }
+  if(!p.dreamCareer){ p.dreamCareer = {title: 'Aerospace Engineer', category: 'Engineer', note: 'Building the next generation of flight.'}; changed = true; }
+  if(!p.studyPreferences){
+    p.studyPreferences = {
+      difficulty: 'balanced',
+      sessionLength: (p.learningTwin && p.learningTwin.avgStudySession) || 35,
+      preferredTime: (p.learningTwin && p.learningTwin.preferredStudyTime) || 'Evening',
+    };
+    changed = true;
+  }
+  if(!p.learningInsights){ p.learningInsights = generateInsights(p); changed = true; }
+  if(!p.futureAI){ p.futureAI = {tutorContext:{}, homeworkContext:{}, careerContext:{}, knowledgeUniverseContext:{}, studyPlannerContext:{}, analyticsContext:{}}; changed = true; }
+  if(changed) saveProfile(p);
+  return p;
+}
+
+/* ---------------- Rendering: radar chart (pure SVG, no libraries) ---------------- */
+function buildDNARadarSVG(dna){
+  const n = DNA_TRAITS.length, cx = 130, cy = 130, rMax = 96;
+  const ptFor = (val, i) => {
+    const angle = (Math.PI * 2 * i / n) - Math.PI / 2;
+    const r = (Math.max(0, Math.min(100, val)) / 100) * rMax;
+    return [cx + r * Math.cos(angle), cy + r * Math.sin(angle)];
+  };
+  const dataPts = DNA_TRAITS.map((t, i) => ptFor(dna[t.key] || 0, i));
+  const polyPts = dataPts.map(p => p.join(',')).join(' ');
+  const rings = [0.25, 0.5, 0.75, 1].map(f => {
+    const pts = DNA_TRAITS.map((t, i) => {
+      const angle = (Math.PI * 2 * i / n) - Math.PI / 2;
+      const r = f * rMax;
+      return (cx + r * Math.cos(angle)) + ',' + (cy + r * Math.sin(angle));
+    }).join(' ');
+    return '<polygon points="' + pts + '" fill="none" stroke="var(--border)" stroke-width="1" opacity="0.6" />';
+  }).join('');
+  const spokes = DNA_TRAITS.map((t, i) => {
+    const angle = (Math.PI * 2 * i / n) - Math.PI / 2;
+    const x2 = cx + rMax * Math.cos(angle), y2 = cy + rMax * Math.sin(angle);
+    return '<line x1="' + cx + '" y1="' + cy + '" x2="' + x2 + '" y2="' + y2 + '" stroke="var(--border)" stroke-width="1" opacity="0.5" />';
+  }).join('');
+  const dots = dataPts.map(p => '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="2.6" fill="var(--accent)" />').join('');
+  return '<svg class="dna-radar-svg" width="260" height="260" viewBox="0 0 260 260" role="img" aria-label="Learning DNA radar chart">' +
+    rings + spokes +
+    '<polygon points="' + polyPts + '" fill="var(--accent)" fill-opacity="0.20" stroke="var(--accent)" stroke-width="2" />' +
+    dots + '</svg>';
+}
+
+function renderDNACard(p){
+  const wrap = document.getElementById('dna-wrap');
+  if(!wrap) return;
+  const dna = p.learningDNA;
+  const bars = DNA_TRAITS.map(t => (
+    '<div class="dna-trait"><span class="dt-label">' + t.label + '</span>' +
+    '<span class="dt-bar"><span class="dt-fill" style="width:' + dna[t.key] + '%;"></span></span>' +
+    '<span class="dt-val">' + dna[t.key] + '%</span></div>'
+  )).join('');
+  wrap.innerHTML = buildDNARadarSVG(dna) + '<div class="dna-traits">' + bars + '</div>';
+  const focus = document.getElementById('profile-focus-window');
+  if(focus) focus.textContent = (p.learningTwin.preferredStudyTime || 'Evening') + ' window';
+  const pace = document.getElementById('profile-pace');
+  if(pace) pace.textContent = (p.learningTwin.readingPace || 'Average Reader') + ' · ' + (p.learningTwin.learningVelocity || 70) + '% velocity';
+}
+
+function renderTwinCard(p){
+  const el = document.getElementById('twin-body');
+  if(!el) return;
+  const t = p.learningTwin;
+  el.innerHTML =
+    '<div class="row"><span>Learning style</span><span class="pill">' + t.learningStyle + '</span></div>' +
+    '<div class="row"><span>Reading pace</span><span class="pill">' + t.readingPace + '</span></div>' +
+    '<div class="row"><span>Avg. study session</span><span class="pill">' + t.avgStudySession + ' min</span></div>' +
+    '<div class="row"><span>Preferred study time</span><span class="pill">' + t.preferredStudyTime + '</span></div>' +
+    '<div class="row"><span>Weak topics</span><span class="pill">' + t.weakTopics.join(', ') + '</span></div>' +
+    '<div class="row"><span>Strong topics</span><span class="pill">' + t.strongTopics.join(', ') + '</span></div>' +
+    '<div class="row"><span>Attention pattern</span><span class="pill">' + t.attentionPattern + '</span></div>' +
+    '<div class="row"><span>Learning velocity</span><span class="pill">' + t.learningVelocity + '%</span></div>' +
+    '<div class="row"><span>Current confidence</span><span class="pill">' + t.currentConfidence + '%</span></div>' +
+    '<div class="row"><span>Revision frequency</span><span class="pill">' + t.revisionFrequency + '</span></div>' +
+    '<div class="row" style="border-bottom:none;"><span>Recent improvement</span><span class="pill">' + t.recentImprovement + '</span></div>';
+}
+
+function renderConfidenceCard(p){
+  const el = document.getElementById('confidence-body');
+  if(!el) return;
+  el.innerHTML = p.confidenceModel.map(c => (
+    '<div class="conf-row"><span class="cs">' + c.subject + '</span>' +
+    '<span class="cbar"><span class="k" style="width:' + c.knowledge + '%;"></span><span class="c" style="width:' + c.confidence + '%;"></span></span>' +
+    '<span class="csupport pill">' + c.support + '</span></div>'
+  )).join('');
+}
+
+function renderGoalsCard(p){
+  const el = document.getElementById('profile-goals-list');
+  if(el){
+    el.innerHTML = (p.learningGoals || []).map(g => '<div class="row"><span>🎯 ' + g + '</span><span class="pill">active</span></div>').join('')
+      || '<p class="hint">No goals set yet — add some in Settings.</p>';
+  }
+  const dashGoal = document.getElementById('dash-today-goal');
+  if(dashGoal) dashGoal.textContent = (p.learningGoals && p.learningGoals[0]) || 'No goal set yet';
+}
+
+function renderDreamCard(p){
+  const d = p.dreamCareer;
+  const textEl = document.getElementById('profile-dream-career');
+  if(textEl) textEl.textContent = d.title + (d.note ? ' — ' + d.note : '');
+  const dashDream = document.getElementById('dash-dream');
+  if(dashDream) dashDream.textContent = d.title;
+}
+
+function renderInsightsCard(p){
+  const el = document.getElementById('insights-body');
+  if(el) el.innerHTML = (p.learningInsights || []).map(i => '<div class="insight-item"><span>✨</span><span>' + i + '</span></div>').join('');
+  const dashInsight = document.getElementById('dash-insight');
+  if(dashInsight) dashInsight.textContent = (p.learningInsights && p.learningInsights[0]) || '';
+}
+
+function renderRecentGrowthCard(p){
+  const el = document.getElementById('recent-growth-body');
+  if(!el) return;
+  const dna = p.learningDNA;
+  const top = Object.entries(dna).sort((a,b) => b[1]-a[1])[0];
+  const label = top ? (DNA_TRAITS.find(t => t.key === top[0]) || {}).label : 'Overall progress';
+  el.textContent = (label || 'Overall progress') + ' is trending upward this month, alongside ' + (p.learningTwin.recentImprovement || 'steady progress') + ' overall.';
+}
+
+function renderDashboardPersonalization(p){
+  const dnaTop = document.getElementById('dash-dna-top');
+  if(dnaTop){
+    const entries = Object.entries(p.learningDNA).sort((a,b) => b[1]-a[1]).slice(0,2);
+    dnaTop.textContent = entries.map(e => (DNA_TRAITS.find(t => t.key === e[0]) || {}).label + ' ' + e[1] + '%').join(' · ');
+  }
+  const conf = document.getElementById('dash-confidence');
+  if(conf){
+    const weakest = p.confidenceModel.slice().sort((a,b) => a.confidence - b.confidence)[0];
+    conf.textContent = weakest ? (weakest.subject + ': ' + weakest.confidence + '% confidence (' + weakest.support + ')') : '';
+  }
+}
+
+/* ---------------- Module 9: Settings — edit Learning Twin, goals, dream career ---------------- */
+function renderPersonalizationSettings(p){
+  const styleSel = document.getElementById('pz-learning-style');
+  if(!styleSel) return;
+  const t = p.learningTwin;
+  styleSel.innerHTML = PZ_LEARNING_STYLES.map(s => '<option value="' + s + '"' + (t.learningStyle===s?' selected':'') + '>' + s + '</option>').join('');
+  document.getElementById('pz-reading-pace').innerHTML = PZ_READING_PACES.map(s => '<option value="' + s + '"' + (t.readingPace===s?' selected':'') + '>' + s + '</option>').join('');
+  document.getElementById('pz-study-time').innerHTML = PZ_STUDY_TIMES.map(s => '<option value="' + s + '"' + (t.preferredStudyTime===s?' selected':'') + '>' + s + '</option>').join('');
+  document.getElementById('pz-session-length').value = t.avgStudySession;
+  document.getElementById('pz-difficulty').value = p.studyPreferences.difficulty;
+
+  const goalsEl = document.getElementById('pz-goals-chips');
+  const extraGoals = (p.learningGoals || []).filter(g => PZ_GOAL_OPTIONS.indexOf(g) === -1);
+  goalsEl.innerHTML = PZ_GOAL_OPTIONS.concat(extraGoals).map(g => (
+    '<button type="button" class="goal-chip' + (p.learningGoals.indexOf(g) > -1 ? ' selected' : '') + '" onclick="pzToggleGoal(this.textContent)">' + g + '</button>'
+  )).join('');
+
+  const dreamEl = document.getElementById('pz-dream-chips');
+  const extraDream = (p.dreamCareer && PZ_DREAM_OPTIONS.indexOf(p.dreamCareer.title) === -1) ? [p.dreamCareer.title] : [];
+  dreamEl.innerHTML = PZ_DREAM_OPTIONS.concat(extraDream).map(d => (
+    '<button type="button" class="goal-chip' + (p.dreamCareer.title===d ? ' selected' : '') + '" onclick="pzSetDream(this.textContent)">' + d + '</button>'
+  )).join('');
+}
+
+function pzUpdateTwin(){
+  const p = getActiveProfile();
+  if(!p) return;
+  p.learningTwin.learningStyle = document.getElementById('pz-learning-style').value;
+  p.learningTwin.readingPace = document.getElementById('pz-reading-pace').value;
+  p.learningTwin.preferredStudyTime = document.getElementById('pz-study-time').value;
+  p.learningTwin.avgStudySession = parseInt(document.getElementById('pz-session-length').value, 10) || p.learningTwin.avgStudySession;
+  p.studyPreferences.difficulty = document.getElementById('pz-difficulty').value;
+  p.studyPreferences.preferredTime = p.learningTwin.preferredStudyTime;
+  p.studyPreferences.sessionLength = p.learningTwin.avgStudySession;
+  saveProfile(p);
+  renderPersonalizationEngine(p);
+  showToast('Preferences updated.');
+}
+function pzToggleGoal(g){
+  const p = getActiveProfile();
+  if(!p) return;
+  const i = p.learningGoals.indexOf(g);
+  if(i > -1) p.learningGoals.splice(i, 1); else p.learningGoals.push(g);
+  saveProfile(p);
+  renderPersonalizationEngine(p);
+}
+function pzAddCustomGoal(){
+  const input = document.getElementById('pz-custom-goal');
+  const val = input.value.trim();
+  if(!val) return;
+  const p = getActiveProfile();
+  if(!p) return;
+  if(p.learningGoals.indexOf(val) === -1) p.learningGoals.push(val);
+  input.value = '';
+  saveProfile(p);
+  renderPersonalizationEngine(p);
+}
+function pzSetDream(title){
+  const p = getActiveProfile();
+  if(!p) return;
+  p.dreamCareer = {title: title, category: p.dreamCareer.category || title, note: p.dreamCareer.note || ''};
+  saveProfile(p);
+  renderPersonalizationEngine(p);
+  showToast('Dream career updated: ' + title);
+}
+function pzSetCustomDream(){
+  const input = document.getElementById('pz-custom-dream');
+  const val = input.value.trim();
+  if(!val) return;
+  const p = getActiveProfile();
+  if(!p) return;
+  p.dreamCareer = {title: val, category: 'Custom', note: p.dreamCareer.note || ''};
+  input.value = '';
+  saveProfile(p);
+  renderPersonalizationEngine(p);
+  showToast('Dream career updated: ' + val);
+}
+
+/* ---------------- Master render: called on profile entry and after any edit ---------------- */
+function renderPersonalizationEngine(p){
+  if(!p) p = getActiveProfile();
+  if(!p || p.accountType !== 'student') return;
+  ensurePersonalization(p);
+  renderDNACard(p);
+  renderTwinCard(p);
+  renderConfidenceCard(p);
+  renderGoalsCard(p);
+  renderDreamCard(p);
+  renderInsightsCard(p);
+  renderRecentGrowthCard(p);
+  renderDashboardPersonalization(p);
+  renderPersonalizationSettings(p);
+}
+window.renderPersonalizationEngine = renderPersonalizationEngine;
+
+/* ---------------- boot / router ---------------- */
+function migrateLegacyIfNeeded(){
+  if(getProfiles().length > 0) return;
+  const savedRole = localStorage.getItem('baa-role');
+  const savedMode = localStorage.getItem('baa-mode');
+  if(!savedRole) return;
+  const p = Object.assign(baseProfile(savedRole), {
+    name: savedRole === 'student' ? 'Bhavesh' : (savedRole === 'parent' ? 'Parent' : 'Teacher'),
+    classGrade: 'Class 8', board: 'CBSE', authMethod: 'legacy', streakDays: 18,
+    mode: savedMode || 'ai', exp: localStorage.getItem('baa-exp') || 'neo',
+  });
+  saveProfile(p);
+  setActiveProfileId(p.id);
+}
+function identityBoot(){
+  migrateLegacyIfNeeded();
+  const profiles = getProfiles();
+  const settings = getSettings();
+  const activeId = getActiveProfileId();
+
+  if(profiles.length === 0){ idGoWelcome(); return; }
+
+  if(settings.rememberMe && activeId){
+    const p = profiles.find(x=>x.id===activeId);
+    if(p && !p.locked){
+      if(p.accountType === 'student') enterStudentProfile(p); else enterAdultProfile(p);
+      return;
+    }
+  }
+  idGoProfileSelect();
+}
+identityBoot();
 </script>
 </body>
 </html>
