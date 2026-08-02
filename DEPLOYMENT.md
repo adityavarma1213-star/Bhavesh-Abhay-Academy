@@ -122,14 +122,17 @@ instance's lifetime — it's a safety net against runaway loops, not a hard
 distributed limit. Google's own free-tier quota is enforced on top of this
 regardless (see below).
 
-**Gemini free tier quota.** As of mid-2026, `gemini-2.5-flash` is the model
-with the most generous free allowance; `gemini-2.5-pro` still has a free tier
-but a much smaller daily cap. Free-tier limits change fairly often — check
-your live numbers in [Google AI Studio](https://aistudio.google.com) under
-your project's rate limits before assuming a fixed number. If students start
-hitting `429` errors from Gemini itself (not your own rate limiter), that's
-the free quota, and the fix is either waiting for the daily reset or
-upgrading to a paid Gemini tier.
+**Gemini free tier quota.** As of mid-2026, `gemini-3.6-flash` is Google's
+current GA, production-ready Flash model and stays on the free tier
+(only Pro-class models require billing). `gemini-2.5-flash` — what this
+backend used to run — has begun returning `404` errors ahead of its official
+Oct 16, 2026 shutdown, which is why this project no longer uses it.
+Free-tier limits change fairly often — check your live numbers in
+[Google AI Studio](https://aistudio.google.com) under your project's rate
+limits before assuming a fixed number. If students start hitting `429`
+errors from Gemini itself (not your own rate limiter), that's the free
+quota, and the fix is either waiting for the daily reset or upgrading to a
+paid Gemini tier.
 
 For guaranteed limits under real traffic regardless of Google's quota, add
 [Upstash Redis](https://vercel.com/marketplace/upstash) and swap the
@@ -139,6 +142,7 @@ For guaranteed limits under real traffic regardless of Google's quota, add
 
 - `MAX_OUTPUT_TOKENS` (700) and `MAX_HISTORY_MESSAGES` (20) in `api/chat.js`
   cap usage per request. Lower them if you're close to the daily free cap.
-- `MODEL` is set to `gemini-2.5-flash` — the right default for a free-tier
-  tutor. Only switch to `gemini-2.5-pro` for harder questions if you're
-  prepared for its much smaller free quota (or are on a paid plan).
+- `MODEL` is set to `gemini-3.6-flash` — the current GA default for a
+  free-tier tutor. `gemini-3.5-flash-lite` is an even cheaper/faster free-tier
+  option if you need higher throughput; avoid Pro-class models unless you're
+  on a paid plan (they're billing-only as of April 2026).
