@@ -86,13 +86,26 @@ function sanitizeName(name) {
   return cleaned || 'Explorer';
 }
 
+// Hard abuse ceiling — this is NOT the normal memory-management limit.
+// Legitimate long conversations are trimmed below and should never hit this;
+// it only exists to reject clearly malformed/malicious payloads (e.g. a
+// broken client looping and sending thousands of entries) before we waste
+// time validating/serializing them.
+const ABUSE_CEILING_MESSAGES = 500;
+
 function validateMessages(messages) {
   if (!Array.isArray(messages) || messages.length === 0) {
     return { error: 'messages must be a non-empty array' };
   }
-  if (messages.length > MAX_HISTORY_MESSAGES * 2) {
-    return { error: 'conversation too long' };
+  if (messages.length > ABUSE_CEILING_MESSAGES) {
+    return { error: 'conversation payload malformed — please start a new conversation' };
   }
+  // Trim to the most recent turns FIRST, before per-message validation.
+  // Previously this trim happened after a hard length check, so any normal
+  // conversation that grew past that check was rejected outright instead of
+  // ever reaching the trim — that was the actual "conversation too long" bug.
+  // Now we only validate/forward the window we're actually going to send.
+  messages = messages.slice(-MAX_HISTORY_MESSAGES);
   for (const m of messages) {
     if (!m || (m.role !== 'user' && m.role !== 'assistant')) {
       return { error: 'each message needs role "user" or "assistant"' };
@@ -118,9 +131,8 @@ function validateMessages(messages) {
       }
     }
   }
-  // Keep only the most recent turns so token usage stays bounded.
-  const trimmed = messages.slice(-MAX_HISTORY_MESSAGES);
-  return { messages: trimmed };
+  // Already trimmed to MAX_HISTORY_MESSAGES above, before validation ran.
+  return { messages };
 }
 
 // Gemini uses role "model" where our own history (and Anthropic-style
