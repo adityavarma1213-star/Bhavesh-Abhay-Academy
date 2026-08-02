@@ -123,6 +123,8 @@ async function callGeminiWithRetry(payload, apiKey, attempt = 0) {
       signal: controller.signal,
     });
 
+    console.log('[DEBUG] Gemini HTTP status:', response.status, '(attempt', attempt, ')');
+
     // Retry on transient server-side failures only (not on 4xx — those are our bug).
     if (!response.ok && response.status >= 500 && attempt < MAX_RETRIES) {
       clearTimeout(timeout);
@@ -134,6 +136,9 @@ async function callGeminiWithRetry(payload, apiKey, attempt = 0) {
     return response;
   } catch (err) {
     clearTimeout(timeout);
+    console.log('[DEBUG] Exception in fetch to Gemini - name:', err && err.name);
+    console.log('[DEBUG] Exception in fetch to Gemini - message:', err && err.message);
+    console.log('[DEBUG] Exception in fetch to Gemini - stack:', err && err.stack);
     const isAbort = err.name === 'AbortError';
     if (attempt < MAX_RETRIES) {
       await new Promise((r) => setTimeout(r, 400 * Math.pow(2, attempt)));
@@ -152,7 +157,10 @@ export default async function handler(req) {
     return jsonError(req, 405, 'Method not allowed');
   }
 
+  console.log('[DEBUG] Request received:', req.method, req.url);
+
   const apiKey = process.env.GEMINI_API_KEY;
+  console.log('[DEBUG] GEMINI_API_KEY exists:', apiKey ? 'YES' : 'NO');
   if (!apiKey) {
     return jsonError(req, 500, 'Server is missing GEMINI_API_KEY');
   }
@@ -200,10 +208,17 @@ export default async function handler(req) {
     ],
   };
 
+  console.log('[DEBUG] Model name:', MODEL);
+  console.log('[DEBUG] Request URL:', GEMINI_API_URL);
+  console.log('[DEBUG] Request payload:', JSON.stringify(payload));
+
   let upstream;
   try {
     upstream = await callGeminiWithRetry(payload, apiKey);
   } catch (err) {
+    console.log('[DEBUG] Exception calling Gemini - name:', err && err.name);
+    console.log('[DEBUG] Exception calling Gemini - message:', err && err.message);
+    console.log('[DEBUG] Exception calling Gemini - stack:', err && err.stack);
     return jsonError(req, 504, err.message || 'Failed to reach the AI service');
   }
 
@@ -211,10 +226,12 @@ export default async function handler(req) {
     let detail = 'AI service error';
     try {
       const errBody = await upstream.json();
+      console.log('[DEBUG] Gemini non-200 response body:', JSON.stringify(errBody));
       // Gemini errors can come back as an object or a single-element array.
       const errObj = Array.isArray(errBody) ? errBody[0]?.error : errBody?.error;
       detail = errObj?.message || detail;
-    } catch {
+    } catch (parseErr) {
+      console.log('[DEBUG] Gemini non-200 response body: <failed to parse as JSON>', parseErr && parseErr.message);
       /* ignore parse failure, use default message */
     }
     return jsonError(req, upstream.status, detail);
