@@ -145,7 +145,134 @@ For guaranteed limits under real traffic regardless of Google's quota, add
   models generally have more generous free quotas than their full-size or
   `-pro` counterparts, but exact numbers shift over time.
 
-## 8. Voice (text-to-speech) backend
+## 8. Section B — AI Evaluation backend (`api/evaluate.js`)
+
+Same deploy step as `api/chat.js` — it lives under `api/`, so deploying to
+Vercel (step 1) publishes it automatically. It reuses `GEMINI_API_KEY` and
+`ALLOWED_ORIGIN` — no new secret to add. Unlike `api/chat.js`, it is
+**not** a streaming endpoint: the assessment player needs one complete
+JSON evaluation object per question before it can show a score, so it
+calls Gemini's non-streaming `generateContent` and returns
+`application/json`, using `gemini-3.5-flash-lite` — same model as the
+tutor, per Section B's instruction not to change models without
+justification.
+
+**Point the frontend at it:** in `assessment.html`, find:
+```js
+const EVAL_API_URL = 'https://YOUR-VERCEL-PROJECT.vercel.app/api/evaluate';
+```
+and replace with your real Vercel URL, same pattern as `CHAT_API_URL`.
+
+**Direct backend test:**
+```bash
+curl -i -X POST https://baa-os-tutor.vercel.app/api/evaluate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "question": {
+      "text": "Calculate 1/3 + 1/4. Show your working.",
+      "type": "math",
+      "marks": 3,
+      "modelAnswer": "Common denominator 12: 4/12 + 3/12 = 7/12."
+    },
+    "studentAnswer": "1/3 = 4/12 and 1/4 = 3/12, so 4/12+3/12 = 7/12"
+  }'
+```
+You should get back a JSON object with `score`, `correctness`, `explanation`,
+`confidence`, and `humanReviewRequired`.
+
+**Error-path checks:** same pattern as `api/chat.js` — missing `question`
+or `studentAnswer` → 400; wrong method → 405; hammering it 35x quickly →
+some 429s (30 requests / 5 minutes per IP, same best-effort in-memory
+limiter caveat as `api/chat.js`).
+
+## 8b. Section B — Human Review (`teacher-review.html`)
+
+No separate deploy step: it's a static page that reads/writes the same
+`localStorage` key as `assessment.html` (`baa_section_b_data_v1`), so it
+just needs to sit in the same folder and be pushed to GitHub Pages with
+everything else. It does **not** call `api/evaluate.js` or any backend —
+review decisions are pure client-side data operations in
+`js/baa-assessment.js` (`getTeacherReviewQueue`, `submitTeacherReview`).
+
+**What has and hasn't been tested:** the review data-layer functions
+(`getTeacherReviewQueue`, `submitTeacherReview` — accept/edit/reject,
+score recomputation, audit-trail preservation, Learning Evidence
+correction) were run end-to-end in a Node harness against
+`js/baa-assessment.js` and `js/question-bank.js` directly (localStorage
+shimmed, `fetch` mocked to return a low-confidence AI evaluation) and
+behaved correctly. The `teacher-review.html` page itself was reviewed and
+syntax-checked but **not exercised in a real browser** — this environment
+has no browser automation available. Before relying on it, open it once
+after a real assessment submission and confirm the queue renders and the
+three actions work as expected.
+
+**What it does not yet have (by design — out of scope for Section B):**
+teacher accounts/login, a way to filter by student or class, and any
+server-side record of who reviewed what (the `reviewer` name is just a
+free-text field, not an authenticated identity). That's Section D
+territory.
+
+## 8c. AI evaluation — what was and wasn't actually live-tested
+
+`api/evaluate.js` (request validation, prompt construction, retry logic,
+JSON extraction/clamping, and the fallback "unreadable result" response)
+was read in full and is structurally sound, but **this build environment
+has no network access**, so the real Gemini call inside it could not be
+exercised end-to-end. What *was* tested: `js/baa-assessment.js`'s
+`gradeWithAI()`/`submitAttempt()` flow was run in Node with `fetch` mocked
+to return a realistic evaluation payload (`score`, `correctness: 
+'partially_correct'`, `confidence: 'low'`, `humanReviewRequired: true`),
+confirming the frontend correctly displays score/max/explanation/errors/
+missing concepts/suggested improvement/confidence, correctly writes
+Learning Evidence, and correctly queues the answer for human review.
+
+**Before calling AI evaluation "live tested," run the `curl` command in
+section 8** against your real deployed `api/evaluate.js` with each of:
+a correct short answer, an incorrect one, a partially correct one, a
+correct-method-arithmetic-slip math answer, a wrong-method math answer,
+an empty answer, and a deliberately malformed request (to check the
+502/400 paths) — and confirm each produces a sane, non-fabricated result.
+
+## 9. Section B data storage (read this before treating it as production)
+
+Assessment attempts, learning evidence, learning-memory status, and
+mistake patterns are stored in the browser's `localStorage` under the key
+`baa_section_b_data_v1` (see `js/baa-assessment.js`). This is a
+**temporary, single-student-per-browser, private-testing data layer** —
+matching how Section A already handles `studentName` (a JS variable /
+localStorage, no real login system). It is **not** a production database:
+
+- It never leaves the student's browser — nothing is sent to a server
+  except the specific question+answer text sent to `api/evaluate.js` for
+  grading (which does not store it either — it's stateless).
+- It is per-browser, not per-student-account — a student switching
+  devices or clearing browser data starts fresh.
+- It has no backup, sync, or teacher-visible copy yet.
+
+**Mapping to a real database later:** every function in
+`js/baa-assessment.js` (`startAttempt`, `saveAnswer`, `submitAttempt`,
+`getLearningMemory`, `getMistakePatterns`, etc.) already reads and writes
+through a single `load()`/`save()` pair. Swapping `localStorage` for real
+API calls to a production database means changing those two functions
+(and making the public functions `async`) — the rest of the app,
+including `assessment.html` and the Section A Learning Profile panels in
+`student-os.html`, would not need to change, since they only ever call
+the public `BAAAssessment.*` functions.
+
+## 9b. Section C — Learning Intelligence + AI Planner (no new deployment step)
+
+Section C (`js/baa-intelligence.js`, `js/baa-planner.js`, and the AI
+Planner world in `student-os.html`) is pure client-side logic that reads
+Section B's existing `localStorage` evidence — it introduces no new API
+endpoint and requires no deployment change beyond what Section B already
+needs. Its own planner state (goals, time preference, upcoming
+assessments, task history) lives in a second, equally clearly-labeled
+`LOCAL_BROWSER_STORAGE_TESTING_ONLY` key, `baa_section_c_planner_v1`. See
+README.md → "Section C — Learning Intelligence + AI Planner" for the full
+architecture and exactly which Section B evidence-gating rules it extends
+vs. leaves untouched.
+
+## 10. Voice (text-to-speech) backend
 
 `student-os.html`'s "Auto-speak replies" feature calls a second Vercel Edge
 Function, `api/speak.js`, using `SPEAK_API_URL` (same pattern as

@@ -456,6 +456,50 @@ a{color:inherit;text-decoration:none;}
 .outcome-stage .os-value.pending{color:var(--faint);font-size:.95rem;font-family:var(--body);}
 .anti-goal-note{font-size:.78rem;color:var(--faint);line-height:1.6;padding:14px 18px;border-left:2px solid var(--violet);background:rgba(124,92,252,0.05);border-radius:0 12px 12px 0;}
 
+/* ---- Section C: Learning Intelligence state badges (Learning Profile tab) ---- */
+.state-badge{display:inline-flex;align-items:center;gap:6px;font-size:.72rem;font-weight:600;padding:4px 10px;border-radius:100px;background:rgba(253,249,240,0.06);color:var(--dim);margin-left:8px;}
+.trend-badge{font-size:.68rem;color:var(--faint);margin-left:6px;}
+.concept-why{font-size:.78rem;color:var(--faint);line-height:1.5;margin-top:3px;}
+.concept-row{padding:10px 0;border-bottom:1px solid rgba(253,249,240,0.06);}
+.concept-row:last-child{border-bottom:none;}
+
+/* ---- Section C: AI Planner ---- */
+.theme-planner{background:radial-gradient(ellipse 1200px 900px at 50% 10%,#132018,#0a1810 70%);}
+.theme-planner .world-eyebrow{color:var(--emerald);}
+.theme-planner .world-title em{background:linear-gradient(90deg,var(--emerald),var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent;}
+.planner-row{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:18px;}
+.planner-time-btn{background:rgba(253,249,240,0.05);border:1px solid rgba(253,249,240,0.14);color:var(--dim);padding:9px 16px;border-radius:100px;font-size:.82rem;transition:.2s;}
+.planner-time-btn.active{background:rgba(52,211,153,0.16);border-color:rgba(52,211,153,0.5);color:var(--emerald);font-weight:600;}
+.planner-input{background:rgba(253,249,240,0.05);border:1px solid rgba(253,249,240,0.14);border-radius:12px;padding:10px 14px;color:var(--warmwhite);font-size:.85rem;font-family:inherit;}
+.planner-goal-chip{display:inline-flex;align-items:center;gap:8px;background:rgba(253,249,240,0.06);border:1px solid rgba(253,249,240,0.12);border-radius:100px;padding:6px 8px 6px 14px;font-size:.8rem;color:var(--dim);margin:4px 6px 4px 0;}
+.planner-goal-chip button{background:none;border:none;color:var(--faint);cursor:pointer;font-size:.85rem;padding:2px 6px;}
+.missed-banner{display:flex;gap:12px;align-items:flex-start;background:rgba(255,122,69,0.07);border:1px solid rgba(255,122,69,0.25);border-radius:16px;padding:14px 18px;margin-bottom:20px;font-size:.85rem;color:var(--dim);line-height:1.55;}
+.task-card{background:rgba(253,249,240,0.035);border:1px solid rgba(253,249,240,0.08);border-radius:18px;padding:18px 20px;margin-bottom:12px;}
+.task-card.completed{opacity:.55;}
+.task-card.missed{border-color:rgba(255,122,69,0.3);}
+.task-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;}
+.task-title{font-family:var(--display);font-size:1.02rem;font-weight:500;}
+.task-meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:4px;}
+.priority-pill{font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:3px 9px;border-radius:100px;}
+.priority-high{background:rgba(232,96,143,0.16);color:var(--rose);}
+.priority-medium{background:rgba(245,185,66,0.16);color:var(--gold);}
+.priority-low{background:rgba(253,249,240,0.08);color:var(--faint);}
+.task-time{font-size:.74rem;color:var(--faint);font-family:var(--mono);}
+.task-why{font-size:.82rem;color:var(--dim);line-height:1.55;margin:10px 0;padding:10px 14px;background:rgba(253,249,240,0.03);border-radius:10px;border-left:2px solid var(--emerald);}
+.task-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+.task-btn{font-size:.78rem;padding:8px 15px;border-radius:100px;border:1px solid rgba(253,249,240,0.14);background:rgba(253,249,240,0.04);color:var(--dim);transition:.2s;}
+.task-btn:hover{color:var(--warmwhite);border-color:rgba(253,249,240,0.3);}
+.task-btn.primary{background:rgba(52,211,153,0.16);border-color:rgba(52,211,153,0.4);color:var(--emerald);font-weight:600;}
+.task-btn:disabled{opacity:.4;cursor:not-allowed;}
+.week-strip{display:flex;gap:8px;overflow-x:auto;margin:16px 0 24px;padding-bottom:6px;}
+.week-day{flex:0 0 auto;min-width:88px;background:rgba(253,249,240,0.035);border:1px solid rgba(253,249,240,0.08);border-radius:14px;padding:12px;text-align:center;}
+.week-day.is-today{border-color:rgba(52,211,153,0.4);}
+.week-day .wd-date{font-size:.72rem;color:var(--faint);margin-bottom:6px;}
+.week-day .wd-count{font-family:var(--display);font-size:1.2rem;}
+.week-day .wd-sub{font-size:.66rem;color:var(--faint);}
+.upcoming-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(253,249,240,0.06);font-size:.85rem;}
+.upcoming-row:last-child{border-bottom:none;}
+
 /* ---- Next Steps (replaces old 12-widget "Your Day" grid — Section A: 2-3 actions only) ---- */
 .next-steps-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;}
 .next-step-card{background:rgba(253,249,240,0.035);border:1px solid rgba(253,249,240,0.08);border-radius:20px;padding:24px;transition:transform .35s cubic-bezier(.2,.8,.2,1),border-color .35s ease;cursor:pointer;}
@@ -634,6 +678,24 @@ a{color:inherit;text-decoration:none;}
           <span class="t-arrow">Open →</span>
         </div>
       </div>
+      <div class="world-tile wt-quiz" onclick="window.location.href='assessment.html'">
+        <div class="t-bg"></div>
+        <div class="t-content">
+          <div class="t-icon">📝</div>
+          <h3>Assessments</h3>
+          <p>Topic tests, mock tests, and quizzes — graded and reviewed for real.</p>
+          <span class="t-arrow">Start →</span>
+        </div>
+      </div>
+      <div class="world-tile wt-profile" onclick="openWorld('planner')">
+        <div class="t-bg"></div>
+        <div class="t-content">
+          <div class="t-icon">🧭</div>
+          <h3>AI Planner</h3>
+          <p>What to study today, chosen from your real evidence — not a static checklist.</p>
+          <span class="t-arrow">Plan →</span>
+        </div>
+      </div>
       <div class="world-tile wt-trophy" onclick="openWorld('achievements')">
         <div class="t-bg"></div>
         <div class="t-content">
@@ -668,11 +730,23 @@ a{color:inherit;text-decoration:none;}
         <p>See what's mastered, what's still forming, and any patterns worth a closer look.</p>
         <div class="ns-arrow">Open →</div>
       </div>
+      <div class="next-step-card" onclick="window.location.href='assessment.html'">
+        <span class="ns-icon">📝</span>
+        <h4>Take an assessment</h4>
+        <p>A topic test, quiz, or mock test — graded instantly for MCQs, AI-evaluated for written answers.</p>
+        <div class="ns-arrow">Start →</div>
+      </div>
       <div class="next-step-card" onclick="window.location.href='knowledge-universe.html'">
         <span class="ns-icon">◐</span>
         <h4>Explore the Knowledge Universe</h4>
         <p>Wander a subject that's calling you — no pressure, just curiosity.</p>
         <div class="ns-arrow">Explore →</div>
+      </div>
+      <div class="next-step-card" onclick="openWorld('planner')">
+        <span class="ns-icon">🧭</span>
+        <h4>See today's plan</h4>
+        <p>A short, realistic plan built from your actual evidence — adapts as you go.</p>
+        <div class="ns-arrow">Plan →</div>
       </div>
     </div>
   </div>
@@ -756,29 +830,32 @@ a{color:inherit;text-decoration:none;}
     <div class="profile-panel active" id="pf-mastery">
       <div class="dev-state-banner">
         <span class="db-icon">🚧</span>
-        <div><b>Still building this with you.</b> Your Learning Profile fills in as you work with the AI Tutor and complete practice — there's nothing fabricated shown here. Right now this account has no recorded sessions yet.</div>
+        <div><b>Built from real assessment evidence.</b> Your Learning Profile fills in as you complete <a href="assessment.html" style="color:var(--gold);text-decoration:underline;">Assessments</a> and work with the AI Tutor — there's nothing fabricated shown here. A concept needs at least 3 answered questions before BAA will say anything about it.</div>
       </div>
-      <div class="pf-card">
-        <h4>📗 Mastered concepts <span class="confidence-tag ct-building">Building</span></h4>
-        <div class="pf-empty">
-          <span class="pe-icon">🌱</span>
-          <p>Nothing marked mastered yet — a concept only appears here after you've answered correctly more than once, without heavy hints, on more than one occasion.</p>
+      <div id="pfMasteryDynamic">
+        <div class="pf-card">
+          <h4>📗 Mastered concepts <span class="confidence-tag ct-building">Building</span></h4>
+          <div class="pf-empty">
+            <span class="pe-icon">🌱</span>
+            <p>Nothing marked mastered yet — a concept only appears here after you've answered correctly more than once, without heavy hints, on more than one occasion.</p>
+          </div>
+        </div>
+        <div class="pf-card">
+          <h4>📘 Currently learning <span class="confidence-tag ct-building">Building</span></h4>
+          <div class="pf-empty">
+            <span class="pe-icon">🌱</span>
+            <p>Concepts you're actively working on with the AI Tutor will show up here.</p>
+          </div>
+        </div>
+        <div class="pf-card">
+          <h4>🔁 Needs revision <span class="confidence-tag ct-building">Building</span></h4>
+          <div class="pf-empty">
+            <span class="pe-icon">🌱</span>
+            <p>Older concepts that could use a re-check will appear here over time.</p>
+          </div>
         </div>
       </div>
-      <div class="pf-card">
-        <h4>📘 Currently learning <span class="confidence-tag ct-building">Building</span></h4>
-        <div class="pf-empty">
-          <span class="pe-icon">🌱</span>
-          <p>Concepts you're actively working on with the AI Tutor will show up here.</p>
-        </div>
-      </div>
-      <div class="pf-card">
-        <h4>🔁 Needs revision <span class="confidence-tag ct-building">Building</span></h4>
-        <div class="pf-empty">
-          <span class="pe-icon">🌱</span>
-          <p>Older concepts that could use a re-check will appear here over time.</p>
-        </div>
-      </div>
+      <div style="text-align:center;margin-top:8px;"><a href="assessment.html" class="btn-primary" style="display:inline-block;width:auto;padding:13px 28px;">Take an assessment →</a></div>
     </div>
 
     <!-- ---- Tab 2: Mistake Archeology / Confusion Map (A.3) ---- -->
@@ -796,10 +873,12 @@ a{color:inherit;text-decoration:none;}
         <span class="cp-step">Re-test</span><span class="cp-arrow">→</span>
         <span class="cp-step">Resolved</span>
       </div>
-      <div class="pf-card">
-        <div class="pf-empty">
-          <span class="pe-icon">🔍</span>
-          <p>No repeated mistake patterns detected yet. When BAA notices you struggling with something more than once, it will show up here — phrased as something to check together, never as a verdict.</p>
+      <div id="pfConfusionDynamic">
+        <div class="pf-card">
+          <div class="pf-empty">
+            <span class="pe-icon">🔍</span>
+            <p>No repeated mistake patterns detected yet. When BAA notices you struggling with something more than once, it will show up here — phrased as something to check together, never as a verdict.</p>
+          </div>
         </div>
       </div>
     </div>
@@ -816,14 +895,62 @@ a{color:inherit;text-decoration:none;}
         <div class="outcome-stage"><div class="os-label">Retention</div><div class="os-value pending">—</div></div>
         <div class="outcome-stage"><div class="os-label">Application</div><div class="os-value pending">—</div></div>
       </div>
-      <div class="pf-card">
-        <div class="pf-empty">
-          <span class="pe-icon">📈</span>
-          <p>Learning evidence will appear here as you complete assessments and the AI Tutor checks your understanding over time.</p>
+      <div id="pfOutcomeDynamic">
+        <div class="pf-card">
+          <div class="pf-empty">
+            <span class="pe-icon">📈</span>
+            <p>Learning evidence will appear here as you complete assessments and the AI Tutor checks your understanding over time.</p>
+          </div>
         </div>
       </div>
       <div class="anti-goal-note">BAA does not track or reward time spent online, message counts, or streaks as measures of learning — only whether understanding actually improved.</div>
     </div>
+  </div>
+</div>
+
+<!-- ============ WORLD: AI PLANNER (Section C) ============ -->
+<div class="world-overlay theme-planner" id="world-planner">
+  <div class="world-close" onclick="closeWorld('planner')">✕</div>
+  <div class="world-inner">
+    <div class="world-eyebrow">Adaptive, not a static checklist</div>
+    <h1 class="world-title">Your <em>AI Planner</em></h1>
+    <p class="world-sub">Built from your real Learning Profile and Mistake Archeology evidence. As new evidence comes in from assessments and the AI Tutor, tomorrow's plan changes with it.</p>
+
+    <div class="dev-state-banner">
+      <span class="db-icon">🧪</span>
+      <div><b>Private testing.</b> Plans and goals are stored only in this browser (local testing data), same as the rest of Section B. See Learning Profile for how concept states are decided.</div>
+    </div>
+
+    <div id="plannerMissedBanner"></div>
+
+    <div class="section-label" style="margin-top:0;"><h2 style="font-size:1rem;">Available time today</h2></div>
+    <div class="planner-row" id="plannerTimeRow"></div>
+
+    <div class="section-label"><h2 style="font-size:1rem;">Your goals <span style="color:var(--faint);font-size:.78rem;">(optional)</span></h2></div>
+    <div class="planner-row">
+      <input type="text" class="planner-input" id="plannerGoalInput" placeholder="e.g. Improve fractions" maxlength="120" style="flex:1;min-width:200px;">
+      <button class="task-btn primary" onclick="addGoalUI()">Add goal</button>
+    </div>
+    <div id="plannerGoalsList" style="margin-bottom:10px;"></div>
+
+    <div class="section-label"><h2 style="font-size:1rem;">Upcoming assessment <span style="color:var(--faint);font-size:.78rem;">(optional)</span></h2></div>
+    <div class="planner-row">
+      <input type="text" class="planner-input" id="plannerUpcomingTitle" placeholder="Title, e.g. Math Unit Test" style="flex:1;min-width:160px;">
+      <select class="planner-input" id="plannerUpcomingSubject">
+        <option value="">Subject (optional)</option>
+        <option>Mathematics</option>
+        <option>Science</option>
+      </select>
+      <input type="date" class="planner-input" id="plannerUpcomingDate">
+      <button class="task-btn primary" onclick="addUpcomingUI()">Add</button>
+    </div>
+    <div id="plannerUpcomingList" style="margin-bottom:6px;"></div>
+
+    <div class="section-label"><h2 style="font-size:1rem;">This week</h2></div>
+    <div class="week-strip" id="plannerWeekStrip"></div>
+
+    <div class="section-label"><h2 style="font-size:1rem;">Today's plan</h2></div>
+    <div id="plannerDailyTasks"></div>
   </div>
 </div>
 
@@ -1010,6 +1137,7 @@ function showScreen(id){
 
 function beginJourney(){
   studentName=document.getElementById('nameInput').value.trim()||'Explorer';
+  try{ localStorage.setItem('baa_student_name', studentName); }catch(e){} // shared with assessment.html (Section B)
   const warp=document.getElementById('warp');
   warp.classList.add('fire');
   setTimeout(()=>{
@@ -1314,10 +1442,23 @@ async function sendChat(overrideText){
   let accumulated = '';
 
   try{
+    // Section B connection (smallest safe integration — see DEPLOYMENT.md
+    // "AI Tutor connection"): pass along a short, factual summary of real
+    // assessment evidence if any exists. BAAAssessment returns null when
+    // there's nothing to say yet, so most requests send no extra field at
+    // all — this never changes Tutor behavior unless real evidence exists.
+    const learningContext = (typeof BAAAssessment !== 'undefined')
+      ? BAAAssessment.getLearningContextForTutor()
+      : null;
+
     const response = await fetch(CHAT_API_URL, {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ messages: buildOutgoingMessages(), studentName })
+      body: JSON.stringify({
+        messages: buildOutgoingMessages(),
+        studentName,
+        ...(learningContext ? { learningContext } : {}),
+      })
     });
 
     // ===== TEMPORARY DEBUG LOGGING (frontend) — checkpoint 1: fetch() =====
@@ -1800,7 +1941,238 @@ function animateCareer(){
     setTimeout(()=>el.classList.add('show'),i*180);
   });
 }
+
+/* ================= SECTION B CONNECTION =================
+   Reads the real Section B data layer (js/baa-assessment.js) to fill in
+   the Learning Profile / Mistake Archeology / Learning Outcome tabs above
+   with actual evidence when it exists. If there's no evidence yet, the
+   original honest empty-state markup (already in the HTML) is left
+   untouched — nothing here ever fabricates a status or a number. */
+function refreshLearningProfilePanels(){
+  if(typeof BAAAssessment === 'undefined') return; // Section B scripts not loaded
+  // Section C: prefer BAAIntelligence's refined states (adds trend/confidence/why on top of
+  // Section B's mastered/learning/needs_revision) when it's loaded, but fall back to the raw
+  // Section B memory so this panel still works if Section C scripts are ever missing.
+  const useIntel = typeof BAAIntelligence !== 'undefined';
+  const concepts = useIntel ? BAAIntelligence.getConceptStates() : Object.values(BAAAssessment.getLearningMemory());
+
+  if(concepts.length){
+    const mastered = concepts.filter(c=>c.state==='mastered' || c.status==='mastered');
+    const strong = concepts.filter(c=>c.state==='strong');
+    const learning = concepts.filter(c=>c.state==='learning' || c.status==='learning');
+    const revision = concepts.filter(c=>c.state==='needs_revision' || c.state==='struggling' || c.status==='needs_revision');
+    const trendIcon = t => t==='improving' ? ' 📈 improving' : t==='declining' ? ' 📉 declining' : t==='stable' ? ' → stable' : '';
+    const buildingList = (items)=>items.length
+      ? items.map(c=>`<div class="concept-row"><div>${(c.conceptLabel||c.concept.replace(/-/g,' '))}
+          <span class="state-badge">${c.correctCount}/${c.evidenceCount} correct</span>
+          ${useIntel ? `<span class="trend-badge">${trendIcon(c.trend)}</span>` : ''}</div>
+          ${useIntel ? `<div class="concept-why">${c.why}</div>` : ''}</div>`).join('')
+      : `<div class="pf-empty"><span class="pe-icon">🌱</span><p>None yet in this category.</p></div>`;
+    document.getElementById('pfMasteryDynamic').innerHTML = `
+      <div class="pf-card"><h4>🟢 Mastered concepts <span class="confidence-tag ct-confirmed">${mastered.length} tracked</span></h4>${buildingList(mastered)}</div>
+      ${useIntel ? `<div class="pf-card"><h4>🔵 Strong <span class="confidence-tag ct-checking">${strong.length} tracked</span></h4>${buildingList(strong)}</div>` : ''}
+      <div class="pf-card"><h4>🟡 Currently learning <span class="confidence-tag ct-building">${learning.length} tracked</span></h4>${buildingList(learning)}</div>
+      <div class="pf-card"><h4>🟠 Needs revision <span class="confidence-tag ct-building">${revision.length} tracked</span></h4>${buildingList(revision)}</div>`;
+  }
+
+  const patterns = BAAAssessment.getMistakePatterns({onlyConfirmed:true});
+  const mistakeIntel = useIntel ? BAAIntelligence.getMistakeIntelligence() : [];
+  if(patterns.length){
+    document.getElementById('pfConfusionDynamic').innerHTML = patterns.map(p=>{
+      const mi = mistakeIntel.find(x=>x.id===p.id);
+      const improvingNote = mi && mi.improving==='improving' ? ' <span style="color:var(--emerald);">This hasn\'t shown up in your most recent evidence — looking better.</span>'
+        : mi && mi.improving==='not_improving' ? ' Still appearing in your most recent evidence.' : '';
+      return `<div class="pf-card">
+        <p style="font-size:.9rem;line-height:1.6;"><b>Possible misconception</b> in <b>${p.concept.replace(/-/g,' ')}</b> — the same type of error (${p.errorType.replace(/-/g,' ')}) has appeared ${p.occurrences.length} times across your assessments. This is a pattern worth checking with the AI Tutor, not a final verdict.${improvingNote}</p>
+      </div>`;
+    }).join('');
+  }
+
+  const history = BAAAssessment.getAttemptHistory().filter(a=>a.status!=='in_progress' && typeof a.score==='number');
+  if(history.length){
+    const latest = history[0];
+    const pct = Math.round((latest.score/latest.maxScore)*100);
+    document.getElementById('pfOutcomeDynamic').innerHTML = `
+      <div class="pf-card">
+        <p style="font-size:.9rem;line-height:1.6;"><b>${history.length}</b> assessment${history.length>1?'s':''} completed. Most recent: <b>${latest.assessmentTitle}</b> — ${pct}%.
+        ${history.length>1 ? ' BAA compares each reattempt to the one before it on the assessment results page — never claiming improvement from a single test.' : ' A second attempt or a related reassessment is needed before BAA will report any trend.'}</p>
+      </div>`;
+  }
+}
+
+/* ================= SECTION C: AI PLANNER UI =================
+   Reads BAAPlanner (which itself reads BAAIntelligence -> BAAAssessment).
+   Every render call re-fetches fresh state; nothing here is cached stale
+   data. Task actions (Complete/Skip/Reschedule) call BAAPlanner directly
+   and then re-render, so the UI always reflects the real stored state. */
+function refreshPlannerPanel(){
+  if (typeof BAAPlanner === 'undefined') return;
+  renderPlannerTimeRow();
+  renderPlannerGoals();
+  renderPlannerUpcoming();
+  renderPlannerWeekStrip();
+  renderPlannerDailyTasks();
+}
+
+function renderPlannerTimeRow(){
+  const prefs = BAAPlanner.getPreferences();
+  const options = [15,30,45,60];
+  document.getElementById('plannerTimeRow').innerHTML = options.map(m =>
+    `<button class="planner-time-btn${prefs.availableMinutesPerDay===m?' active':''}" onclick="setPlannerMinutes(${m})">${m} min</button>`
+  ).join('');
+}
+function setPlannerMinutes(m){
+  BAAPlanner.setAvailableMinutes(m);
+  refreshPlannerPanel();
+}
+
+function renderPlannerGoals(){
+  const goals = BAAPlanner.getGoals();
+  document.getElementById('plannerGoalsList').innerHTML = goals.length
+    ? goals.map(g=>`<span class="planner-goal-chip">${g.text}<button onclick="removeGoalUI('${g.id}')" title="Remove goal">✕</button></span>`).join('')
+    : `<div style="font-size:.8rem;color:var(--faint);">No goals set yet — the Planner still works from your evidence without one.</div>`;
+}
+function addGoalUI(){
+  const input = document.getElementById('plannerGoalInput');
+  if (!input.value.trim()) return;
+  BAAPlanner.addGoal(input.value);
+  input.value = '';
+  refreshPlannerPanel();
+}
+function removeGoalUI(id){
+  BAAPlanner.removeGoal(id);
+  refreshPlannerPanel();
+}
+
+function renderPlannerUpcoming(){
+  const list = BAAPlanner.getUpcomingAssessments();
+  document.getElementById('plannerUpcomingList').innerHTML = list.length
+    ? list.map(u=>`<div class="upcoming-row"><span>${u.title}${u.subject?' · '+u.subject:''} — ${new Date(u.date+'T00:00:00').toLocaleDateString()}</span><button class="task-btn" onclick="removeUpcomingUI('${u.id}')">Remove</button></div>`).join('')
+    : `<div style="font-size:.8rem;color:var(--faint);margin-bottom:10px;">No upcoming assessment added — the Planner will still prioritize weak areas without one.</div>`;
+}
+function addUpcomingUI(){
+  const title = document.getElementById('plannerUpcomingTitle').value;
+  const subject = document.getElementById('plannerUpcomingSubject').value;
+  const date = document.getElementById('plannerUpcomingDate').value;
+  if (!title.trim() || !date) return;
+  BAAPlanner.addUpcomingAssessment({title, subject: subject||null, date});
+  document.getElementById('plannerUpcomingTitle').value='';
+  document.getElementById('plannerUpcomingDate').value='';
+  refreshPlannerPanel();
+}
+function removeUpcomingUI(id){
+  BAAPlanner.removeUpcomingAssessment(id);
+  refreshPlannerPanel();
+}
+
+function renderPlannerWeekStrip(){
+  const weekly = BAAPlanner.getWeeklyPlan();
+  document.getElementById('plannerWeekStrip').innerHTML = weekly.days.map(d=>{
+    const completed = d.tasks.filter(t=>t.status==='completed').length;
+    const total = d.tasks.length;
+    const label = new Date(d.date+'T00:00:00').toLocaleDateString(undefined,{weekday:'short',day:'numeric'});
+    return `<div class="week-day${d.isToday?' is-today':''}">
+      <div class="wd-date">${label}${d.isToday?' · today':''}</div>
+      <div class="wd-count">${total}</div>
+      <div class="wd-sub">${total ? completed+' done' : 'no tasks'}</div>
+    </div>`;
+  }).join('');
+}
+
+const TASK_TYPE_ICON = {practice:'🎯', learn:'📘', revise:'🔁', assessment:'📝', reassessment:'🔁', review_mistake:'🔍', tutor_session:'✦'};
+
+function renderPlannerDailyTasks(){
+  const plan = BAAPlanner.getDailyPlan();
+  const banner = document.getElementById('plannerMissedBanner');
+  const missed = plan.tasks.filter(t=>t.status==='missed');
+  banner.innerHTML = missed.length ? `
+    <div class="missed-banner">
+      <span class="db-icon">🌱</span>
+      <div>Yesterday's plan wasn't fully completed — that's alright. I've adjusted today's plan so you can continue without overload, rather than just piling everything onto today.</div>
+    </div>` : '';
+
+  const container = document.getElementById('plannerDailyTasks');
+  if (!plan.hasAnyEvidence){
+    container.innerHTML = `<div class="pf-card"><div class="pf-empty"><span class="pe-icon">🌱</span><p>No learning evidence yet. Complete an <a href="assessment.html" style="color:var(--gold);">assessment</a> to help BAA understand what you should work on — the Planner has nothing to fabricate a plan from yet.</p></div></div>`;
+    return;
+  }
+  if (!plan.tasks.length){
+    container.innerHTML = `<div class="pf-card"><div class="pf-empty"><span class="pe-icon">🌱</span><p>No tasks planned right now — nothing in your recent evidence needs revision today. Nice place to be.</p></div></div>`;
+    return;
+  }
+  container.innerHTML = `<div style="font-size:.78rem;color:var(--faint);margin-bottom:12px;font-family:var(--mono);">${plan.minutesPlanned} of ${plan.minutesBudget} min planned</div>` +
+    plan.tasks.map(t=>{
+      const icon = TASK_TYPE_ICON[t.type] || '•';
+      const statusClass = t.status==='completed' ? ' completed' : t.status==='missed' ? ' missed' : '';
+      let actionBtn = '';
+      if (t.status === 'pending' || t.status === 'missed'){
+        if (t.action.kind === 'assessment') actionBtn = `<button class="task-btn primary" onclick="startPlannerTask('${t.id}')">Start →</button>`;
+        else if (t.action.kind === 'tutor') actionBtn = `<button class="task-btn primary" onclick="startPlannerTask('${t.id}')">Ask AI Tutor →</button>`;
+        else actionBtn = `<button class="task-btn" disabled title="${t.action.note}">Not available yet</button>`;
+      }
+      const controls = (t.status==='pending' || t.status==='missed') ? `
+        <button class="task-btn" onclick="completeTaskUI('${t.id}')">Mark complete</button>
+        <button class="task-btn" onclick="skipTaskUI('${t.id}')">Skip</button>
+        <button class="task-btn" onclick="rescheduleTaskUI('${t.id}')">Reschedule</button>` : '';
+      return `<div class="task-card${statusClass}">
+        <div class="task-top">
+          <div>
+            <div class="task-title">${icon} ${t.title}</div>
+            <div class="task-meta">
+              <span class="priority-pill priority-${t.priority}">${t.priority}</span>
+              <span class="task-time">${t.estimatedMinutes} min</span>
+              ${t.status==='completed' ? '<span class="confidence-tag ct-confirmed">completed</span>' : ''}
+              ${t.status==='missed' ? '<span class="confidence-tag ct-checking">missed — carried over</span>' : ''}
+            </div>
+          </div>
+        </div>
+        <div class="task-why"><b>Why this task?</b> ${t.reasons.join(' ')}</div>
+        <div class="task-actions">${actionBtn}${controls}</div>
+      </div>`;
+    }).join('');
+}
+
+function startPlannerTask(taskId){
+  const plan = BAAPlanner.getDailyPlan();
+  const t = plan.tasks.find(x=>x.id===taskId);
+  if (!t) return;
+  if (t.action.kind === 'assessment'){
+    window.location.href = 'assessment.html?start=' + encodeURIComponent(t.action.assessmentId);
+    return;
+  }
+  if (t.action.kind === 'tutor'){
+    closeWorld('planner');
+    openWorld('tutor');
+    const input = document.getElementById('chatInput');
+    input.value = t.action.tutorPrompt;
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length);
+    updateCharCount();
+  }
+}
+function completeTaskUI(id){ BAAPlanner.completeTask(id); refreshPlannerPanel(); }
+function skipTaskUI(id){ BAAPlanner.skipTask(id); refreshPlannerPanel(); }
+function rescheduleTaskUI(id){
+  const newDate = prompt('Reschedule to which date? (YYYY-MM-DD)', new Date(Date.now()+86400000).toISOString().slice(0,10));
+  if (!newDate) return;
+  BAAPlanner.rescheduleTask(id, newDate);
+  refreshPlannerPanel();
+}
+
+// Refresh whenever the Learning Profile or Planner world is opened (not just
+// on load), so results from an assessment taken in another tab/session show up.
+const _origOpenWorld = openWorld;
+openWorld = function(name){
+  _origOpenWorld(name);
+  if(name==='profile') refreshLearningProfilePanels();
+  if(name==='planner') refreshPlannerPanel();
+};
+document.addEventListener('DOMContentLoaded', refreshLearningProfilePanels);
 </script>
 <script src="js/image.js"></script>
+<script src="js/question-bank.js"></script>
+<script src="js/baa-assessment.js"></script>
+<script src="js/baa-intelligence.js"></script>
+<script src="js/baa-planner.js"></script>
 </body>
 </html>
