@@ -122,17 +122,15 @@ instance's lifetime — it's a safety net against runaway loops, not a hard
 distributed limit. Google's own free-tier quota is enforced on top of this
 regardless (see below).
 
-**Gemini free tier quota.** As of mid-2026, `gemini-3.6-flash` is Google's
-current GA, production-ready Flash model and stays on the free tier
-(only Pro-class models require billing). `gemini-2.5-flash` — what this
-backend used to run — has begun returning `404` errors ahead of its official
-Oct 16, 2026 shutdown, which is why this project no longer uses it.
+**Gemini free tier quota.** `api/chat.js` is currently configured to use
+`gemini-3.5-flash-lite` (see the `MODEL` constant near the top of the file).
 Free-tier limits change fairly often — check your live numbers in
 [Google AI Studio](https://aistudio.google.com) under your project's rate
 limits before assuming a fixed number. If students start hitting `429`
 errors from Gemini itself (not your own rate limiter), that's the free
-quota, and the fix is either waiting for the daily reset or upgrading to a
-paid Gemini tier.
+quota, and the fix is either waiting for the daily reset, switching the
+`MODEL` constant to a model with more free headroom, or upgrading to a paid
+Gemini tier.
 
 For guaranteed limits under real traffic regardless of Google's quota, add
 [Upstash Redis](https://vercel.com/marketplace/upstash) and swap the
@@ -140,9 +138,25 @@ For guaranteed limits under real traffic regardless of Google's quota, add
 
 ## 7. Cost / quota control
 
-- `MAX_OUTPUT_TOKENS` (700) and `MAX_HISTORY_MESSAGES` (20) in `api/chat.js`
+- `MAX_OUTPUT_TOKENS` (2048) and `MAX_HISTORY_MESSAGES` (20) in `api/chat.js`
   cap usage per request. Lower them if you're close to the daily free cap.
-- `MODEL` is set to `gemini-3.6-flash` — the current GA default for a
-  free-tier tutor. `gemini-3.5-flash-lite` is an even cheaper/faster free-tier
-  option if you need higher throughput; avoid Pro-class models unless you're
-  on a paid plan (they're billing-only as of April 2026).
+- `MODEL` is set to `gemini-3.5-flash-lite`. If you change it, check the
+  model's current free-tier limits in Google AI Studio first — smaller/lite
+  models generally have more generous free quotas than their full-size or
+  `-pro` counterparts, but exact numbers shift over time.
+
+## 8. Voice (text-to-speech) backend
+
+`student-os.html`'s "Auto-speak replies" feature calls a second Vercel Edge
+Function, `api/speak.js`, using `SPEAK_API_URL` (same pattern as
+`CHAT_API_URL` — update it the same way once you have your real Vercel URL).
+It reuses the same `GEMINI_API_KEY` env variable as `api/chat.js` — no
+separate secret to add. It's currently configured to use
+`gemini-3.1-flash-tts-preview`. Because both functions live under `api/`,
+deploying to Vercel (step 1) publishes both automatically — there's no
+extra deployment step, just the `SPEAK_API_URL` line to update alongside
+`CHAT_API_URL`.
+
+**Quick test after deploying:** open the AI Tutor, send a message, and turn
+on "Auto-speak replies" — the reply should play back as natural speech once
+the text finishes streaming in.

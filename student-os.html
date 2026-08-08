@@ -190,6 +190,9 @@ a{color:inherit;text-decoration:none;}
 .wt-community .t-bg{background:radial-gradient(circle at 70% 70%,rgba(232,96,143,0.28),transparent 55%),linear-gradient(160deg,#2c1030,#150a1e);}
 .wt-community .t-icon{background:rgba(232,96,143,0.22);color:var(--rose);border:1px solid rgba(232,96,143,0.4);}
 .wt-community h3{color:#ffc4dc;}
+.wt-profile .t-bg{background:radial-gradient(circle at 30% 20%,rgba(165,180,252,0.3),transparent 55%),radial-gradient(circle at 80% 80%,rgba(76,217,232,0.18),transparent 55%),linear-gradient(160deg,#181040,#0a0824);}
+.wt-profile .t-icon{background:rgba(165,180,252,0.22);color:var(--skyviolet);border:1px solid rgba(165,180,252,0.4);}
+.wt-profile h3{color:#d6dcff;}
 
 /* ================= WORLD OVERLAYS ================= */
 .world-overlay{position:fixed;inset:0;z-index:100;opacity:0;pointer-events:none;transform:scale(0.97);transition:opacity .45s cubic-bezier(.2,.8,.2,1),transform .45s cubic-bezier(.2,.8,.2,1);overflow-y:auto;}
@@ -400,6 +403,67 @@ a{color:inherit;text-decoration:none;}
 .chat-send:disabled{opacity:.5;cursor:not-allowed;}
 .chat-char-count{font-size:.7rem;color:rgba(253,249,240,0.4);text-align:right;padding:0 20px 8px;}
 .chat-char-count.warn{color:#ffb84c;}
+
+/* ================= TUTOR ACTIONS (Section A: guided teaching moves) ================= */
+.tutor-actions-label{font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin:18px 0 10px;}
+.tutor-actions{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px;}
+.tutor-action{display:flex;align-items:center;gap:6px;background:rgba(253,249,240,0.05);border:1px solid rgba(253,249,240,0.14);border-radius:100px;padding:9px 16px;font-size:.82rem;font-weight:500;color:var(--warmwhite);transition:all .25s ease;}
+.tutor-action:hover{border-color:var(--violet);background:rgba(124,92,252,0.1);transform:translateY(-1px);}
+.tutor-action .ta-icon{font-size:.9rem;}
+.tutor-action.ta-primary{border-color:rgba(76,217,232,0.35);color:var(--cyan);}
+.tutor-action.ta-primary:hover{border-color:var(--cyan);background:rgba(76,217,232,0.1);}
+.tutor-action.ta-quiet{opacity:.8;}
+@media (max-width:520px){.tutor-actions{gap:6px;}.tutor-action{padding:8px 13px;font-size:.78rem;}}
+
+/* ================= LEARNING PROFILE WORLD (Section A) ================= */
+.theme-profile{background:radial-gradient(ellipse 1200px 900px at 50% 10%,#181040,#0a0824 70%);}
+.theme-profile .world-eyebrow{color:var(--skyviolet);}
+.theme-profile .world-title em{background:linear-gradient(90deg,var(--skyviolet),var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent;}
+
+.profile-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:32px 0 28px;border-bottom:1px solid rgba(253,249,240,0.1);padding-bottom:0;}
+.profile-tab{background:transparent;border:none;color:var(--dim);font-size:.9rem;font-weight:600;padding:12px 18px;cursor:pointer;position:relative;transition:color .25s ease;}
+.profile-tab:hover{color:var(--warmwhite);}
+.profile-tab.active{color:var(--warmwhite);}
+.profile-tab.active::after{content:'';position:absolute;left:18px;right:18px;bottom:-1px;height:2px;background:linear-gradient(90deg,var(--violet),var(--cyan));border-radius:4px;}
+
+.profile-panel{display:none;}
+.profile-panel.active{display:block;animation:riseIn .5s ease forwards;}
+
+.dev-state-banner{display:flex;align-items:flex-start;gap:12px;background:rgba(76,217,232,0.06);border:1px solid rgba(76,217,232,0.22);border-radius:16px;padding:16px 20px;margin-bottom:24px;font-size:.85rem;color:var(--dim);line-height:1.55;}
+.dev-state-banner .db-icon{font-size:1.15rem;flex-shrink:0;}
+.dev-state-banner b{color:var(--warmwhite);}
+
+.pf-card{background:rgba(253,249,240,0.035);border:1px solid rgba(253,249,240,0.08);border-radius:20px;padding:24px 26px;margin-bottom:16px;}
+.pf-card h4{font-family:var(--display);font-weight:500;font-size:1.05rem;margin-bottom:8px;display:flex;align-items:center;gap:10px;}
+.pf-card p{font-size:.88rem;color:var(--dim);line-height:1.6;}
+.pf-empty{display:flex;flex-direction:column;align-items:center;text-align:center;padding:48px 24px;color:var(--faint);}
+.pf-empty .pe-icon{font-size:2rem;margin-bottom:14px;opacity:.6;}
+.pf-empty p{max-width:40ch;font-size:.86rem;line-height:1.6;}
+
+.confidence-tag{display:inline-flex;align-items:center;gap:6px;font-size:.7rem;font-weight:700;letter-spacing:.04em;padding:4px 11px;border-radius:100px;text-transform:uppercase;}
+.ct-building{background:rgba(253,249,240,0.08);color:var(--faint);}
+.ct-checking{background:rgba(245,185,66,0.14);color:var(--gold);}
+.ct-confirmed{background:rgba(52,211,153,0.14);color:var(--emerald);}
+
+.confusion-pipeline{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin:18px 0 24px;font-size:.74rem;color:var(--faint);}
+.confusion-pipeline .cp-step{background:rgba(253,249,240,0.05);border:1px solid rgba(253,249,240,0.1);border-radius:100px;padding:6px 13px;}
+.confusion-pipeline .cp-arrow{color:rgba(253,249,240,0.25);}
+
+.outcome-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;margin-bottom:22px;}
+.outcome-stage{background:rgba(253,249,240,0.035);border:1px solid rgba(253,249,240,0.08);border-radius:16px;padding:16px;text-align:center;}
+.outcome-stage .os-label{font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);margin-bottom:8px;}
+.outcome-stage .os-value{font-family:var(--display);font-size:1.3rem;font-weight:500;color:var(--warmwhite);}
+.outcome-stage .os-value.pending{color:var(--faint);font-size:.95rem;font-family:var(--body);}
+.anti-goal-note{font-size:.78rem;color:var(--faint);line-height:1.6;padding:14px 18px;border-left:2px solid var(--violet);background:rgba(124,92,252,0.05);border-radius:0 12px 12px 0;}
+
+/* ---- Next Steps (replaces old 12-widget "Your Day" grid — Section A: 2-3 actions only) ---- */
+.next-steps-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;}
+.next-step-card{background:rgba(253,249,240,0.035);border:1px solid rgba(253,249,240,0.08);border-radius:20px;padding:24px;transition:transform .35s cubic-bezier(.2,.8,.2,1),border-color .35s ease;cursor:pointer;}
+.next-step-card:hover{transform:translateY(-4px);border-color:rgba(253,249,240,0.2);}
+.next-step-card .ns-icon{font-size:1.4rem;margin-bottom:14px;display:inline-block;}
+.next-step-card h4{font-size:1rem;font-weight:600;margin-bottom:8px;}
+.next-step-card p{font-size:.85rem;color:var(--dim);line-height:1.55;}
+.next-step-card .ns-arrow{margin-top:14px;font-size:.78rem;color:var(--cyan);}
 </style>
 <link rel="stylesheet" href="css/image.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
@@ -561,6 +625,15 @@ a{color:inherit;text-decoration:none;}
           <span class="t-arrow">Walk it →</span>
         </div>
       </div>
+      <div class="world-tile wt-profile" onclick="openWorld('profile')">
+        <div class="t-bg"></div>
+        <div class="t-content">
+          <div class="t-icon">🧠</div>
+          <h3>Learning Profile</h3>
+          <p>What you've mastered, what's still forming, and why.</p>
+          <span class="t-arrow">Open →</span>
+        </div>
+      </div>
       <div class="world-tile wt-trophy" onclick="openWorld('achievements')">
         <div class="t-bg"></div>
         <div class="t-content">
@@ -581,71 +654,25 @@ a{color:inherit;text-decoration:none;}
       </div>
     </div>
 
-    <div class="section-label"><h2>Your Day</h2><span>Curated for you</span></div>
-    <div class="widget-grid">
-      <div class="widget" onclick="openWorld('quiz')">
-        <span class="w-tag wt-orange">Live</span>
-        <span class="w-icon">🎯</span>
-        <h4>Today's Challenge</h4>
-        <p>Beat your best score in Geometry Speed Round.</p>
+    <div class="section-label"><h2>Next Steps</h2><span>Just a few, on purpose</span></div>
+    <div class="next-steps-grid">
+      <div class="next-step-card" onclick="openWorld('tutor')">
+        <span class="ns-icon">✦</span>
+        <h4>Continue with your AI Tutor</h4>
+        <p>Pick up where you left off, or ask about anything you're stuck on right now.</p>
+        <div class="ns-arrow">Continue →</div>
       </div>
-      <div class="widget">
-        <span class="w-tag wt-cyan">3 days</span>
-        <span class="w-icon">⏳</span>
-        <h4>Exam Countdown</h4>
-        <p>Unit Test — Mathematics, Chapter 4 & 5.</p>
+      <div class="next-step-card" onclick="openWorld('profile')">
+        <span class="ns-icon">🧠</span>
+        <h4>Check your Learning Profile</h4>
+        <p>See what's mastered, what's still forming, and any patterns worth a closer look.</p>
+        <div class="ns-arrow">Open →</div>
       </div>
-      <div class="widget">
-        <span class="w-icon">🧬</span>
-        <h4>Learning DNA</h4>
-        <p>You learn best with visuals + short bursts of practice.</p>
-      </div>
-      <div class="widget">
-        <span class="w-icon">📚</span>
-        <h4>Homework</h4>
-        <p>2 pending — Science worksheet, Hindi essay.</p>
-      </div>
-      <div class="widget">
-        <span class="w-tag wt-violet">Now</span>
-        <span class="w-icon">📅</span>
-        <h4>Upcoming Class</h4>
-        <p>Physics — Live with Priya Ma'am, 4:30 PM.</p>
-      </div>
-      <div class="widget">
-        <span class="w-icon">💡</span>
-        <h4>Daily Curiosity</h4>
-        <p>Why does the Moon always show the same face?</p>
-      </div>
-      <div class="widget">
-        <span class="w-icon">🗺️</span>
-        <h4>Learning Timeline</h4>
-        <p>See your last 30 days as a journey map.</p>
-      </div>
-      <div class="widget">
-        <span class="w-icon">✨</span>
-        <h4>AI Recommendations</h4>
-        <p>3 picks based on where you got stuck last week.</p>
-      </div>
-      <div class="widget">
-        <span class="w-tag wt-rose">4 online</span>
-        <span class="w-icon">👥</span>
-        <h4>Friends</h4>
-        <p>Ananya just beat her Quiz Arena high score.</p>
-      </div>
-      <div class="widget">
-        <span class="w-icon">🎨</span>
-        <h4>Creative Studio</h4>
-        <p>Turn today's lesson into a poster or story.</p>
-      </div>
-      <div class="widget">
-        <span class="w-icon">🧠</span>
-        <h4>Mind Maps</h4>
-        <p>Visualize how Algebra connects to everything else.</p>
-      </div>
-      <div class="widget">
-        <span class="w-icon">📁</span>
-        <h4>Portfolio & Projects</h4>
-        <p>4 projects in progress. 1 ready to publish.</p>
+      <div class="next-step-card" onclick="window.location.href='knowledge-universe.html'">
+        <span class="ns-icon">◐</span>
+        <h4>Explore the Knowledge Universe</h4>
+        <p>Wander a subject that's calling you — no pressure, just curiosity.</p>
+        <div class="ns-arrow">Explore →</div>
       </div>
     </div>
   </div>
@@ -693,6 +720,109 @@ a{color:inherit;text-decoration:none;}
       <div class="chip" onclick="askChip('Give me a fun fact about ISRO missions')">Fun ISRO fact</div>
       <div class="chip" onclick="askChip('Quiz me with one quick question on fractions')">Quick fractions quiz</div>
       <div class="chip" onclick="resetChat()">🔄 New conversation</div>
+    </div>
+
+    <div class="tutor-actions-label">While you're working through something</div>
+    <div class="tutor-actions">
+      <button class="tutor-action ta-primary" onclick="tutorAction('hint')"><span class="ta-icon">💡</span>Hint</button>
+      <button class="tutor-action" onclick="tutorAction('explainDifferently')"><span class="ta-icon">🔄</span>Explain differently</button>
+      <button class="tutor-action" onclick="tutorAction('simpler')"><span class="ta-icon">🧩</span>Simpler explanation</button>
+      <button class="tutor-action" onclick="tutorAction('example')"><span class="ta-icon">✏️</span>Show an example</button>
+      <button class="tutor-action" onclick="tutorAction('practice')"><span class="ta-icon">🎯</span>Practice similar question</button>
+      <button class="tutor-action" onclick="tutorAction('tryMyself')"><span class="ta-icon">🙋</span>Let me try myself</button>
+      <button class="tutor-action" onclick="tutorAction('checkAnswer')"><span class="ta-icon">✅</span>Check my answer</button>
+      <button class="tutor-action" onclick="tutorAction('explainMistake')"><span class="ta-icon">🔍</span>Explain my mistake</button>
+      <button class="tutor-action" onclick="tutorAction('retest')"><span class="ta-icon">🔁</span>Re-test me</button>
+      <button class="tutor-action ta-quiet" onclick="openWorld('profile')"><span class="ta-icon">🧠</span>My mastery / progress</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ WORLD: LEARNING PROFILE (Section A) ============ -->
+<div class="world-overlay theme-profile" id="world-profile">
+  <div class="world-close" onclick="closeWorld('profile')">✕</div>
+  <div class="world-inner">
+    <div class="world-eyebrow">Built from real evidence, not guesses</div>
+    <h1 class="world-title">Your <em>Learning Profile</em></h1>
+    <p class="world-sub">This is where BAA keeps track of what you actually know — built from your real Tutor sessions and practice, not a score you're given once.</p>
+
+    <div class="profile-tabs">
+      <button class="profile-tab active" onclick="switchProfileTab('mastery')">Mastery</button>
+      <button class="profile-tab" onclick="switchProfileTab('confusion')">Mistake Archeology</button>
+      <button class="profile-tab" onclick="switchProfileTab('outcome')">Learning Evidence</button>
+    </div>
+
+    <!-- ---- Tab 1: Mastery / Learning Profile (A.2) ---- -->
+    <div class="profile-panel active" id="pf-mastery">
+      <div class="dev-state-banner">
+        <span class="db-icon">🚧</span>
+        <div><b>Still building this with you.</b> Your Learning Profile fills in as you work with the AI Tutor and complete practice — there's nothing fabricated shown here. Right now this account has no recorded sessions yet.</div>
+      </div>
+      <div class="pf-card">
+        <h4>📗 Mastered concepts <span class="confidence-tag ct-building">Building</span></h4>
+        <div class="pf-empty">
+          <span class="pe-icon">🌱</span>
+          <p>Nothing marked mastered yet — a concept only appears here after you've answered correctly more than once, without heavy hints, on more than one occasion.</p>
+        </div>
+      </div>
+      <div class="pf-card">
+        <h4>📘 Currently learning <span class="confidence-tag ct-building">Building</span></h4>
+        <div class="pf-empty">
+          <span class="pe-icon">🌱</span>
+          <p>Concepts you're actively working on with the AI Tutor will show up here.</p>
+        </div>
+      </div>
+      <div class="pf-card">
+        <h4>🔁 Needs revision <span class="confidence-tag ct-building">Building</span></h4>
+        <div class="pf-empty">
+          <span class="pe-icon">🌱</span>
+          <p>Older concepts that could use a re-check will appear here over time.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ---- Tab 2: Mistake Archeology / Confusion Map (A.3) ---- -->
+    <div class="profile-panel" id="pf-confusion">
+      <div class="dev-state-banner">
+        <span class="db-icon">🧭</span>
+        <div><b>How this works:</b> a wrong answer is treated as a symptom, not a diagnosis. BAA looks for a pattern first, then tests a possible root cause with you — it never states "you don't understand X" as a fact.</div>
+      </div>
+      <div class="confusion-pipeline">
+        <span class="cp-step">Mistake</span><span class="cp-arrow">→</span>
+        <span class="cp-step">Pattern</span><span class="cp-arrow">→</span>
+        <span class="cp-step">Possible root cause</span><span class="cp-arrow">→</span>
+        <span class="cp-step">Targeted lesson</span><span class="cp-arrow">→</span>
+        <span class="cp-step">Practice</span><span class="cp-arrow">→</span>
+        <span class="cp-step">Re-test</span><span class="cp-arrow">→</span>
+        <span class="cp-step">Resolved</span>
+      </div>
+      <div class="pf-card">
+        <div class="pf-empty">
+          <span class="pe-icon">🔍</span>
+          <p>No repeated mistake patterns detected yet. When BAA notices you struggling with something more than once, it will show up here — phrased as something to check together, never as a verdict.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ---- Tab 3: Learning Outcome Measurement (A.4) ---- -->
+    <div class="profile-panel" id="pf-outcome">
+      <div class="dev-state-banner">
+        <span class="db-icon">📊</span>
+        <div><b>What this measures:</b> whether you actually learned something — not how long you were online or how many messages you sent.</div>
+      </div>
+      <div class="outcome-strip">
+        <div class="outcome-stage"><div class="os-label">Baseline</div><div class="os-value pending">—</div></div>
+        <div class="outcome-stage"><div class="os-label">Post-test</div><div class="os-value pending">—</div></div>
+        <div class="outcome-stage"><div class="os-label">Retention</div><div class="os-value pending">—</div></div>
+        <div class="outcome-stage"><div class="os-label">Application</div><div class="os-value pending">—</div></div>
+      </div>
+      <div class="pf-card">
+        <div class="pf-empty">
+          <span class="pe-icon">📈</span>
+          <p>Learning evidence will appear here as you complete assessments and the AI Tutor checks your understanding over time.</p>
+        </div>
+      </div>
+      <div class="anti-goal-note">BAA does not track or reward time spent online, message counts, or streaks as measures of learning — only whether understanding actually improved.</div>
     </div>
   </div>
 </div>
@@ -949,6 +1079,13 @@ function closeWorld(name){
   document.body.style.overflow='';
 }
 
+function switchProfileTab(tab){
+  document.querySelectorAll('#world-profile .profile-tab').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('#world-profile .profile-panel').forEach(el => el.classList.remove('active'));
+  document.querySelector(`#world-profile .profile-tab[onclick="switchProfileTab('${tab}')"]`).classList.add('active');
+  document.getElementById('pf-' + tab).classList.add('active');
+}
+
 /* ================= AI TUTOR CHAT (production backend) ================= */
 // Point this at your deployed Vercel backend, e.g.
 // 'https://baa-os-tutor.vercel.app/api/chat'. Left relative ('/api/chat')
@@ -1058,6 +1195,39 @@ function renderMathIn(el){
 function askChip(text){
   document.getElementById('chatInput').value=text;
   sendChat();
+}
+
+/* ================= TUTOR ACTIONS (Section A: guided teaching moves) =================
+   These send real, specific instructions to the actual AI Tutor backend — same pipe as
+   askChip/sendChat. Nothing here is a fake/decorative button. A few (checkAnswer,
+   explainMistake, practice) prefill + focus the input instead of auto-sending, since they
+   need the student's own answer/work added before the message means anything. */
+const TUTOR_ACTION_PROMPTS = {
+  hint: "Can you give me one hint for this — please don't give away the full answer yet?",
+  explainDifferently: "That didn't quite click — can you explain it a different way (a different example or analogy)?",
+  simpler: "I'm still confused — can you break it down into something simpler, in easier words?",
+  example: "Can you show me one worked example first, using different numbers than my actual question?",
+  practice: "Can you give me a fresh practice question, similar to this one but not the same numbers?",
+  retest: "I think I understand this now — can you test me again to check?",
+};
+const TUTOR_ACTION_PREFILL = {
+  tryMyself: "I want to try this myself: ",
+  checkAnswer: "Here's my answer — can you check it? ",
+  explainMistake: "I got this wrong — can you explain what mistake I made and why? My working was: ",
+};
+function tutorAction(action){
+  if (TUTOR_ACTION_PROMPTS[action]){
+    askChip(TUTOR_ACTION_PROMPTS[action]);
+    return;
+  }
+  if (TUTOR_ACTION_PREFILL[action]){
+    const input = document.getElementById('chatInput');
+    input.value = TUTOR_ACTION_PREFILL[action];
+    input.focus();
+    // place cursor at the end so the student types right after the prefilled prompt
+    input.setSelectionRange(input.value.length, input.value.length);
+    updateCharCount();
+  }
 }
 
 function appendUserMsg(text, imagePreviewUrl){
