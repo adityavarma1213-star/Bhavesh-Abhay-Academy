@@ -1,0 +1,12 @@
+{
+  "name": "baa-os-ai-tutor-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Vercel Edge Function backend for the BAA OS AI Tutor (proxies chat requests to the Gemini API).",
+  "scripts": {
+    "dev": "vercel dev"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
