@@ -488,6 +488,7 @@ function renderResults(attempt){
       if(r.humanReview) html += `<span class="qr-tag" style="background:rgba(52,211,153,0.14);color:var(--emerald);">Reviewed by ${r.humanReview.reviewer} (${r.humanReview.status})</span>`;
       else if(r.humanReviewRequired) html += `<span class="qr-tag review">Flagged for human review</span>`;
       html += `</div>`;
+      html += `<div style="margin-top:6px;"><a href="trust-privacy.html?attempt=${encodeURIComponent(attempt.id)}&question=${encodeURIComponent(r.questionId)}" style="font-size:.75rem;color:var(--cyan);text-decoration:underline;">Think this is wrong? Request re-evaluation →</a></div>`;
     }
     html += `</div>`;
   });

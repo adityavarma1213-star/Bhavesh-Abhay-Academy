@@ -489,6 +489,20 @@
   }
   .modal input:focus{ border-color: var(--gold); }
   .modal .btn-primary{ width:100%; margin-top:6px; }
+  .auth-tabs{ display:flex; gap:8px; margin-bottom:20px; }
+  .auth-tab{
+    flex:1; padding:10px 0; border-radius:10px; border:1px solid rgba(253,249,240,0.14);
+    background:transparent; color:var(--dim); font-family:var(--body); font-size:0.85rem;
+    font-weight:600; cursor:pointer; transition: all .25s ease;
+  }
+  .auth-tab.active{ background: rgba(124,92,252,0.18); border-color: var(--violet); color: var(--warmwhite); }
+  .auth-error{
+    display:block; color:#FF9E9E; background: rgba(255,80,80,0.1);
+    border:1px solid rgba(255,80,80,0.25); border-radius:10px;
+    padding:10px 14px; font-size:0.82rem; margin-bottom:14px;
+  }
+  .auth-error[hidden]{ display:none; }
+  .auth-note{ color: var(--faint); font-size:0.72rem; margin-top:16px; margin-bottom:0; line-height:1.5; }
   .modal .close-x{
     position:absolute; top:18px; right:18px;
     width:32px;height:32px;
@@ -650,17 +664,43 @@
   <span>Made for the curious</span>
 </footer>
 
+<!-- Section G2: real signup/login, replacing the old name-only modal.
+     Client-side/local-testing only — see js/data-access/repositories/
+     accountRepository.js header for the full honesty notes. This does
+     not gate any page yet (role/route enforcement is Section G3);
+     it only creates or verifies an account and starts a session. -->
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal">
     <button class="close-x" onclick="closeModal()">✕</button>
     <div class="icon-badge">✦</div>
-    <h3>Step into BAA</h3>
-    <p>Your universe of learning starts here.</p>
-    <input type="text" placeholder="Full name" id="signupName">
-    <input type="email" placeholder="Email address">
-    <button class="btn-primary" onclick="goToStudentOS()"><span>Create My Account</span></button>
+    <h3 id="authModalTitle">Step into BAA</h3>
+    <p id="authModalSubtitle">Your universe of learning starts here.</p>
+
+    <div class="auth-tabs" role="tablist" aria-label="Sign up or log in">
+      <button type="button" class="auth-tab active" id="authTabSignup" onclick="setAuthMode('signup')">Sign Up</button>
+      <button type="button" class="auth-tab" id="authTabLogin" onclick="setAuthMode('login')">Log In</button>
+    </div>
+
+    <p class="auth-error" id="authError" hidden></p>
+
+    <form id="authForm" onsubmit="return handleAuthSubmit(event)">
+      <input type="text" placeholder="Full name" id="signupName" autocomplete="name">
+      <input type="email" placeholder="Email address" id="authEmail" autocomplete="email" required>
+      <input type="password" placeholder="Password (min. 8 characters)" id="authPassword" autocomplete="current-password" required>
+      <button type="submit" class="btn-primary" id="authSubmitBtn"><span>Create My Account</span></button>
+    </form>
+
+    <p class="auth-note">🧪 Local testing account — stored only in this browser. Not a
+      production-secure login (see project docs).</p>
   </div>
 </div>
+
+<!-- Section G2: data-access layer for the signup/login modal above.
+     Local-testing only — see js/data-access/repositories/accountRepository.js -->
+<script src="js/data-access/adapters/localStorageAdapter.js"></script>
+<script src="js/data-access/adapters/databaseAdapter.js"></script>
+<script src="js/data-access/index.js"></script>
+<script src="js/data-access/repositories/accountRepository.js"></script>
 
 <script>
   // Nav scroll state
@@ -669,12 +709,78 @@
     nav.classList.toggle('scrolled', window.scrollY > 40);
   });
 
-  // Modal
-  function goToStudentOS(){
-    const name = document.getElementById('signupName').value.trim();
-    window.location.href = 'student-os.html' + (name ? ('?name=' + encodeURIComponent(name)) : '');
+  // ---------- Section G2: signup / login modal ----------
+  // Client-side/local-testing only — see
+  // js/data-access/repositories/accountRepository.js for the full
+  // honesty notes on what this account system is and is not.
+  let authMode = 'signup';
+
+  function getAccountRepo(){
+    const adapter = window.BAADataAccess.getActiveAdapter();
+    return window.BAAAccountRepository.getRepo(adapter);
   }
-  function openModal(){ document.getElementById('modalOverlay').classList.add('open'); }
+
+  function setAuthMode(mode){
+    authMode = mode;
+    const isSignup = mode === 'signup';
+    document.getElementById('authTabSignup').classList.toggle('active', isSignup);
+    document.getElementById('authTabLogin').classList.toggle('active', !isSignup);
+    document.getElementById('signupName').style.display = isSignup ? '' : 'none';
+    document.getElementById('signupName').required = isSignup;
+    document.getElementById('authModalTitle').textContent = isSignup ? 'Step into BAA' : 'Welcome back';
+    document.getElementById('authModalSubtitle').textContent = isSignup
+      ? 'Your universe of learning starts here.'
+      : 'Log back in to pick up where you left off.';
+    document.getElementById('authSubmitBtn').querySelector('span').textContent = isSignup ? 'Create My Account' : 'Log In';
+    document.getElementById('authPassword').autocomplete = isSignup ? 'new-password' : 'current-password';
+    hideAuthError();
+  }
+
+  function showAuthError(message){
+    const el = document.getElementById('authError');
+    el.textContent = message;
+    el.hidden = false;
+  }
+  function hideAuthError(){
+    document.getElementById('authError').hidden = true;
+  }
+
+  function handleAuthSubmit(event){
+    event.preventDefault();
+    hideAuthError();
+    const email = document.getElementById('authEmail').value.trim();
+    const password = document.getElementById('authPassword').value;
+    const repo = getAccountRepo();
+    const submitBtn = document.getElementById('authSubmitBtn');
+    submitBtn.disabled = true;
+
+    const finish = (result) => {
+      submitBtn.disabled = false;
+      if (!result.ok) {
+        showAuthError((result.errors && result.errors[0]) || 'Something went wrong. Please try again.');
+        return;
+      }
+      const name = result.user.display_name || '';
+      window.location.href = 'student-os.html' + (name ? ('?name=' + encodeURIComponent(name)) : '');
+    };
+
+    if (authMode === 'signup') {
+      const name = document.getElementById('signupName').value.trim();
+      repo.signUp({ name, email, password }).then(finish).catch(() => finish({ ok: false, errors: ['Something went wrong. Please try again.'] }));
+    } else {
+      repo.logIn({ email, password }).then(finish).catch(() => finish({ ok: false, errors: ['Something went wrong. Please try again.'] }));
+    }
+    return false;
+  }
+
+  function goToStudentOS(){
+    // Kept for any old inline callers; routes through the same modal flow.
+    openModal();
+  }
+  function openModal(){
+    setAuthMode('signup');
+    document.getElementById('modalOverlay').classList.add('open');
+  }
   function closeModal(){ document.getElementById('modalOverlay').classList.remove('open'); }
   document.getElementById('modalOverlay').addEventListener('click', (e) => {
     if(e.target.id === 'modalOverlay') closeModal();

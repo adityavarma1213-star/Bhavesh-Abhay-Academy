@@ -238,6 +238,263 @@ See the Section C final report (delivered alongside this build) for a
 component-by-component functional status and the tests that were and
 weren't possible to run.
 
+## Section D — Parent OS + Teacher OS (single-student private testing)
+
+`parent-os.html` and `teacher-os.html` are new, standalone pages that read
+Section B's evidence and Section C's Learning Intelligence/Planner data —
+**read-only against B/C**; neither file was modified to build Section D.
+
+```
+Section B evidence + Section C intelligence/planner (read-only)
+        │
+        ▼
+parent-os.html   — plain-language progress, strengths, areas needing
+                    attention, recent assessment results, today's plan,
+                    and a "try asking..." home-support suggestion per
+                    weak concept (generated phrasing around real data,
+                    never a fabricated stat)
+teacher-os.html  — Learning Profile + Intelligence table, assessment
+                    history, Mistake Archeology, a summary + link to the
+                    existing `teacher-review.html` queue (not duplicated),
+                    Planner, suggested intervention links, and a new
+                    small teacher-notes feature
+```
+
+Both pages are explicitly labeled **"🧪 Single-Student Private Testing"**
+in the UI. There is one learner, on one device, in this build — no class
+roster, no multiple students, no averages or comparisons. That isn't a
+missing feature here; building fake ones was explicitly out of scope, and
+a real multi-student system needs real accounts and a database
+(Section G), not built yet.
+
+- **Teacher notes** (`teacher-os.html`) is the one genuinely new piece of
+  storage Section D adds — `baa_section_d_teacher_notes_v1`, following the
+  same naming convention as Section B's `baa_section_b_data_v1` and Section
+  C's `baa_section_c_planner_v1`. It's additive only: a free-text note list
+  scoped to this page, with no effect on B/C data.
+- **Existing Human Review is linked, not rebuilt.** `teacher-os.html` shows
+  a pending-count summary from `BAAAssessment.getTeacherReviewQueue()` and
+  links to the existing `teacher-review.html` for the actual accept/edit/
+  reject actions — Section B's review logic was left untouched.
+- **Intervention links are real or honestly absent.** Both pages look up a
+  real matching assessment for a weak concept via the existing
+  `BAAAssessmentCatalog`/`BAAGetQuestion` globals; if this testing build's
+  small question bank has no matching assessment, the link is omitted
+  rather than pointing anywhere fake.
+- Access is a discreet "Parent View / Teacher View" link at the bottom of
+  `student-os.html` — not part of the student's play surface, and not
+  gated behind a real login yet (no accounts exist in this build).
+
+See `test/run-section-d-smoke.js` for the automated check of every data
+call both pages make (empty-state and populated-evidence paths), and the
+Section D final report delivered alongside this build for full status.
+
+## Section G2 — Account creation & login (client-side, local testing only)
+
+Additive to Section G2.1's schema (see `SCHEMA.md` §15 and
+`db/schema.sql`'s "1a. AUTHENTICATION" block, both unchanged by G2).
+G2.1 defined `credentials` and `auth_sessions` as design-only tables
+with no code touching them; G2 fills that gap with real, working
+signup/login/logout, still with no live database (see `SCHEMA.md`
+§12) — so the storage is localStorage, exactly like Sections B/C/D.
+
+```
+index.html (signup/login modal)
+        │
+        ▼
+js/data-access/repositories/accountRepository.js  — signUp / logIn /
+                                                      logOut / getCurrentSession
+        │
+        ▼
+js/data-access/adapters/localStorageAdapter.js     — new accounts/session
+                                                      storage methods
+        │
+        ▼
+localStorage key: baa_section_g2_accounts_v1        (users / credentials /
+                                                      auth_sessions, shaped
+                                                      after db/schema.sql)
+```
+
+- **Passwords are never stored in plaintext.** Each password is hashed
+  with a per-user random salt (SHA-256) before being written to
+  `credentials.password_hash`, encoded as `salt:hash` in that single
+  column. The `algorithm` value is honestly recorded as
+  `sha256-salted-local-only` — **not** `argon2id` (`db/schema.sql`'s
+  placeholder default) — because that's what actually runs. See
+  `accountRepository.js`'s header for why this still isn't
+  production-secure: there is no server to keep any of it secret from
+  the browser it runs in. A real, network-verified auth backend is a
+  Section G4 concern.
+- **Session tokens follow the same rule G2.1 designed for:** only a
+  hash of the token (`token_hash`) is stored in the sessions list.
+  The raw token needed to recognize "this browser is still logged in"
+  lives in a separate localStorage key, exactly as inspectable as
+  everything else in this local-testing build.
+- **Sessions are soft-revoked, never deleted** (`revoked_at`), matching
+  the lifecycle pattern G1/G2.1 already use elsewhere in the schema.
+- **What G2 intentionally does not do:** no role assignment or
+  permission checks (`user_roles` untouched — Section G3), no page
+  gating (any page can still be opened directly by URL, same as
+  before), and no change to how the existing single-learner
+  repositories (learner/assessment/evidence/planner/teacherReview/
+  teacherNotes) resolve data — they still use the one local-learner
+  slot exactly as before (see `js/data-access/README.md`).
+
+See `test/run-g2-tests.js` for signup validation, duplicate-email
+handling, login success/failure, session round-trip, expiry, logout,
+and a check that Sections A–D's own localStorage keys are untouched.
+
+## Section G3 — Authorization, roles & access control (client-side, local testing only)
+
+Additive to Section G2. Fills the gap G1/G2 both flagged and left
+open: `user_roles`, `parent_learner`, `teacher_learner`, `classes`,
+and `class_members` (defined by G1's schema, `SCHEMA.md` §1/§3 —
+"foundation for G2/G3, not implemented by G1") were untouched until
+now.
+
+```
+js/data-access/repositories/authorizationRepository.js
+        — assignRole / revokeRole / getRoles / hasRole
+        — linkParentToLearner / revokeParentLink
+        — linkTeacherToLearner / revokeTeacherLink
+        — createClass / addClassMember / removeClassMember
+        — canAccessLearner / canAccessClass
+        │
+        ▼
+js/data-access/adapters/localStorageAdapter.js  — new
+                                                   getAuthorizationStore /
+                                                   saveAuthorizationStore
+        │
+        ▼
+localStorage key: baa_section_g3_authorization_v1   (own new key — does
+                                                       not touch or
+                                                       reshape the G2
+                                                       accounts key)
+```
+
+- **Roles.** Only the four roles `db/schema.sql`'s `user_roles` CHECK
+  constraint documents — `student`, `parent`, `teacher`, `admin` — can
+  be assigned; anything else is rejected, never silently invented.
+  Assigning an already-held role is idempotent (matches
+  `user_roles`' own `PRIMARY KEY (user_id, role)`). `user_roles` has
+  no `revoked_at`/`status` column in the schema, so `revokeRole`
+  removes the row — that's the schema's own design, not a shortcut
+  taken here.
+- **Relationships.** `parent_learner` and `teacher_learner` links use
+  the same soft-revoke pattern (`status` + `revoked_at`) those tables
+  already define in `db/schema.sql`. `classes`/`class_members` follow
+  the same pattern with `status`/`removed_at`.
+- **Access decisions.** `canAccessLearner(userId, learnerId, learnerOwnerUserId)`
+  is the one function that decides "can this user see this learner's
+  data?" — it only ever returns `allowed: true` when it can point to
+  a real row: an `admin` role, a `learners.user_id` self-match plus
+  the `student` role, an active `parent_learner` row, an active
+  `teacher_learner` row, or active class ownership + membership.
+  Everything else is denied with an explicit `reason`, never a
+  default allow. `canAccessClass(userId, classId)` answers the same
+  question for a class roster (owning teacher or admin only).
+- **What G3 intentionally does not do:** it does not gate page
+  navigation or add route middleware to `index.html` /
+  `student-os.html` / `teacher-os.html` / `parent-os.html` /
+  `assessment.html` / `teacher-review.html` — those pages can still
+  be opened directly by URL, same as before G3. It does not rewire
+  the learner/assessment/evidence/planner/teacherReview/teacherNotes
+  repositories to take an authenticated `learnerId` (still G2's own
+  documented gap). And, like every other section here, it is **not
+  production-secure**: every check runs client-side against
+  localStorage, which anyone with devtools access to this browser can
+  read or rewrite. A real, server-enforced authorization layer is a
+  Section G4 concern — see `authorizationRepository.js`'s file header
+  for the full honesty notes.
+
+See `test/run-g3-tests.js` for role assignment/revocation, granted
+and denied access across parent/teacher/class/self/admin paths,
+revocation removing access, the new adapter methods, the
+`DatabaseAdapter` stub honestly throwing, and a check that the G2
+accounts store and Sections A–D's own localStorage keys are
+untouched.
+
+## Section E — AI Trust, Privacy & Safety (client-side foundation)
+
+New page `trust-privacy.html`, plus `js/baa-trust.js` and
+`js/baa-wellbeing.js`, implement the safety/trust cluster (blueprint
+Modules 37, 38, 39, 54, 55, 59, 60) on top of Sections A–D and G1–G3,
+without rebuilding any of them. See `SECTION-E-COVERAGE-MATRIX.md` for
+the full requirement-by-requirement audit and `SECTION-E-GAP-REGISTER.md`
+for an honest status flag on every item.
+
+```
+Section B teacherReviews (read/extend, not duplicated)
+        │
+        ▼
+js/baa-assessment.js  — requestReevaluation() lets a student/parent open
+                         a review on ANY graded question, not just
+                         AI-flagged ones; submitTeacherReview() now keeps
+                         decisionHistory[] so a second decision never
+                         silently erases the first
+        │
+        ▼
+js/baa-trust.js       — NEW store (baa_section_e_trust_v1): data
+                         inventory, retention text, local consent
+                         acknowledgement, activity log, export, fresh
+                         start (preserves teacherReviews), scoped
+                         deletion
+js/baa-wellbeing.js   — NEW store (baa_section_e_wellbeing_prefs_v1):
+                         session-length break reminders, off by default
+                         control, shared no-shame copy helpers
+        │
+        ▼
+trust-privacy.html    — the Module 37 UI for all of the above, linked
+                         from student-os.html
+```
+
+- **Consent is a local acknowledgement, not verified consent.** This
+  build has no verified account/parent-identity system, so
+  `recordConsentAcknowledgement()` is explicitly documented — in the UI
+  and in its own code — as NOT a legally-binding record. A real,
+  verified parental-consent flow needs a real backend (Section G4+).
+- **Appeals build on Section B's existing review queue.** A question
+  the AI never flagged for review can still be appealed
+  (`requestReevaluation()`); reopening an already-decided review pushes
+  the prior decision into `decisionHistory` before it can be
+  overwritten — this closes a real gap where a second teacher decision
+  would have silently erased the first one. The original AI evaluation
+  stays intact through every round.
+- **Fresh Start never destroys review/appeal history.** It archives and
+  clears active attempts/evidence/planner tasks, but `teacherReviews`
+  (every human decision, and now every appeal) is carried forward
+  untouched — that record is exactly what Module 39/55 says must not be
+  silently destroyed.
+- **Deletion is honestly scoped.** `this_app_only` clears Section
+  B/C/D's stores; `everything` additionally clears the account/roles
+  stores from G2/G3 — both run entirely client-side, immediately, on
+  this device, because there is no server copy in this build to
+  separately purge. That limitation is stated on the page itself, not
+  buried in code comments.
+- **Uploaded images and voice/TTS audio were audited, not changed** —
+  `js/image.js` and `api/speak.js` already never write either to any
+  BAA store; Section E's job here was verifying and documenting that,
+  not building new protection for something that was already safe.
+- **No second explainability engine.** Concept-state/trend/planner
+  explanations (`BAAIntelligence.whyForConcept()`) and per-question AI
+  evaluation explanations (`assessment.html`) were already real and
+  evidence-based from Sections B/C — Section E reused them and did not
+  duplicate them. Two blueprint items — AI-driven career
+  recommendations and "AI Guardian" alerts — don't exist as features
+  anywhere in this codebase yet, so they're honestly marked not-yet-built
+  rather than given a fabricated explanation.
+- **Break reminders are a suggestion, never a lock.** Off by default
+  behavior is respected, the same message never repeats before the next
+  interval, and the shared copy helpers
+  (`supportiveMissedTaskCopy()`/`supportiveLowScoreCopy()`) are tested
+  against a banned shame/comparison-phrase list.
+
+See `test/run-e-tests.js` for the dedicated Section E suite (consent,
+data inventory, retention honesty, export, fresh start, deletion —
+both scopes, the full appeal/decision-history flow, and wellbeing
+pacing), and a regression check that Section E's new keys never touch
+Sections A–D's or G2/G3's existing localStorage keys.
+
 ## Deploying to GitHub Pages (frontend)
 
 1. Create a new repo (or use an existing one) and push everything to the root of the `main` branch:
@@ -260,3 +517,17 @@ weren't possible to run.
 - The four HTML pages need no `npm install` or build step — everything runs client-side.
 - Keep all four files at the same directory level if you add more pages later, or update the relative links if you introduce subfolders.
 - `.gitignore` keeps `.env*` and `.vercel` out of git — never commit a real API key.
+
+## Section G2.1 — Authentication schema (design only)
+
+Additive to Section G1 (see `SCHEMA.md` and `db/schema.sql`). G1 defined
+`users`/`user_roles` as identity foundations but never defined where a
+credential or login session would live — G2.1 adds exactly that: a
+`credentials` table (password hash only, never plaintext) and an
+`auth_sessions` table (token hash only, never a raw token). Like every
+other table in `db/schema.sql`, these are **schema/design only** — no
+live database is connected, and nothing in this codebase creates,
+reads, or writes to them. No signup/login UI, no session code, and no
+password hashing are implemented by G2.1; see `SCHEMA.md` section 15
+for the full scope and what's intentionally left for later G2
+checkpoints and G3/G4. Validated by `test/run-g2.1-tests.js`.

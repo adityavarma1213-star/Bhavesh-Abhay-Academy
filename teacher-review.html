@@ -151,12 +151,24 @@ function renderCard(r){
   const errorsTags = (ai.errors||[]).map(e=>`<span class="tag">⚠ ${e}</span>`).join('');
   const missingTags = (ai.missingConcepts||[]).map(e=>`<span class="tag">missing: ${e}</span>`).join('');
 
+  // Section E, Module 39 — additive only: shows when this row came from a
+  // student/parent appeal (via trust-privacy.html's "Request re-evaluation"),
+  // and, if it's been decided before, that a prior decision is on record
+  // rather than silently gone.
+  const appealNote = (r.source === 'appeal' && r.appeal)
+    ? `<div class="tag" style="background:rgba(76,217,232,0.14);color:#9fe8f0;">↩ Re-evaluation requested by ${r.appeal.requestedBy}${r.appeal.reason ? `: "${r.appeal.reason}"` : ''}</div>`
+    : '';
+  const historyNote = (Array.isArray(r.decisionHistory) && r.decisionHistory.length)
+    ? `<div style="color:var(--faint);font-size:.75rem;margin-top:6px;">Prior decision${r.decisionHistory.length>1?'s':''} on record (not erased): ${r.decisionHistory.map(h=>`${h.teacherStatus} by ${h.reviewer||'reviewer'}`).join('; ')}</div>`
+    : '';
+
   const controls = isDone ? `
     <div class="final-note">
       <b>${r.teacherStatus === 'edited' ? 'Edited' : r.teacherStatus === 'rejected' ? 'Rejected' : 'Accepted'}</b>
       by ${r.reviewer || 'reviewer'} — final score <b>${r.teacherMarks ?? 0}/${ai.maxScore ?? '?'}</b>.
       ${r.teacherComment ? `<br>Comment: ${r.teacherComment}` : ''}
       <br><span style="color:var(--faint);">Original AI score (${ai.score ?? 'null'}/${ai.maxScore ?? '?'}) is preserved for audit.</span>
+      ${historyNote}
     </div>
   ` : `
     <div class="review-controls">
@@ -181,6 +193,7 @@ function renderCard(r){
         <div class="rc-meta">${r.assessmentTitle || 'Assessment'} · ${r.subject || ''} · ${r.questionType || ''}</div>
         ${statusPill}
       </div>
+      ${appealNote}
       <div class="rc-q">${r.questionText || '(question text unavailable)'}</div>
       <div class="rc-block">
         <h5>Student answer${r.student ? ' — ' + r.student : ''}</h5>

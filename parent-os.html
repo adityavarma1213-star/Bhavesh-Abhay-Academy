@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>BAA OS — Parent View (Section D)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --void:#0B0F2E; --cosmos:#141B4D; --cosmos-2:#1B2460;
+  --violet:#7C5CFC; --cyan:#4CD9E8; --gold:#F5B942;
+  --warmwhite:#FDF9F0; --dim:rgba(253,249,240,0.62); --faint:rgba(253,249,240,0.34);
+  --rose:#E8608F; --emerald:#34D399;
+  --display:'Fraunces',serif; --body:'Inter',sans-serif; --mono:'JetBrains Mono',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--void);color:var(--warmwhite);font-family:var(--body);min-height:100vh;}
+a{color:inherit;text-decoration:none;}
+button{font-family:inherit;cursor:pointer;}
+
+.topbar{position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:16px 5vw;background:rgba(11,15,46,.9);backdrop-filter:blur(16px);border-bottom:1px solid rgba(253,249,240,0.08);}
+.tb-logo{font-family:var(--display);font-weight:600;font-size:1.05rem;}
+.tb-back{font-size:.82rem;color:var(--dim);border:1px solid rgba(253,249,240,0.14);padding:7px 14px;border-radius:100px;}
+.tb-back:hover{color:var(--warmwhite);border-color:rgba(253,249,240,0.3);}
+
+.wrap{max-width:920px;margin:0 auto;padding:30px 5vw 90px;}
+.eyebrow{font-size:.7rem;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);margin-bottom:10px;}
+h1{font-family:var(--display);font-weight:500;font-size:clamp(1.5rem,4vw,2.1rem);margin-bottom:10px;}
+.sub{color:var(--dim);font-size:.9rem;line-height:1.6;max-width:70ch;margin-bottom:6px;}
+
+.scope-banner{display:flex;gap:12px;background:rgba(245,185,66,0.07);border:1px solid rgba(245,185,66,0.25);border-radius:14px;padding:13px 16px;margin:18px 0 26px;font-size:.8rem;color:var(--dim);line-height:1.55;}
+.scope-banner b{color:var(--warmwhite);}
+.single-student-tag{display:inline-flex;align-items:center;gap:6px;font-size:.68rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:rgba(124,92,252,0.14);color:#c9bdff;padding:5px 12px;border-radius:100px;margin-bottom:16px;}
+
+h2.section-h{font-family:var(--display);font-weight:500;font-size:1.2rem;margin:32px 0 14px;}
+.card{background:rgba(253,249,240,0.035);border:1px solid rgba(253,249,240,0.08);border-radius:18px;padding:22px 24px;margin-bottom:14px;}
+.empty-note{text-align:center;padding:40px 20px;color:var(--faint);font-size:.87rem;line-height:1.6;}
+
+.progress-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-bottom:8px;}
+.pstat{text-align:center;background:rgba(253,249,240,0.03);border-radius:14px;padding:14px 8px;}
+.pstat b{display:block;font-family:var(--display);font-size:1.5rem;font-weight:500;}
+.pstat span{font-size:.7rem;color:var(--faint);text-transform:uppercase;letter-spacing:.05em;}
+
+.concept-row{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;padding:14px 0;border-bottom:1px solid rgba(253,249,240,0.06);}
+.concept-row:last-child{border-bottom:none;}
+.concept-row .cr-icon{font-size:1.1rem;}
+.concept-row .cr-main{flex:1;}
+.concept-row h4{font-size:.92rem;font-weight:600;text-transform:capitalize;}
+.concept-row p{font-size:.8rem;color:var(--dim);margin-top:3px;line-height:1.5;}
+.trend-badge{font-size:.68rem;padding:3px 9px;border-radius:100px;white-space:nowrap;}
+.trend-improving{background:rgba(52,211,153,0.14);color:var(--emerald);}
+.trend-declining{background:rgba(232,96,143,0.14);color:var(--rose);}
+.trend-stable{background:rgba(253,249,240,0.08);color:var(--dim);}
+
+.suggestion-card{background:rgba(76,217,232,0.05);border:1px solid rgba(76,217,232,0.2);border-radius:16px;padding:16px 18px;margin-bottom:10px;}
+.suggestion-card .sc-try{font-family:var(--display);font-style:italic;color:var(--cyan);margin-top:6px;font-size:.9rem;}
+
+.attempt-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid rgba(253,249,240,0.06);font-size:.85rem;}
+.attempt-row:last-child{border-bottom:none;}
+.attempt-row .a-pct{font-family:var(--mono);font-weight:700;}
+
+.plan-mini{display:flex;justify-content:space-between;align-items:center;background:rgba(253,249,240,0.03);border-radius:14px;padding:14px 18px;}
+.plan-mini b{font-family:var(--display);font-size:1.3rem;font-weight:500;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="tb-logo">BAA OS <span style="color:var(--gold);">·</span> Parent View</div>
+  <a class="tb-back" href="student-os.html">← Student OS</a>
+</div>
+
+<div class="wrap">
+  <div class="eyebrow">Section D — Parent OS</div>
+  <div class="single-student-tag">🧪 Single-Student Private Testing</div>
+  <h1>How <span id="studentNameHeading">your child</span> is doing</h1>
+  <p class="sub">Everything here is read directly from real BAA Assessment, Learning Memory, Learning Intelligence, and Planner data on this device — nothing here is invented or estimated.</p>
+
+  <div class="scope-banner">
+    <span>🔒</span>
+    <div><b>What this is, honestly:</b> this is one student's real learning data on this browser, during private testing. There are no other students, no class averages, and no comparisons to anyone else — those don't exist in this build and never will be faked to look like they do.</div>
+  </div>
+
+  <div id="content">Loading…</div>
+</div>
+
+<script src="js/question-bank.js"></script>
+<script src="js/baa-assessment.js"></script>
+<script src="js/baa-intelligence.js"></script>
+<script src="js/baa-planner.js"></script>
+<script>
+function esc(s){ const d=document.createElement('div'); d.textContent = String(s ?? ''); return d.innerHTML; }
+function fmtDate(iso){ try{ return new Date(iso).toLocaleDateString(undefined,{month:'short',day:'numeric'}); }catch{ return ''; } }
+const TREND_LABEL = { improving:'Improving', declining:'Needs attention', stable:'Steady', insufficient_evidence:'Too early to tell' };
+const TREND_CLASS = { improving:'trend-improving', declining:'trend-declining', stable:'trend-stable', insufficient_evidence:'trend-stable' };
+
+// A short, honest, plain-language "try asking" suggestion built from the SAME
+// real fields the Mistake Archeology / Learning Intelligence tabs use — this
+// is generated phrasing around real data, never a fabricated stat.
+function homeSupportSuggestion(weak){
+  const topic = weak.conceptLabel;
+  return `Try asking: "Can you show me how you solved one ${topic} question today?" Listening to them explain it out loud often reveals more than a right/wrong answer does.`;
+}
+
+function findPracticeLink(concept){
+  if (typeof BAAAssessmentCatalog === 'undefined') return null;
+  for (const a of BAAAssessmentCatalog){
+    if (a.questionIds.some(qid => { const q = BAAGetQuestion(qid); return q && q.concept === concept; })) {
+      return `assessment.html?start=${encodeURIComponent(a.id)}`;
+    }
+  }
+  return null;
+}
+
+function render(){
+  const name = BAAAssessment.getStudentName();
+  document.getElementById('studentNameHeading').textContent = name;
+
+  const summary = BAAIntelligence.getLearningSummary();
+  const attempts = BAAAssessment.getAttemptHistory().slice(0, 5);
+  const plan = BAAPlanner.getDailyPlan();
+  const c = document.getElementById('content');
+
+  if (!summary.hasAnyEvidence){
+    c.innerHTML = `<div class="card"><div class="empty-note">${esc(name)} hasn't completed any BAA assessments yet on this device — as soon as they do, real progress, strengths, and suggestions will appear here. Nothing is shown early or guessed at.</div></div>`;
+    return;
+  }
+
+  const total = summary.mastered.length + summary.strong.length + summary.learning.length
+    + summary.needsRevision.length + summary.struggling.length + summary.insufficientEvidence.length;
+
+  let html = '';
+
+  // ---- Progress overview ----
+  html += `<h2 class="section-h">📊 Progress overview</h2><div class="card"><div class="progress-strip">`
+    + `<div class="pstat"><b>${summary.mastered.length + summary.strong.length}</b><span>Strong</span></div>`
+    + `<div class="pstat"><b>${summary.learning.length}</b><span>Learning</span></div>`
+    + `<div class="pstat"><b>${summary.needsRevision.length + summary.struggling.length}</b><span>Needs Attention</span></div>`
+    + `<div class="pstat"><b>${total}</b><span>Concepts Tracked</span></div>`
+    + `</div></div>`;
+
+  // ---- Strengths ----
+  html += `<h2 class="section-h">🟢 Strengths</h2><div class="card">`;
+  const strengths = [...summary.mastered, ...summary.strong];
+  if (strengths.length === 0){
+    html += `<div class="empty-note">No concept has enough evidence to call a strength yet — this needs at least a few assessments on the same topic.</div>`;
+  } else {
+    for (const s of strengths){
+      html += `<div class="concept-row"><span class="cr-icon">${s.stateIcon}</span><div class="cr-main"><h4>${esc(s.conceptLabel)}</h4><p>${esc(s.why)}</p></div><span class="trend-badge ${TREND_CLASS[s.trend]}">${TREND_LABEL[s.trend]}</span></div>`;
+    }
+  }
+  html += `</div>`;
+
+  // ---- Areas needing attention + home-support suggestions ----
+  html += `<h2 class="section-h">🟠 Areas needing attention</h2>`;
+  const weak = [...summary.struggling, ...summary.needsRevision];
+  if (weak.length === 0){
+    html += `<div class="card"><div class="empty-note">Nothing flagged right now — that's a genuinely good sign, not a placeholder.</div></div>`;
+  } else {
+    for (const w of weak){
+      const link = findPracticeLink(w.concept);
+      html += `<div class="suggestion-card"><div class="concept-row" style="border:none;padding:0 0 8px;"><span class="cr-icon">${w.stateIcon}</span><div class="cr-main"><h4>${esc(w.conceptLabel)}</h4><p>${esc(w.why)}</p></div>`
+        + `<span class="trend-badge ${TREND_CLASS[w.trend]}">${TREND_LABEL[w.trend]}</span></div>`
+        + `<div class="sc-try">💬 ${esc(homeSupportSuggestion(w))}</div>`
+        + (link ? `<a href="${link}" style="font-size:.78rem;color:var(--cyan);display:inline-block;margin-top:8px;">Open a matching practice assessment →</a>` : '')
+        + `</div>`;
+    }
+  }
+
+  // ---- Recurring mistake patterns (Mistake Archeology, parent-friendly framing) ----
+  const mistakes = BAAIntelligence.getMistakeIntelligence().filter(m => m.status === 'possible_misconception');
+  if (mistakes.length){
+    html += `<h2 class="section-h">🧩 Patterns worth a closer look</h2><div class="card">`;
+    for (const m of mistakes){
+      html += `<div class="concept-row"><div class="cr-main"><h4>${esc(m.conceptLabel)}</h4><p>A "${esc(m.errorLabel)}" pattern has shown up ${m.occurrences.length} times in ${esc(m.conceptLabel)}. ${m.improving === 'improving' ? "It hasn't come up recently — looking better." : m.improving === 'not_improving' ? "It's still showing up in recent work." : ''}</p></div></div>`;
+    }
+    html += `</div>`;
+  }
+
+  // ---- Assessment results ----
+  html += `<h2 class="section-h">📝 Recent assessment results</h2><div class="card">`;
+  if (attempts.length === 0){
+    html += `<div class="empty-note">No completed assessments yet.</div>`;
+  } else {
+    for (const a of attempts){
+      const s = BAAAssessment.summarizeAttempt(a);
+      html += `<div class="attempt-row"><span>${esc(a.assessmentTitle || 'Assessment')} <span style="color:var(--faint);">· ${fmtDate(a.startTime)}</span></span><span class="a-pct">${s.percentage !== null ? s.percentage + '%' : '—'}</span></div>`;
+    }
+  }
+  html += `</div>`;
+
+  // ---- Planner summary ----
+  html += `<h2 class="section-h">🗓️ Today's plan</h2><div class="card">`;
+  if (!plan.hasAnyEvidence || plan.tasks.length === 0){
+    html += `<div class="empty-note">No plan generated yet — this fills in once there's assessment evidence to plan around.</div>`;
+  } else {
+    html += `<div class="plan-mini"><span>${plan.tasks.filter(t=>t.status==='pending').length} task(s) planned today</span><b>${plan.minutesPlanned} min</b></div>`;
+    html += `<div style="margin-top:10px;">`;
+    for (const t of plan.tasks.slice(0,5)){
+      html += `<div class="concept-row"><div class="cr-main"><h4 style="text-transform:none;">${esc(t.title)}</h4><p>${esc((t.reasons||[]).join(' '))}</p></div><span class="trend-badge trend-stable">${esc(t.status)}</span></div>`;
+    }
+    html += `</div>`;
+  }
+  html += `</div>`;
+
+  c.innerHTML = html;
+}
+
+render();
+</script>
+</body>
+</html>
