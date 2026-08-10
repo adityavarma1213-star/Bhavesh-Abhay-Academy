@@ -105,6 +105,9 @@ h2.section-h a.mini-link{font-size:.75rem;font-weight:400;color:var(--cyan);}
 
 <script src="js/question-bank.js"></script>
 <script src="js/baa-assessment.js"></script>
+<script src="js/baa-teacher-recommendation.js"></script>
+<script src="js/baa-teacher-analytics.js"></script>
+<script src="js/baa-notes-generator.js"></script>
 <script src="js/baa-intelligence.js"></script>
 <script src="js/baa-planner.js"></script>
 <script>
@@ -179,6 +182,26 @@ function render(){
   }
   html += `</div>`;
 
+  // ---- Teacher Analytics (Module 17) ----
+  if(typeof BAATeacherAnalytics!=='undefined'){
+    const analytics=BAATeacherAnalytics.getCurrentTeacherAnalytics();
+    html += `<h2 class="section-h">📊 Teacher analytics</h2><div class="card">`;
+    html += analytics.concepts.length
+      ? analytics.concepts.map(c=>`<div class="attempt-row"><span><b>${esc(c.concept.replace(/-/g,' '))}</b><br><small>${esc(c.subject||'Unknown')} · ${c.correct}/${c.total} correct</small></span><span class="a-pct">${c.accuracy===null?'—':c.accuracy+'%'}</span></div>`).join('')
+      : `<div class="empty-note">No concept-level evidence exists yet.</div>`;
+    html += `<div class="empty-note">Current scope: single-student private testing. Class-wide heatmaps require real multi-student records; none are fabricated here.</div></div>`;
+  }
+
+  // ---- Teacher Recommendation System (Module 16) ----
+  if(typeof BAATeacherRecommendation!=='undefined'){
+    const recs=BAATeacherRecommendation.getRecommendations();
+    html += `<h2 class="section-h">🎯 Teacher recommendations</h2><div class="card">`;
+    html += recs.length
+      ? recs.map(r=>`<div class="attempt-row"><span><b>${esc(r.assignmentType.replace(/_/g,' '))}</b> · ${esc(r.concept.replace(/-/g,' '))}<br><small>${esc(r.reason)}</small></span><span class="a-pct">${esc(r.priority)}</span></div>`).join('')
+      : `<div class="empty-note">No evidence-based teacher recommendation is currently generated.</div>`;
+    html += `<div class="empty-note">Recommendations are suggestions only. A teacher reviews and decides whether to assign them.</div></div>`;
+  }
+
   // ---- Assessment history ----
   html += `<h2 class="section-h">📝 Assessment history</h2><div class="card">`;
   if (attempts.length === 0){
@@ -238,6 +261,16 @@ function render(){
 
 render();
 renderNotes();
+
+function generateNoteDraft(){
+  const box=document.getElementById('generatedNoteDraft');
+  if(!box||typeof BAANotesGenerator==='undefined')return;
+  const result=BAANotesGenerator.buildDraft();
+  box.style.display='block';
+  box.textContent=result.draft || 'Unable to create a factual note draft.';
+}
+const generateBtn=document.getElementById('generateNoteBtn');
+if(generateBtn) generateBtn.addEventListener('click',generateNoteDraft);
 </script>
 
 <!-- ---- Teacher notes (Section D — new, additive, single-device) ---- -->
@@ -245,6 +278,10 @@ renderNotes();
   <h2 class="section-h">🗒️ Teacher notes</h2>
   <div class="card">
     <div class="notes-list" id="notesList"></div>
+    <div class="note-form" style="margin-bottom:10px;">
+      <button class="btn-add" id="generateNoteBtn" type="button">✨ Generate factual note draft</button>
+    </div>
+    <div id="generatedNoteDraft" class="empty-note" style="display:none;text-align:left;padding:12px 14px;margin-bottom:10px;"></div>
     <div class="note-form">
       <input type="text" id="noteInput" class="note-input" placeholder="Add a private note about this learner…" maxlength="500" onkeydown="if(event.key==='Enter')addNote();">
       <button class="btn-add" onclick="addNote();">Add note</button>

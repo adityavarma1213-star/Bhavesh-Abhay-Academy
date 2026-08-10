@@ -421,6 +421,235 @@ a{color:inherit;text-decoration:none;}
 .chat-char-count{font-size:.7rem;color:rgba(253,249,240,0.4);text-align:right;padding:0 20px 8px;}
 .chat-char-count.warn{color:#ffb84c;}
 
+/* ================= AI MENTOR CHAT (Module 5) ================= */
+const MENTOR_HISTORY_KEY = 'baaOsMentorHistory';
+const MENTOR_HISTORY_SCHEMA_VERSION = 1;
+const MENTOR_MAX_MESSAGES = 20;
+let mentorHistory = loadMentorHistory();
+let mentorInFlight = false;
+
+function loadMentorHistory(){
+  try{
+    const raw=localStorage.getItem(MENTOR_HISTORY_KEY);
+    if(!raw) return [];
+    const parsed=JSON.parse(raw);
+    const messages=Array.isArray(parsed) ? parsed : (
+      parsed && parsed.schemaVersion===MENTOR_HISTORY_SCHEMA_VERSION && Array.isArray(parsed.messages)
+        ? parsed.messages : []
+    );
+    return messages
+      .filter(m=>m && (m.role==='user'||m.role==='assistant') && typeof m.content==='string')
+      .slice(-MENTOR_MAX_MESSAGES)
+      .map(m=>({role:m.role,content:m.content.slice(0,MAX_CHAT_CHARS)}));
+  }catch{
+    return [];
+  }
+}
+
+function saveMentorHistory(){
+  try{
+    localStorage.setItem(MENTOR_HISTORY_KEY,JSON.stringify({
+      schemaVersion:MENTOR_HISTORY_SCHEMA_VERSION,
+      messages:mentorHistory.slice(-MENTOR_MAX_MESSAGES)
+    }));
+    return {ok:true};
+  }catch{
+    const a=document.getElementById('mentorLiveAnnouncer');
+    if(a) a.textContent='Mentor conversation is available for this session, but could not be saved on this device.';
+    return {ok:false,code:'MENTOR_HISTORY_STORAGE_FAILED'};
+  }
+}
+
+function renderMentorHistory(){
+  const log=document.getElementById('mentorChatLog');
+  if(!log) return;
+  log.replaceChildren();
+  if(!mentorHistory.length){
+    const welcome=document.createElement('div');
+    welcome.className='msg ai';
+    welcome.textContent="Hi! I'm your BAA AI Mentor. Tell me what you're working toward, what's getting in the way, or what you want to do next.";
+    log.appendChild(welcome);
+    return;
+  }
+  mentorHistory.forEach(m=>{
+    const bubble=document.createElement('div');
+    bubble.className=`msg ${m.role==='user'?'me':'ai'}`;
+    if(m.role==='assistant'){
+      const rendered=renderMarkdown(m.content);
+      bubble.append(...Array.from(rendered.childNodes));
+      renderMathIn(bubble);
+    }else{
+      bubble.textContent=m.content;
+    }
+    log.appendChild(bubble);
+  });
+  log.scrollTop=log.scrollHeight;
+}
+
+function clearMentorConversation(){
+  if(!window.confirm('Clear this saved Mentor conversation?')) return;
+  mentorHistory=[];
+  saveMentorHistory();
+  renderMentorHistory();
+  const a=document.getElementById('mentorLiveAnnouncer');
+  if(a) a.textContent='Mentor conversation cleared.';
+}
+
+function updateMentorCharCount(){
+  const input=document.getElementById('mentorChatInput');
+  const counter=document.getElementById('mentorCharCount');
+  if(!input||!counter) return;
+  const remaining=MAX_CHAT_CHARS-input.value.length;
+  counter.textContent=input.value.length ? `${remaining} characters left` : '';
+  counter.classList.toggle('warn',remaining<100);
+}
+
+function mentorChip(text){
+  const input=document.getElementById('mentorChatInput');
+  if(!input) return;
+  input.value=text;
+  updateMentorCharCount();
+  sendMentorChat();
+}
+
+function appendMentorMessage(role,text){
+  const log=document.getElementById('mentorChatLog');
+  if(!log) return;
+  const bubble=document.createElement('div');
+  bubble.className=`msg ${role==='user'?'me':'ai'}`;
+  if(role==='assistant'){
+    const rendered=renderMarkdown(text);
+    bubble.append(...Array.from(rendered.childNodes));
+    renderMathIn(bubble);
+  }else{
+    bubble.textContent=text;
+  }
+  log.appendChild(bubble);
+  log.scrollTop=log.scrollHeight;
+}
+
+async function sendMentorChat(overrideText){
+  if(typeof BAAParentApproval!=='undefined' && !BAAParentApproval.canUse('ai_mentor')){ appendMentorMessage('assistant','AI Mentor is currently disabled by Parent Approval Mode.'); return; }
+  if(mentorInFlight) return;
+  const input=document.getElementById('mentorChatInput');
+  if(!input) return;
+  const text=(overrideText!==undefined?overrideText:input.value).trim();
+  if(!text) return;
+  if(text.length>MAX_CHAT_CHARS){
+    appendMentorMessage('assistant',`Please keep your message under ${MAX_CHAT_CHARS} characters.`);
+    return;
+  }
+
+  if(overrideText===undefined){
+    appendMentorMessage('user',text);
+    input.value='';
+    updateMentorCharCount();
+  }
+
+  mentorHistory.push({role:'user',content:text});
+  if(mentorHistory.length>MENTOR_MAX_MESSAGES) mentorHistory=mentorHistory.slice(-MENTOR_MAX_MESSAGES);
+  saveMentorHistory();
+
+  const log=document.getElementById('mentorChatLog');
+  const typing=document.createElement('div');
+  typing.className='msg ai typing';
+  typing.innerHTML='<span></span><span></span><span></span>';
+  log.appendChild(typing);
+  log.scrollTop=log.scrollHeight;
+
+  mentorInFlight=true;
+  input.disabled=true;
+  document.getElementById('mentorChatSendBtn').disabled=true;
+
+  let aiBubble=null;
+  let accumulated='';
+  try{
+    const learningContext=(typeof BAAAssessment!=='undefined')
+      ? BAAAssessment.getLearningContextForTutor() : null;
+
+    const response=await fetch(CHAT_API_URL,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        mode:'mentor',
+        studentName:'Bhavesh',
+        messages:mentorHistory.slice(-MENTOR_MAX_MESSAGES),
+        learningContext:learningContext||undefined
+      })
+    });
+
+    if(!response.ok){
+      let detail='';
+      try{const body=await response.json();detail=body.error||'';}catch{}
+      throw new Error(detail||`Mentor request failed (${response.status})`);
+    }
+    if(!response.body) throw new Error('Mentor streaming is unavailable right now.');
+
+    typing.remove();
+    aiBubble=document.createElement('div');
+    aiBubble.className='msg ai';
+    log.appendChild(aiBubble);
+
+    const reader=response.body.getReader();
+    const decoder=new TextDecoder();
+    let buffer='';
+
+    function processMentorSSE(evt){
+      const dataLines=String(evt||'').split('\n').filter(line=>line.startsWith('data:'));
+      if(!dataLines.length) return;
+      const jsonStr=dataLines.map(line=>line.slice(5).trim()).join('\n').trim();
+      if(!jsonStr||jsonStr==='[DONE]') return;
+
+      let parsed;
+      try{parsed=JSON.parse(jsonStr);}catch{return;}
+      if(parsed.error) throw new Error(parsed.error.message||'Mentor stream interrupted.');
+      const blockReason=parsed.promptFeedback&&parsed.promptFeedback.blockReason;
+      if(blockReason) throw new Error('I cannot help with that request, but I can help with an academic next step.');
+      const candidate=parsed.candidates&&parsed.candidates[0];
+      if(candidate&&candidate.finishReason==='SAFETY'){
+        throw new Error('I cannot help with that request, but I can help with an academic next step.');
+      }
+      const part=candidate&&candidate.content&&candidate.content.parts
+        ? candidate.content.parts.map(x=>typeof x.text==='string'?x.text:'').join('') : '';
+      if(part){
+        accumulated+=part;
+        const rendered=renderMarkdown(accumulated);
+        aiBubble.replaceChildren(...Array.from(rendered.childNodes));
+        renderMathIn(aiBubble);
+        log.scrollTop=log.scrollHeight;
+      }
+    }
+
+    while(true){
+      const {value,done}=await reader.read();
+      if(done) break;
+      buffer+=decoder.decode(value,{stream:true});
+      const events=buffer.split('\n\n');
+      buffer=events.pop()||'';
+      for(const evt of events) processMentorSSE(evt);
+    }
+    buffer+=decoder.decode();
+    if(buffer.trim()) processMentorSSE(buffer);
+
+    if(accumulated.trim()){
+      mentorHistory.push({role:'assistant',content:accumulated});
+      if(mentorHistory.length>MENTOR_MAX_MESSAGES) mentorHistory=mentorHistory.slice(-MENTOR_MAX_MESSAGES);
+      saveMentorHistory();
+    }else{
+      throw new Error('The Mentor returned no usable response.');
+    }
+  }catch(err){
+    if(typing.isConnected) typing.remove();
+    if(aiBubble && !accumulated) aiBubble.remove();
+    appendMentorMessage('assistant',err&&err.message?err.message:'Mentor is unavailable right now. Please try again.');
+  }finally{
+    mentorInFlight=false;
+    input.disabled=false;
+    document.getElementById('mentorChatSendBtn').disabled=false;
+    input.focus();
+  }
+}
+
 /* ================= TUTOR ACTIONS (Section A: guided teaching moves) ================= */
 .tutor-actions-label{font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin:18px 0 10px;}
 .tutor-actions{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px;}
@@ -457,6 +686,15 @@ a{color:inherit;text-decoration:none;}
 .pf-empty .pe-icon{font-size:2rem;margin-bottom:14px;opacity:.6;}
 .pf-empty p{max-width:40ch;font-size:.86rem;line-height:1.6;}
 
+
+.confidence-meter-card{margin:0 0 14px;padding:18px;border:1px solid rgba(255,255,255,.10);border-radius:16px;background:rgba(255,255,255,.035);}
+.confidence-meter-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;}
+.confidence-meter-title{font-size:1rem;font-weight:700;}
+.confidence-meter-band{font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em;padding:5px 9px;border-radius:999px;}
+.confidence-meter-track{height:9px;border-radius:999px;background:rgba(255,255,255,.09);overflow:hidden;}
+.confidence-meter-fill{height:100%;border-radius:999px;transition:width .25s ease;}
+.confidence-meter-copy{margin:10px 0 0;font-size:.82rem;line-height:1.5;color:rgba(253,249,240,.72);}
+.confidence-meter-meta{margin-top:8px;font-size:.72rem;color:rgba(253,249,240,.45);}
 .confidence-tag{display:inline-flex;align-items:center;gap:6px;font-size:.7rem;font-weight:700;letter-spacing:.04em;padding:4px 11px;border-radius:100px;text-transform:uppercase;}
 .ct-building{background:rgba(253,249,240,0.08);color:var(--faint);}
 .ct-checking{background:rgba(245,185,66,0.14);color:var(--gold);}
@@ -484,6 +722,32 @@ a{color:inherit;text-decoration:none;}
 .theme-planner{background:radial-gradient(ellipse 1200px 900px at 50% 10%,#132018,#0a1810 70%);}
 .theme-planner .world-eyebrow{color:var(--emerald);}
 .theme-planner .world-title em{background:linear-gradient(90deg,var(--emerald),var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent;}
+
+.ai-mode-card{margin:14px 0 18px;padding:16px;border:1px solid rgba(124,92,252,.25);border-radius:16px;background:rgba(124,92,252,.055);}
+.ai-mode-card h3{margin:0 0 6px;font-size:.98rem;}
+.ai-mode-copy{margin:0 0 12px;font-size:.8rem;line-height:1.5;color:var(--dim);}
+.ai-mode-actions{display:flex;gap:8px;flex-wrap:wrap;}
+.ai-mode-goal{flex:1;min-width:200px;}
+.ai-mode-summary{font-size:.84rem;line-height:1.5;margin:14px 0 8px;}
+.ai-mode-plan-list{margin:8px 0 0;padding-left:22px;}
+.ai-mode-plan-list li{padding:7px 0;color:var(--dim);font-size:.82rem;}
+.ai-mode-plan-list strong{color:var(--warmwhite);}
+.ai-mode-reason{font-size:.74rem;color:var(--faint);margin-top:3px;line-height:1.4;}
+.ai-mode-bound{margin-top:10px;font-size:.7rem;color:var(--faint);}
+.ai-mode-error{margin-top:12px;padding:10px 12px;border-radius:10px;background:rgba(239,68,68,.08);color:#fecaca;font-size:.8rem;}
+.custom-mode-card{margin:0 0 18px;padding:16px;border:1px solid rgba(52,211,153,.22);border-radius:16px;background:rgba(52,211,153,.045);}
+.custom-mode-card h3{margin:0 0 6px;font-size:.98rem;}
+.custom-mode-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.custom-mode-minutes{width:100px;}
+.custom-mode-step{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;margin-top:10px;padding:12px;border:1px solid rgba(253,249,240,.1);border-radius:12px;background:rgba(253,249,240,.035);}
+.custom-mode-step.completed{opacity:.65;}
+.custom-mode-step-main{min-width:0;flex:1;}
+.custom-mode-step-title{font-size:.84rem;color:var(--warmwhite);}
+.custom-mode-step.completed .custom-mode-step-title{text-decoration:line-through;}
+.custom-mode-step-meta{font-size:.7rem;color:var(--faint);margin-top:4px;}
+.custom-mode-step-actions{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;}
+.custom-mode-empty{font-size:.8rem;color:var(--faint);margin-top:10px;}
+
 .planner-row{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:18px;}
 .planner-time-btn{background:rgba(253,249,240,0.05);border:1px solid rgba(253,249,240,0.14);color:var(--dim);padding:9px 16px;border-radius:100px;font-size:.82rem;transition:.2s;}
 .planner-time-btn.active{background:rgba(52,211,153,0.16);border-color:rgba(52,211,153,0.5);color:var(--emerald);font-weight:600;}
@@ -686,6 +950,15 @@ a{color:inherit;text-decoration:none;}
           <span class="t-arrow">Walk it →</span>
         </div>
       </div>
+      <div class="world-tile wt-profile" role="button" tabindex="0" onclick="openWorld('guardian')">
+        <div class="t-bg"></div>
+        <div class="t-content">
+          <div class="t-icon">🛡️</div>
+          <h3>AI Guardian</h3>
+          <p>Evidence-based early support when your academic signals need attention.</p>
+          <span class="t-arrow">Check →</span>
+        </div>
+      </div>
       <div class="world-tile wt-profile" role="button" tabindex="0" onclick="openWorld('profile')">
         <div class="t-bg"></div>
         <div class="t-content">
@@ -702,6 +975,15 @@ a{color:inherit;text-decoration:none;}
           <h3>Assessments</h3>
           <p>Topic tests, mock tests, and quizzes — graded and reviewed for real.</p>
           <span class="t-arrow">Start →</span>
+        </div>
+      </div>
+      <div class="world-tile wt-lab" role="link" tabindex="0" onclick="window.location.href='homework-scanner.html'">
+        <div class="t-bg"></div>
+        <div class="t-content">
+          <div class="t-icon">🧾</div>
+          <h3>Homework Scanner</h3>
+          <p>Paste your homework text and save it — foundation checkpoint, AI grading coming soon.</p>
+          <span class="t-arrow">Open →</span>
         </div>
       </div>
       <div class="world-tile wt-profile" role="button" tabindex="0" onclick="openWorld('planner')">
@@ -740,6 +1022,12 @@ a{color:inherit;text-decoration:none;}
         <h3>Continue with your AI Tutor</h3>
         <p>Pick up where you left off, or ask about anything you're stuck on right now.</p>
         <div class="ns-arrow">Continue →</div>
+      </div>
+      <div class="next-step-card" role="button" tabindex="0" onclick="openWorld('mentor')">
+        <span class="ns-icon">🧭</span>
+        <h3>Talk to your AI Mentor</h3>
+        <p>Get academic guidance, motivation, and one realistic next step based on your learning evidence.</p>
+        <div class="ns-arrow">Talk →</div>
       </div>
       <div class="next-step-card" role="button" tabindex="0" onclick="openWorld('profile')">
         <span class="ns-icon">🧠</span>
@@ -784,6 +1072,20 @@ a{color:inherit;text-decoration:none;}
       <div id="chatLiveAnnouncer" class="chat-sr-only" aria-live="polite" aria-atomic="true"></div>
       <div class="chat-char-count" id="chatCharCount"></div>
       <div id="chatCharStatus" class="chat-sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+      <div class="chat-mode-row" style="display:flex;gap:8px;align-items:center;padding:0 20px 8px;flex-wrap:wrap;">
+        <label for="responseLanguage" style="font-size:.78rem;color:var(--faint);">Language:</label>
+        <select id="responseLanguage" aria-label="Choose response language" onchange="saveResponseLanguage(this.value)"></select>
+        <label for="explainLikeMode" style="font-size:.78rem;color:var(--faint);">Explain like:</label>
+        <select id="explainLikeMode" aria-label="Choose an Explain Like mode" onchange="saveExplainLikePreference(this.value)">
+          <option value="default">Normal Tutor</option>
+          <option value="child">A 10-year-old</option>
+          <option value="story">A story</option>
+          <option value="everyday">Everyday life</option>
+          <option value="exam">Exam-focused</option>
+          <option value="visual">A visual analogy</option>
+        </select>
+        <span style="font-size:.68rem;color:rgba(253,249,240,.45);">You control the explanation style.</span>
+      </div>
       <div class="chat-input-row">
         <button class="image-upload-btn" id="imageUploadBtn" type="button" title="Upload a photo of your worksheet, diagram, or notes" aria-label="Upload an image">📷</button>
         <input type="file" id="imageFileInput" accept="image/png,image/jpeg,image/webp" style="display:none">
@@ -813,6 +1115,10 @@ a{color:inherit;text-decoration:none;}
       <div class="chip" role="button" tabindex="0" onclick="askChip('Give me a fun fact about ISRO missions')">Fun ISRO fact</div>
       <div class="chip" role="button" tabindex="0" onclick="askChip('Quiz me with one quick question on fractions')">Quick fractions quiz</div>
       <div class="chip" role="button" tabindex="0" onclick="resetChat()">🔄 New conversation</div>
+       <button class="chip" id="clearTutorConversationBtn" type="button">Clear saved conversation</button>
+       <button class="chip" id="exportTutorConversationBtn" type="button">Export conversation</button>
+       <button class="chip" id="importTutorConversationBtn" type="button">Import conversation</button>
+       <input type="file" id="importTutorConversationInput" accept="application/json" hidden>
     </div>
 
     <div class="tutor-actions-label">While you're working through something</div>
@@ -828,6 +1134,49 @@ a{color:inherit;text-decoration:none;}
       <button class="tutor-action" onclick="tutorAction('retest')"><span class="ta-icon">🔁</span>Re-test me</button>
       <button class="tutor-action ta-quiet" onclick="openWorld('profile')"><span class="ta-icon">🧠</span>My mastery / progress</button>
     </div>
+  </div>
+</div>
+
+<!-- ============ WORLD: AI MENTOR CHAT (Module 5) ============ -->
+<div class="world-overlay theme-tutor" id="world-mentor">
+  <div class="world-close" role="button" tabindex="0" aria-label="Close AI Mentor" onclick="closeWorld('mentor')">✕</div>
+  <div class="world-inner">
+    <div class="world-eyebrow">Guidance grounded in your learning evidence</div>
+    <h1 class="world-title">Your AI <em>Mentor</em></h1>
+    <p class="world-sub">A focused academic guide for motivation, reflection, goals, and your next realistic step.</p>
+    <div class="chat-shell">
+      <div class="chat-log" id="mentorChatLog" aria-live="polite" aria-atomic="false" aria-relevant="additions">
+        <div class="msg ai">Hi! I'm your BAA AI Mentor. Tell me what you're working toward, what's getting in the way, or what you want to do next.</div>
+      </div>
+      <div id="mentorLiveAnnouncer" class="chat-sr-only" aria-live="polite" aria-atomic="true"></div>
+      <div class="chat-char-count" id="mentorCharCount"></div>
+      <div class="chat-input-row">
+        <input id="mentorChatInput" type="text" maxlength="1000"
+          placeholder="Ask your AI Mentor for guidance…"
+          aria-label="Ask your AI Mentor for academic guidance"
+          oninput="updateMentorCharCount()"
+          onkeydown="if(event.key==='Enter')sendMentorChat()">
+        <button class="chat-send" id="mentorChatSendBtn" onclick="sendMentorChat()">➤</button>
+      </div>
+    </div>
+    <div class="chat-suggest">
+      <div class="chip" role="button" tabindex="0" onclick="mentorChip('What should I focus on next based on my learning progress?')">What next?</div>
+      <div class="chip" role="button" tabindex="0" onclick="mentorChip('I am losing motivation. Help me choose one small academic step.')">I need motivation</div>
+      <div class="chip" role="button" tabindex="0" onclick="mentorChip('Help me set one realistic goal for today.')">Set today's goal</div>
+      <div class="chip" role="button" tabindex="0" onclick="mentorChip('Help me think about my strengths and what I should improve.')">My strengths & gaps</div>
+      <div class="chip" role="button" tabindex="0" onclick="clearMentorConversation()">Clear conversation</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ WORLD: AI GUARDIAN (Module 12) ============ -->
+<div class="world-overlay theme-profile" id="world-guardian">
+  <div class="world-close" role="button" tabindex="0" aria-label="Close AI Guardian" onclick="closeWorld('guardian')">✕</div>
+  <div class="world-inner">
+    <div class="world-eyebrow">Academic early support</div>
+    <h1 class="world-title">Your AI <em>Guardian</em></h1>
+    <p class="world-sub">BAA checks academic evidence for signals that may deserve extra support. It does not diagnose you or make assumptions about your personal life.</p>
+    <div id="guardianSummaryPanel" class="pf-card" aria-live="polite"></div>
   </div>
 </div>
 
@@ -850,6 +1199,77 @@ a{color:inherit;text-decoration:none;}
       <div class="dev-state-banner">
         <span class="db-icon">🚧</span>
         <div><b>Built from real assessment evidence.</b> Your Learning Profile fills in as you complete <a href="assessment.html" style="color:var(--gold);text-decoration:underline;">Assessments</a> and work with the AI Tutor — there's nothing fabricated shown here. A concept needs at least 3 answered questions before BAA will say anything about it.</div>
+      </div>
+
+      <div id="revisionPanel" class="pf-card" style="margin-bottom:18px;">
+        <h2>🔁 Revision</h2><p class="concept-why">Revision timing is based on current evidence states.</p>
+      </div>
+      <section id="researchHub" class="pf-card" style="margin-bottom:18px;">
+        <h2>🧠 BAA Intelligence, Safety & Governance</h2>
+        <p class="concept-why">M51–M62 add pedagogy, evidence analysis, outcomes, safety, data trust, adaptive pacing, parent/teacher support, governance, humane design, controlled testing and council review.</p>
+        <div id="researchCards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;"></div>
+      </section>
+      <section id="expansionHub" class="pf-card" style="margin-bottom:18px;">
+        <h2>🚀 BAA Expansion</h2>
+        <p class="concept-why">M41–M50 provide low-bandwidth, integrity, opportunity, institutional and extension capabilities. External services are never presented as connected until configured.</p>
+        <div id="expansionCards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;"></div>
+      </section>
+      <section id="ecosystemHub" class="pf-card" style="margin-bottom:18px;">
+        <h2>🌐 BAA Ecosystem</h2>
+        <p class="concept-why">M32–M40 tools are evidence-backed. Capabilities that require a school server, authorized reviewer, or external curriculum source are clearly identified as local/prototype capabilities.</p>
+        <div id="ecosystemCards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;"></div>
+      </section>
+      <div id="rewardsPanel" class="pf-card" style="margin-bottom:18px;">
+        <h2>🏆 Achievements & Rewards</h2>
+        <p class="concept-why">XP and badges come from recorded BAA assessment activity. They are motivational rewards, not academic marks.</p>
+        <div id="rewardsSummary"></div>
+        <div id="rewardsBadges"></div>
+        <div id="rewardsMilestones"></div>
+      </div>
+      <div id="learningPathPanel" class="pf-card" style="margin-bottom:18px;">
+        <h2>🗺️ Learning Path</h2>
+        <p class="concept-why">A transparent node-by-node queue built from recorded BAA evidence. It does not invent syllabus prerequisites.</p>
+        <div id="learningPathList"></div>
+      </div>
+      <div id="resourcePanel" class="pf-card" style="margin-bottom:18px;">
+        <h2>📚 Learning Resources</h2>
+        <p class="concept-why">Recommendations are matched to recorded learning evidence and your selected format. They are not a diagnosis of a learning style.</p>
+        <div style="margin:10px 0;">
+          <label for="resourceFormat"><b>Preferred format</b></label>
+          <select id="resourceFormat" style="margin-left:8px;padding:6px;">
+            <option value="">No preference</option>
+            <option value="visual">Visual / diagram</option>
+            <option value="video">Video explanation</option>
+            <option value="interactive">Interactive exploration</option>
+            <option value="practice">Practice / worked examples</option>
+          </select>
+        </div>
+        <div id="resourceList"></div>
+      </div>
+      <div id="goalsPanel" class="pf-card" style="margin-bottom:18px;">
+        <h2>🎯 Goals</h2><p class="concept-why">Goals connect to real Planner and learning evidence.</p>
+      </div>
+      <div id="passportPanel" class="pf-card" style="margin-bottom:18px;">
+        <h2>🎓 Learning Passport</h2>
+        <p class="concept-why">Portable record of evidence-backed academic competencies. Local testing record — not an external credential.</p>
+        <button id="passportExportBtn" class="task-btn" type="button">Export passport JSON</button>
+      </div>
+      <div id="predictionPanel" class="pf-card" style="margin-bottom:18px;">
+        <h2>🔮 Academic Forecast</h2>
+        <p class="concept-why">Forecasts appear only when enough real evidence exists. They are estimates, not guarantees.</p>
+      </div>
+      <div id="pfAcademicProfileDynamic" class="pf-card" style="margin-bottom:18px;">
+        <h2>🧠 Academic Profile <span class="confidence-tag ct-building">Evidence-based</span></h2>
+        <div class="pf-empty"><span class="pe-icon">🌱</span><p>Your strengths, areas to improve, and learning habits will build from real completed assessments.</p></div>
+      </div>
+      <div id="pfConfidenceMeter" class="confidence-meter-card" aria-live="polite" aria-atomic="true">
+        <div class="confidence-meter-head">
+          <div class="confidence-meter-title">🎯 Confidence in BAA's learning picture</div>
+          <span id="pfConfidenceBand" class="confidence-meter-band ct-building">Checking evidence…</span>
+        </div>
+        <div class="confidence-meter-track" aria-hidden="true"><div id="pfConfidenceFill" class="confidence-meter-fill" style="width:0%;"></div></div>
+        <p id="pfConfidenceCopy" class="confidence-meter-copy">BAA will show a confidence band only when enough real evidence exists.</p>
+        <div id="pfConfidenceMeta" class="confidence-meter-meta">No evidence-based confidence claim yet.</div>
       </div>
       <div id="pfMasteryDynamic">
         <div class="pf-card">
@@ -940,6 +1360,51 @@ a{color:inherit;text-decoration:none;}
       <div><b>Private testing.</b> Plans and goals are stored only in this browser (local testing data), same as the rest of Section B. See Learning Profile for how concept states are decided.</div>
     </div>
 
+
+    <section class="ai-mode-card" aria-labelledby="aiModeTitle">
+      <h3 id="aiModeTitle">🤖 AI Mode — build my learning path</h3>
+      <p class="ai-mode-copy">AI Mode uses your saved goal, real learning evidence and available study time. It will not invent missing evidence.</p>
+      <div class="ai-mode-actions">
+        <input id="aiModeGoalInput" class="planner-input ai-mode-goal" maxlength="120"
+          placeholder="e.g. Improve fractions before my test"
+          aria-label="AI Mode learning goal">
+        <button id="aiModeGenerateBtn" class="task-btn primary" type="button">Build AI path</button>
+        <button id="aiModeAdaptBtn" class="task-btn" type="button">Adapt to latest evidence</button>
+        <button id="hybridModeBtn" class="task-btn" type="button">Create Hybrid Path</button>
+        <button id="hybridModeResetBtn" class="task-btn" type="button">Reset Hybrid Path</button>
+        <div id="hybridModeControls" class="task-subtext" aria-live="polite"></div>
+        <div id="hybridModePriority" class="task-subtext">
+          <label for="hybridPrioritySelect">Hybrid priority</label>
+          <select id="hybridPrioritySelect">
+            <option value="balanced">Balanced — you decide conflicts</option>
+            <option value="student">Student priority — your step wins</option>
+            <option value="ai">AI priority — AI step wins</option>
+          </select>
+        </div>
+        
+      </div>
+      <div id="aiModeResult" aria-live="polite" aria-atomic="true"></div>
+    </section>
+
+    <section class="custom-mode-card" aria-labelledby="customModeTitle">
+      <h3 id="customModeTitle">🧭 Custom Mode — I choose my learning path</h3>
+      <p class="ai-mode-copy">You control the order, task type and time. Custom Mode does not ask AI to reorder your choices or invent evidence.</p>
+      <div class="custom-mode-actions">
+        <input id="customModeTitleInput" class="planner-input" maxlength="120" placeholder="e.g. Practice linear equations" aria-label="Custom learning step title">
+        <input id="customModeMinutesInput" class="planner-input custom-mode-minutes" type="number" min="5" max="180" step="5" value="20" aria-label="Minutes for custom learning step">
+        <select id="customModeTypeInput" class="planner-input" aria-label="Custom learning step type">
+          <option value="learn">Learn</option>
+          <option value="practice">Practice</option>
+          <option value="review">Review</option>
+          <option value="assessment">Assessment</option>
+          <option value="tutor">AI Tutor</option>
+        </select>
+        <button id="customModeAddBtn" class="task-btn primary" type="button">Add step</button>
+        <button id="customModeClearBtn" class="task-btn" type="button">Clear path</button>
+      </div>
+      <div id="customModeResult" aria-live="polite"></div>
+      <div id="customModeList"></div>
+    </section>
     <div id="plannerMissedBanner"></div>
 
     <div class="section-label" style="margin-top:0;"><h2 style="font-size:1rem;">Available time today</h2></div>
@@ -965,11 +1430,24 @@ a{color:inherit;text-decoration:none;}
     </div>
     <div id="plannerUpcomingList" style="margin-bottom:6px;"></div>
 
+    <div class="section-label"><h2 style="font-size:1rem;">School calendar</h2></div>
+    <div class="planner-row">
+      <input id="calendarTitleInput" class="planner-input" maxlength="120" placeholder="e.g. Science exam">
+      <input id="calendarDateInput" class="planner-input" type="date">
+      <select id="calendarTypeInput" class="planner-input">
+        <option value="exam">Exam</option><option value="deadline">Deadline</option><option value="holiday">Holiday</option><option value="school_event">School event</option>
+      </select>
+      <button id="calendarAddBtn" class="task-btn primary" type="button">Add event</button>
+    </div>
+    <div id="calendarEventsList" class="planner-row"></div>
+
     <div class="section-label"><h2 style="font-size:1rem;">This week</h2></div>
     <div class="week-strip" id="plannerWeekStrip"></div>
 
     <div class="section-label"><h2 style="font-size:1rem;">Today's plan</h2></div>
     <div id="plannerDailyTasks"></div>
+    <div class="section-label"><h2 style="font-size:1rem;">This month</h2></div>
+    <div id="plannerMonthlyPlan"></div>
   </div>
 </div>
 
@@ -1059,18 +1537,12 @@ a{color:inherit;text-decoration:none;}
     <div class="world-eyebrow">Walking into your future</div>
     <h1 class="world-title">Student today. <em>Scientist tomorrow.</em></h1>
     <p class="world-sub">Every lesson you finish moves this path forward. Here's exactly where you stand.</p>
-    <p class="preview-note">Preview design — this path is illustrative and not yet derived from your real progress.</p>
-    <div class="career-path" id="careerPath">
-      <div class="c-stop done"><div class="c-eyebrow">Completed</div><h2>Foundations of Mathematics</h2><p>Built the number sense every scientist starts with.</p></div>
-      <div class="c-stop done"><div class="c-eyebrow">Completed</div><h2>Newtonian Physics Basics</h2><p>Understood the forces that put satellites in orbit.</p></div>
-      <div class="c-stop"><div class="c-eyebrow">In progress — 62%</div><h2>Algebra & Quadratic Systems</h2><p>The math behind trajectory and orbital calculations.</p></div>
-      <div class="c-stop"><div class="c-eyebrow">Up next</div><h2>Intro to Aerospace Concepts</h2><p>How rockets escape gravity — the real equations.</p></div>
-      <div class="c-stop"><div class="c-eyebrow">Locked</div><h2>ISRO Young Scientist Track</h2><p>Apply to BAA's mentorship pipeline with real ISRO alumni.</p></div>
-    </div>
-    <div class="career-final">
-      <div class="rocket">🚀</div>
-      <h2>ISRO Scientist</h2>
-      <p>Estimated 3.5 years along your current pace. Keep going. <span class="preview-tag">preview</span></p>
+    <div class="pf-card">
+      <h2>Choose an exploratory track</h2>
+      <select id="careerTrackSelect" class="planner-input">
+        <option>Space & Aerospace</option><option>Software Development</option><option>STEM Research</option><option>Data & AI</option>
+      </select>
+      <div id="careerPlanDynamic" style="margin-top:14px;"></div>
     </div>
   </div>
 </div>
@@ -1298,7 +1770,63 @@ function switchProfileTab(tab){
 const CHAT_API_URL = 'https://bhavesh-abhay-academy.vercel.app/api/chat';
 
 const MAX_CHAT_CHARS = 1000;
+
+const BAA_LANGUAGE_KEY='baaLanguagePreference';
+const BAA_LANGUAGE_SCHEMA_VERSION=1;
+const BAA_LANGUAGES=[
+  {code:'en',label:'English',locale:'en-IN'},
+  {code:'hi',label:'हिन्दी',locale:'hi-IN'},
+  {code:'mr',label:'मराठी',locale:'mr-IN'},
+  {code:'gu',label:'ગુજરાતી',locale:'gu-IN'},
+  {code:'bn',label:'বাংলা',locale:'bn-IN'},
+  {code:'ta',label:'தமிழ்',locale:'ta-IN'},
+  {code:'te',label:'తెలుగు',locale:'te-IN'},
+  {code:'kn',label:'ಕನ್ನಡ',locale:'kn-IN'}
+];
+function getBAALanguage(){
+  try{const p=JSON.parse(localStorage.getItem(BAA_LANGUAGE_KEY)||'null');
+    return p&&p.schemaVersion===BAA_LANGUAGE_SCHEMA_VERSION&&BAA_LANGUAGES.some(x=>x.code===p.code)?p.code:'en';
+  }catch(_){return 'en';}
+}
+function saveResponseLanguage(code){
+  const safe=BAA_LANGUAGES.some(x=>x.code===code)?code:'en';
+  try{localStorage.setItem(BAA_LANGUAGE_KEY,JSON.stringify({schemaVersion:1,code:safe,updatedAt:new Date().toISOString()}));}catch(_){}
+  return safe;
+}
+function getResponseLanguage(){
+  const s=document.getElementById('responseLanguage');
+  return saveResponseLanguage(s?s.value:getBAALanguage());
+}
+function populateResponseLanguages(){
+  const s=document.getElementById('responseLanguage'); if(!s)return;
+  if(!s.options.length)BAA_LANGUAGES.forEach(l=>{const o=document.createElement('option');o.value=l.code;o.textContent=l.label;s.appendChild(o);});
+  s.value=getBAALanguage();
+}
+const EXPLAIN_LIKE_KEY='baaExplainLikePreference';
+const EXPLAIN_LIKE_SCHEMA_VERSION=1;
+const EXPLAIN_LIKE_MODES=new Set(['default','child','story','everyday','exam','visual']);
+function loadExplainLikePreference(){
+  try{const p=JSON.parse(localStorage.getItem(EXPLAIN_LIKE_KEY)||'null');
+    return p&&p.schemaVersion===EXPLAIN_LIKE_SCHEMA_VERSION&&EXPLAIN_LIKE_MODES.has(p.mode)?p.mode:'default';
+  }catch(_){return 'default';}
+}
+function saveExplainLikePreference(mode){
+  const value=EXPLAIN_LIKE_MODES.has(mode)?mode:'default';
+  try{localStorage.setItem(EXPLAIN_LIKE_KEY,JSON.stringify({schemaVersion:1,mode:value,updatedAt:new Date().toISOString()}));}catch(_){}
+  return value;
+}
+function getExplainLikeMode(){
+  const s=document.getElementById('explainLikeMode');
+  return saveExplainLikePreference(s?s.value:loadExplainLikePreference());
+}
+function restoreExplainLikePreference(){
+  const s=document.getElementById('explainLikeMode'); if(s)s.value=loadExplainLikePreference();
+}
+
 const CHAT_HISTORY_KEY = 'baaOsChatHistory';
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{restoreExplainLikePreference();populateResponseLanguages();});else{restoreExplainLikePreference();populateResponseLanguages();}
+const CHAT_HISTORY_SCHEMA_VERSION = 1;
+const CHAT_HISTORY_MAX_EXPORT_CHARS = 100000;
 // Mirrors the backend's MAX_HISTORY_MESSAGES (api/chat.js). Kept as an explicit
 // constant here — rather than relying solely on the backend to trim — so we
 // never upload more bytes than Gemini will actually see, which matters a lot
@@ -1315,27 +1843,40 @@ let chatCharAnnounceTimer = null;          // debounce timer for the accessible 
 function loadChatHistory(){
   try{
     const raw = localStorage.getItem(CHAT_HISTORY_KEY);
-    return raw ? JSON.parse(raw) : [];
-  }catch{ return []; }
+    if(!raw) return [];
+    const parsed = JSON.parse(raw);
+    const messages = Array.isArray(parsed) ? parsed : (
+      parsed && parsed.schemaVersion === CHAT_HISTORY_SCHEMA_VERSION && Array.isArray(parsed.messages)
+        ? parsed.messages
+        : []
+    );
+    return messages
+      .filter(m => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
+      .slice(-MAX_OUTGOING_MESSAGES * 2)
+      .map(m => ({role:m.role, content:m.content.slice(0, MAX_CHAT_CHARS)}));
+  }catch{
+    return [];
+  }
 }
 function saveChatHistory(){
-  // Bound chatHistory itself in memory, not just the persisted copy. Previously
-  // only the localStorage copy was ever trimmed (to 40) — the live `chatHistory`
-  // array kept every message (including full base64 image blobs) for the whole
-  // session and was sent to the backend in full on every request. That unbounded
-  // growth was the actual cause of "conversation too long": once a session (made
-  // longer/easier by voice) passed the backend's old hard limit, every further
-  // request was rejected outright instead of being trimmed.
   if (chatHistory.length > MAX_OUTGOING_MESSAGES * 2){
     chatHistory = chatHistory.slice(-MAX_OUTGOING_MESSAGES * 2);
   }
-  // Image bytes are intentionally dropped before persisting — keeping them out of
-  // localStorage avoids quota issues and stale multi-MB blobs surviving reloads.
-  // The text of the turn (e.g. "What is this?") is kept as before.
   try{
-    const slim = chatHistory.slice(-40).map(m => ({role:m.role, content:m.content}));
-    localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(slim));
-  }catch{}
+    const slim = chatHistory.slice(-40).map(m => ({
+      role:m.role,
+      content:typeof m.content === 'string' ? m.content.slice(0, MAX_CHAT_CHARS) : ''
+    }));
+    const envelope = {
+      schemaVersion: CHAT_HISTORY_SCHEMA_VERSION,
+      messages: slim
+    };
+    localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(envelope));
+    return {ok:true};
+  }catch{
+    announceTutorStorageStatus('Conversation is available for this session, but could not be saved on this device.');
+    return {ok:false, code:'CHAT_HISTORY_STORAGE_FAILED'};
+  }
 }
 // Builds the array actually sent to the backend. Only sends the most recent
 // MAX_OUTGOING_MESSAGES turns (mirroring the backend's own trim window) so we
@@ -1358,11 +1899,136 @@ function buildOutgoingMessages(){
     image: (i === lastImageIdx && m.image) ? m.image : undefined,
   }));
 }
+function announceTutorStorageStatus(message){
+  const status = document.getElementById('chatLiveAnnouncer');
+  if(status) status.textContent = message;
+}
+
+function exportTutorConversation(){
+  const payload = {
+    schemaVersion: CHAT_HISTORY_SCHEMA_VERSION,
+    exportedAt: new Date().toISOString(),
+    messages: chatHistory.slice(-40).map(m => ({
+      role:m.role,
+      content:typeof m.content === 'string' ? m.content.slice(0, MAX_CHAT_CHARS) : ''
+    }))
+  };
+  const json = JSON.stringify(payload);
+  if(json.length > CHAT_HISTORY_MAX_EXPORT_CHARS){
+    announceTutorStorageStatus('This conversation is too large to export.');
+    return;
+  }
+  const blob = new Blob([json], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'baa-tutor-conversation.json';
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+  announceTutorStorageStatus('Conversation exported. Image data was not included.');
+}
+
+function importTutorConversationFile(file){
+  if(!file || file.type !== 'application/json'){
+    announceTutorStorageStatus('Please choose a JSON conversation export.');
+    return;
+  }
+  if(file.size > CHAT_HISTORY_MAX_EXPORT_CHARS){
+    announceTutorStorageStatus('That conversation file is too large.');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = () => {
+    try{
+      const parsed = JSON.parse(String(reader.result || ''));
+      const messages = parsed && parsed.schemaVersion === CHAT_HISTORY_SCHEMA_VERSION && Array.isArray(parsed.messages)
+        ? parsed.messages
+        : [];
+      const valid = messages
+        .filter(m => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
+        .slice(-MAX_OUTGOING_MESSAGES * 2)
+        .map(m => ({role:m.role, content:m.content.slice(0, MAX_CHAT_CHARS)}));
+      if(!valid.length && messages.length){
+        throw new Error('INVALID_CONVERSATION_SHAPE');
+      }
+      chatHistory = valid;
+      const saved = saveChatHistory();
+      renderPersistedChat();
+      announceTutorStorageStatus(saved.ok
+        ? `Imported ${valid.length} conversation message${valid.length === 1 ? '' : 's'}.`
+        : 'Conversation imported for this session, but could not be saved on this device.');
+    }catch{
+      announceTutorStorageStatus('That conversation file could not be imported.');
+    }
+  };
+  reader.readAsText(file);
+}
+
+function renderPersistedChat(){
+  const log = document.getElementById('chatLog');
+  if(!log) return;
+  log.replaceChildren();
+
+  if(chatHistory.length === 0){
+    const welcome = document.createElement('div');
+    welcome.className = 'msg ai';
+    welcome.textContent = 'Fresh start! What would you like to explore?';
+    log.appendChild(welcome);
+    return;
+  }
+
+  chatHistory.forEach(message => {
+    const bubble = document.createElement('div');
+    bubble.className = `msg ${message.role === 'user' ? 'me' : 'ai'}`;
+    if(message.role === 'assistant'){
+      const rendered = renderMarkdown(message.content);
+      bubble.append(...Array.from(rendered.childNodes));
+      renderMathIn(bubble);
+    }else{
+      bubble.textContent = message.content;
+    }
+    log.appendChild(bubble);
+  });
+  log.scrollTop = log.scrollHeight;
+}
+
 function resetChat(){
   chatHistory = [];
   saveChatHistory();
-  const log = document.getElementById('chatLog');
-  log.innerHTML = '<div class="msg ai">Fresh start! What would you like to explore?</div>';
+  renderPersistedChat();
+}
+
+function initTutorConversationControls(){
+  const clearBtn = document.getElementById('clearTutorConversationBtn');
+  if(clearBtn){
+    clearBtn.addEventListener('click', () => {
+      if(window.confirm('Clear this saved Tutor conversation?')){
+        resetChat();
+        announceTutorStorageStatus('Tutor conversation cleared.');
+      }
+    });
+    clearBtn.addEventListener('keydown', event => {
+      if(event.key === 'Enter' || event.key === ' '){
+        event.preventDefault();
+        clearBtn.click();
+      }
+    });
+  }
+
+  const exportBtn = document.getElementById('exportTutorConversationBtn');
+  if(exportBtn) exportBtn.addEventListener('click', exportTutorConversation);
+
+  const importBtn = document.getElementById('importTutorConversationBtn');
+  const importInput = document.getElementById('importTutorConversationInput');
+  if(importBtn && importInput){
+    importBtn.addEventListener('click', () => importInput.click());
+    importInput.addEventListener('change', () => {
+      importTutorConversationFile(importInput.files && importInput.files[0]);
+      importInput.value = '';
+    });
+  }
+
+  renderPersistedChat();
 }
 
 function updateCharCount(){
@@ -1386,14 +2052,40 @@ function updateCharCount(){
 }
 
 function renderMarkdown(raw){
-  let html;
+  let html = '';
   try{
-    html = (typeof marked !== 'undefined') ? marked.parse(raw) : raw;
-  }catch{
-    html = raw;
-  }
+    html = (typeof marked !== 'undefined') ? marked.parse(String(raw ?? '')) : '';
+  }catch{}
+
+  const template = document.createElement('template');
+  template.innerHTML = html;
+
+  const blockedTags = new Set([
+    'SCRIPT','STYLE','IFRAME','OBJECT','EMBED','FORM','INPUT',
+    'BUTTON','TEXTAREA','SELECT','OPTION','LINK','META'
+  ]);
+  const allowedUrl = /^(https?:|mailto:|tel:|#)/i;
+
+  template.content.querySelectorAll('*').forEach(node => {
+    if(blockedTags.has(node.tagName)){
+      node.remove();
+      return;
+    }
+    Array.from(node.attributes).forEach(attr => {
+      const name = attr.name.toLowerCase();
+      const value = attr.value.trim();
+      if(name.startsWith('on') || name === 'style'){
+        node.removeAttribute(attr.name);
+        return;
+      }
+      if(name === 'href' || name === 'src' || name === 'xlink:href'){
+        if(!allowedUrl.test(value)) node.removeAttribute(attr.name);
+      }
+    });
+  });
+
   const el = document.createElement('div');
-  el.innerHTML = html;
+  el.appendChild(template.content.cloneNode(true));
   return el;
 }
 function renderMathIn(el){
@@ -1491,6 +2183,7 @@ function setChatBusy(busy){
 }
 
 async function sendChat(overrideText){
+  if(typeof BAAParentApproval!=='undefined' && !BAAParentApproval.canUse('ai_tutor')){ appendErrorMsg('AI Tutor is currently disabled by Parent Approval Mode.'); return; }
   if (chatInFlight) return;
   const input=document.getElementById('chatInput');
   const text=(overrideText !== undefined ? overrideText : input.value).trim();
@@ -1548,13 +2241,10 @@ async function sendChat(overrideText){
         messages: buildOutgoingMessages(),
         studentName,
         ...(learningContext ? { learningContext } : {}),
+        explainLikeMode: getExplainLikeMode(),
+        responseLanguage: getResponseLanguage(),
       })
     });
-
-    // ===== TEMPORARY DEBUG LOGGING (frontend) — checkpoint 1: fetch() =====
-    console.log('[FE-DEBUG] fetch resolved. ok:', response.ok, 'status:', response.status,
-      'content-type:', response.headers.get('content-type'), 'has body:', !!response.body);
-    // ===== END checkpoint 1 =====
 
     if(!response.ok || !response.body){
       let msg = "I'm having trouble connecting right now, but I'd love to help — try asking again in a moment!";
@@ -1575,134 +2265,58 @@ async function sendChat(overrideText){
     const decoder = new TextDecoder();
     let buffer = '';
 
-    // ===== TEMPORARY DEBUG LOGGING (frontend) — checkpoint 2: getReader() =====
-    console.log('[FE-DEBUG] Reader obtained, entering read loop.');
-    let feChunkIndex = 0;
-    // ===== END checkpoint 2 =====
-
-    // ----- SSE event-block processor -----
-    // Per the SSE spec, an event block is one or more lines separated by
-    // '\n', terminated by a blank line ('\n\n' between blocks). Lines
-    // starting with ':' are comments and MUST be ignored — they carry no
-    // data (e.g. our own backend's ': connected' keep-alive). A block with
-    // no 'data:' line at all (comment-only, or blank) is not a data event
-    // and is skipped; a block WITH a 'data:' line is processed regardless
-    // of what other lines (comments) also appear in the same block.
     function processSSEEvent(evt){
-      const lines = evt.split('\n');
-      const dataLines = lines.filter(l => l.startsWith('data:'));
+      const sseLines = String(evt || '').split('\n');
+      const dataLines = sseLines.filter(line => line.startsWith('data:'));
+      if(dataLines.length === 0) return;
 
-      // ===== TEMPORARY DEBUG LOGGING — checkpoint 7: extraction of data: lines =====
-      console.log('[FE-DEBUG] event block:', JSON.stringify(evt),
-        '| data line(s) found:', dataLines.length);
-      // ===== END checkpoint 7 =====
-
-      if(dataLines.length === 0) return; // comment-only/blank block — ignore, not an error
-
-      // Multiple 'data:' lines in one block are joined per spec; Gemini's
-      // stream never actually does this, but handling it costs nothing.
-      const jsonStr = dataLines.map(l => l.slice(5).trim()).join('\n').trim();
+      const jsonStr = dataLines.map(line => line.slice(5).trim()).join('\n').trim();
       if(!jsonStr || jsonStr === '[DONE]') return;
 
       let parsed;
       try{
         parsed = JSON.parse(jsonStr);
-        // ===== TEMPORARY DEBUG LOGGING — checkpoint 8: JSON.parse() success =====
-        console.log('[FE-DEBUG] JSON.parse succeeded:', parsed);
-        // ===== END checkpoint 8 =====
-      }catch(parseErr){
-        // ===== TEMPORARY DEBUG LOGGING — checkpoint 8: JSON.parse() failure =====
-        console.log('[FE-DEBUG] JSON.parse FAILED on:', JSON.stringify(jsonStr), 'error:', parseErr && parseErr.message);
-        // ===== END checkpoint 8 =====
+      }catch{
         return;
       }
 
       if(parsed.error){
-        console.log('[FE-DEBUG] parsed.error present, throwing:', parsed.error);
         throw new Error(parsed.error.message || 'stream interrupted');
       }
 
       const blockReason = parsed.promptFeedback && parsed.promptFeedback.blockReason;
       if(blockReason){
-        console.log('[FE-DEBUG] blockReason present, throwing:', blockReason);
         throw new Error("I can't help with that one — try rephrasing your question!");
       }
 
       const candidate = parsed.candidates && parsed.candidates[0];
-
-      // ===== TEMPORARY DEBUG LOGGING — checkpoint 9: parsed.candidates =====
-      console.log('[FE-DEBUG] parsed.candidates:', parsed.candidates, '| candidate[0]:', candidate);
-      // ===== END checkpoint 9 =====
-
       if(candidate && candidate.finishReason === 'SAFETY'){
-        console.log('[FE-DEBUG] finishReason SAFETY, throwing.');
         throw new Error("I can't help with that one — try rephrasing your question!");
       }
 
-      // ===== TEMPORARY DEBUG LOGGING — checkpoint 10: content.parts =====
-      console.log('[FE-DEBUG] candidate.content:', candidate && candidate.content,
-        '| content.parts:', candidate && candidate.content && candidate.content.parts,
-        '| finishReason:', candidate && candidate.finishReason);
-      // ===== END checkpoint 10 =====
-
       const textPart = candidate && candidate.content && candidate.content.parts
-        ? candidate.content.parts.map(p => p.text || '').join('')
+        ? candidate.content.parts.map(part => typeof part.text === 'string' ? part.text : '').join('')
         : '';
-
-      // ===== TEMPORARY DEBUG LOGGING — checkpoint 11: textPart =====
-      console.log('[FE-DEBUG] textPart:', JSON.stringify(textPart), '(length ' + textPart.length + ')');
-      // ===== END checkpoint 11 =====
 
       if(textPart){
         accumulated += textPart;
         const rendered = renderMarkdown(accumulated);
-        aiBubble.innerHTML = rendered.innerHTML;
+        aiBubble.replaceChildren(...Array.from(rendered.childNodes));
         renderMathIn(aiBubble);
         log.scrollTop = log.scrollHeight;
-
-        // ===== TEMPORARY DEBUG LOGGING — checkpoint 12: accumulated =====
-        console.log('[FE-DEBUG] accumulated updated (length ' + accumulated.length + '):', JSON.stringify(accumulated));
-        // ===== END checkpoint 12 =====
       }
     }
 
     while(true){
       const {done, value} = await reader.read();
 
-      // ===== TEMPORARY DEBUG LOGGING — checkpoint 3: reader.read() =====
-      console.log('[FE-DEBUG] reader.read() #' + feChunkIndex, 'done:', done,
-        'byteLength:', value ? value.byteLength : 0);
-      // ===== END checkpoint 3 =====
-
       if(done) break;
 
       const decodedChunk = decoder.decode(value, {stream:true});
-
-      // ===== TEMPORARY DEBUG LOGGING — checkpoint 4: TextDecoder.decode() =====
-      console.log('[FE-DEBUG] decoded chunk #' + feChunkIndex + ':', JSON.stringify(decodedChunk));
-      feChunkIndex++;
-      // ===== END checkpoint 4 =====
-
-      // Gemini's own SSE stream terminates events with CRLF CRLF ('\r\n\r\n'),
-      // not the bare '\n\n' our own ': connected' comment uses. Normalizing
-      // to '\n' here — on the full accumulated buffer, not just the new
-      // chunk, so a CRLF split across two reads is still caught — makes
-      // every event boundary (ours and Gemini's) detectable by the same
-      // '\n\n' split below. Without this, '\r\n\r\n' never contains a literal
-      // '\n\n' substring, so real Gemini events are never recognized as
-      // complete and pile up unprocessed in `buffer`.
-      buffer = (buffer + decodedChunk).replace(/\r\n/g, '\n');
-
-      // ===== TEMPORARY DEBUG LOGGING — checkpoint 5: buffer =====
-      console.log('[FE-DEBUG] buffer after append (len ' + buffer.length + '):', JSON.stringify(buffer));
-      // ===== END checkpoint 5 =====
+      buffer += decodedChunk;
 
       const events = buffer.split('\n\n');
-      buffer = events.pop(); // keep any incomplete event for next chunk
-
-      // ===== TEMPORARY DEBUG LOGGING — checkpoint 6: buffer.split('\n\n') =====
-      console.log('[FE-DEBUG] split into', events.length, 'complete event(s); remainder buffer:', JSON.stringify(buffer));
-      // ===== END checkpoint 6 =====
+      buffer = events.pop() || '';
 
       for(const evt of events){
         processSSEEvent(evt);
@@ -1717,20 +2331,12 @@ async function sendChat(overrideText){
     // reprocessed once the loop exits. Since there is no more data coming,
     // whatever is left in `buffer` at this point IS complete; process it.
     if(buffer.trim()){
-      // ===== TEMPORARY DEBUG LOGGING — trailing buffer flush =====
-      console.log('[FE-DEBUG] Flushing leftover buffer after stream close:', JSON.stringify(buffer));
-      // ===== END trailing buffer flush =====
       processSSEEvent(buffer);
       buffer = '';
     }
 
-    // ===== TEMPORARY DEBUG LOGGING — checkpoint 13/14: final accumulated + fallback condition =====
-    console.log('[FE-DEBUG] Stream loop done. Final accumulated (length ' + accumulated.length + '):',
-      JSON.stringify(accumulated), '| fallback will trigger:', !accumulated.trim());
-    // ===== END checkpoint 13/14 =====
 
     if(!accumulated.trim()){
-      console.log('[FE-DEBUG] FALLBACK MESSAGE TRIGGERED — accumulated was empty/whitespace-only at loop end.');
       accumulated = "I'm having a little trouble thinking right now — try asking me again!";
       aiBubble.textContent = accumulated;
     }
@@ -1941,6 +2547,8 @@ async function speakText(text){
   }catch{ /* never let a voice failure break the chat experience */ }
 }
 
+initTutorConversationControls();
+
 document.addEventListener('DOMContentLoaded', initVoiceUI);
 
 /* ================= QUIZ ARENA ================= */
@@ -2050,6 +2658,193 @@ function animateCareer(){
    with actual evidence when it exists. If there's no evidence yet, the
    original honest empty-state markup (already in the HTML) is left
    untouched — nothing here ever fabricates a status or a number. */
+function refreshCareerPlan(){
+  const el=document.getElementById('careerPlanDynamic');
+  const select=document.getElementById('careerTrackSelect');
+  if(!el||!select||typeof BAACareer==='undefined')return;
+  const plan=BAACareer.getPlan(select.value);
+  el.innerHTML=`<p class="concept-why">${plan.description}</p><h3 style="margin-top:12px;">Aligned skills</h3>`+
+    plan.skills.map(s=>`<div class="concept-row">${s.skill} · ${s.status.replace(/_/g,' ')}</div>`).join('')+
+    `<h3 style="margin-top:12px;">Skills to explore next</h3>`+
+    (plan.gaps.length?plan.gaps.map(g=>`<div class="concept-row">🎯 ${g.skill} — build evidence through projects, lessons, or assessments.</div>`).join(''):'<div class="concept-why">No untracked skill gap is currently identified from the available evidence.</div>')+
+    `<p class="concept-why" style="margin-top:12px;">${plan.disclaimer}</p>`;
+  select.onchange=refreshCareerPlan;
+}
+
+function refreshResearchHub(){
+ const root=document.getElementById('researchCards');if(!root)return;root.replaceChildren();
+ const cards=[
+ ['M51','🧠 Pedagogy','Explicit teaching policy layer.'],
+ ['M52','🕵️ Mistake Archeology','Evidence-labelled error patterns; no diagnosis.'],
+ ['M53','📏 Outcomes','Comparable pre/post measurement only.'],
+ ['M54','🧘 Cognitive Recovery','Non-diagnostic sustainable-study prompts.'],
+ ['M55','🔐 Fresh Start','Previewable local-data reset controls.'],
+ ['M56','⚡ Adaptive Pacing','Adjusts scope from explicit availability/energy inputs.'],
+ ['M57','👪 Parent Conversation','Neutral conversation prompts from supplied facts.'],
+ ['M58','🧑‍🏫 Teacher Diagnostic','Evidence groups students for differentiated tasks.'],
+ ['M59','⚖️ Governance','Human review required for consequential AI actions.'],
+ ['M60','❤️ Purpose Design','Anti-shame, anti-dark-pattern UI rules.'],
+ ['M61','🧪 Founder Lab','Controlled cohort/experiment definitions; no fake study results.'],
+ ['M62','🏛️ AI Council','Structured multi-reviewer records; no invented reviewers.']
+ ];
+ cards.forEach(([id,title,desc])=>{const c=document.createElement('div');c.className='concept-row';const b=document.createElement('b');b.textContent=`${id} ${title}`;const d=document.createElement('div');d.className='concept-why';d.textContent=desc;c.append(b,d);root.appendChild(c);});
+}
+function refreshExpansionHub(){
+ const root=document.getElementById('expansionCards');if(!root)return;root.replaceChildren();
+ const cards=[
+ ['M41','📶 Low Bandwidth','Text/lite/audio preferences; offline sync requires future cache/server layer.'],
+ ['M42','🛡️ Integrity','Transparent assessment integrity signals, not surveillance or proof of cheating.'],
+ ['M43','🎓 Scholarships','Ranks only supplied/verified scholarship records; no invented opportunities.'],
+ ['M44','💼 Career Prep','Skill-gap and portfolio preparation without fabricated job outcomes.'],
+ ['M45','👨‍🏫 Mentors','Vetted-profile shape and filtering; real verification/payment remains external.'],
+ ['M46','🔌 ERP Integration','Vendor-neutral adapter contract; no unconfigured school system connection.'],
+ ['M47','📊 Institution Analytics','Aggregates supplied institutional records with evidence-quality labels.'],
+ ['M48','🌍 Global Collaboration','Safe project objects; production identity/moderation is required.'],
+ ['M49','🏆 Olympiad','Practice plans from supplied topics; no invented contest dates.'],
+ ['M50','🧩 Plugin Marketplace','Manifest validation only; arbitrary plugin code is never executed.']
+ ];
+ cards.forEach(([id,title,desc])=>{const c=document.createElement('div');c.className='concept-row';const b=document.createElement('b');b.textContent=`${id} ${title}`;const d=document.createElement('div');d.className='concept-why';d.textContent=desc;c.append(b,d);root.appendChild(c);});
+}
+function refreshEcosystemHub(){
+  const root=document.getElementById('ecosystemCards'); if(!root)return;
+  root.replaceChildren();
+  const cards=[
+    ['M32','🎙️ Voice Learning','BAAVoice','Browser-dependent speech input/output.'],
+    ['M33','🧪 Virtual Labs','BAALabs','Safe interactive simulations; no arbitrary code execution.'],
+    ['M34','🏫 School Portal','BAASchool','Local roster, attendance and announcements.'],
+    ['M35','🌟 Community','BAACommunity','Moderated local study posts.'],
+    ['M36','📡 AI Insights','BAAInsights','Evidence-based learning summary.'],
+    ['M37','🔒 Trust & Privacy','BAATrust','Existing trust/privacy controls remain authoritative.'],
+    ['M38','🧠 Explainable AI','BAAExplainability','Evidence-based explanations, not hidden model internals.'],
+    ['M39','⚖️ Review & Appeal','BAAAppeals','Auditable appeal workflow requiring human review.'],
+    ['M40','📚 Curriculum','BAACurriculum','Explicit board/profile and stored mappings.']
+  ];
+  cards.forEach(([id,title,api,desc])=>{
+    const card=document.createElement('div');card.className='concept-row';
+    const b=document.createElement('b');b.textContent=`${id} ${title}`;
+    const d=document.createElement('div');d.className='concept-why';d.textContent=desc;
+    card.append(b,d);root.appendChild(card);
+  });
+}
+function refreshRewardsPanel(){
+  const summary=document.getElementById('rewardsSummary'),badges=document.getElementById('rewardsBadges'),milestones=document.getElementById('rewardsMilestones');
+  if(!summary||typeof BAARewards==='undefined')return;
+  const s=BAARewards.getState();
+  if(!s.ok){summary.textContent='Rewards are not ready yet.';return;}
+  summary.innerHTML=`<div class="concept-row"><b>⭐ ${s.xp} XP</b> · ${s.completedAttempts} completed assessments · ${s.correctAnswers} correct answers · ${s.masteredConcepts} mastered concepts</div>`;
+  badges.innerHTML='<h3 style="margin:12px 0 6px;">Badges</h3>'+s.allBadges.map(b=>
+    `<div class="concept-row">${b.earned?'🏅':'🔒'} <b>${b.name}</b> — ${b.description}</div>`).join('');
+  const m=BAARewards.getMilestones();
+  milestones.innerHTML='<h3 style="margin:12px 0 6px;">Milestones</h3>'+m.milestones.map(x=>
+    `<div class="concept-row">${x.completed?'✅':'⬜'} ${x.label} — ${Math.min(x.current,x.target)}/${x.target}</div>`).join('');
+}
+
+function refreshLearningPathPanel(){
+  const list=document.getElementById('learningPathList');
+  if(!list||typeof BAALearningPaths==='undefined')return;
+  const result=BAALearningPaths.getCurrentPath(null,12);
+  if(!result.ok){list.textContent='Learning path is not ready yet.';return;}
+  if(!result.nodes.length){
+    list.textContent='No learning path can be built yet because BAA has no recorded concept evidence.';
+    return;
+  }
+  list.innerHTML=result.nodes.map(n=>{
+    const stateLabel=String(n.state).replace(/_/g,' ');
+    const marker=n.current?'▶':'○';
+    return `<div class="concept-row"><b>${marker} ${n.order}. ${String(n.concept).replace(/-/g,' ')}</b> · ${stateLabel}
+      <div class="concept-why">${n.action} · evidence: ${n.evidenceCount} · confidence: ${n.confidence}</div>
+    </div>`;
+  }).join('')+
+  `<p class="concept-why" style="margin-top:10px;">${result.limitation}</p>`;
+}
+
+function refreshResourcePanel(){
+  const list=document.getElementById('resourceList'),select=document.getElementById('resourceFormat');
+  if(!list||typeof BAALearningResources==='undefined')return;
+  const pref=BAALearningResources.getPreference();
+  if(select)select.value=pref||'';
+  const render=()=>{
+    const result=BAALearningResources.getRecommendations(8);
+    if(!result.ok){list.textContent='Learning resources are not ready yet.';return;}
+    if(!result.recommendations.length){list.textContent='No evidence-backed resource recommendations yet.';return;}
+    list.innerHTML=result.recommendations.map((r,i)=>
+      `<div class="concept-row"><b>${String(r.concept).replace(/-/g,' ')}</b> · ${r.formatLabel}
+       <div class="concept-why">${r.reason} <a href="${r.url}" target="_blank" rel="noopener noreferrer">Open ${r.provider}</a></div>
+      </div>`).join('');
+  };
+  if(select&&!select.dataset.bound){
+    select.addEventListener('change',()=>{
+      const result=BAALearningResources.setPreference(select.value);
+      if(result.ok)render(); else {select.value='';render();}
+    });
+    select.dataset.bound='1';
+  }
+  render();
+}
+
+function refreshRevisionGoalsPanels(){
+  const rEl=document.getElementById('revisionPanel'),gEl=document.getElementById('goalsPanel');
+  if(rEl&&typeof BAARevision!=='undefined'){
+    const due=BAARevision.getRevisionPlan().filter(x=>x.due);
+    rEl.innerHTML=`<h2>🔁 Revision due <span class="confidence-tag ct-checking">${due.length}</span></h2>`+
+      (due.length?due.slice(0,6).map(x=>`<div class="concept-row">${x.concept.replace(/-/g,' ')} · ${x.status} · ${x.reviewIntervalDays} day interval</div>`).join(''):'<p class="concept-why">No evidence-based revision is due right now.</p>');
+  }
+  if(gEl&&typeof BAAGoals!=='undefined'){
+    const goals=BAAGoals.getGoals();
+    gEl.innerHTML=`<h2>🎯 Goal Tracker <span class="confidence-tag ct-checking">${goals.length}</span></h2>`+
+      (goals.length?goals.map(g=>`<div class="concept-row"><b>${g.text}</b>${g.relatedConcepts.length?' · linked: '+g.relatedConcepts.join(', '):''}</div>`).join(''):'<p class="concept-why">No goals entered yet.</p>');
+  }
+}
+
+function refreshLearningPassportPanel(){
+  const el=document.getElementById('passportPanel');
+  if(!el||typeof BAALearningPassport==='undefined')return;
+  const pass=BAALearningPassport.build();
+  const names=(pass.competencies||[]).slice(0,8).map(c=>c.concept.replace(/-/g,' '));
+  el.innerHTML=`<h2>🎓 Learning Passport <span class="confidence-tag ct-checking">${pass.status.replace(/_/g,' ')}</span></h2>
+    <p class="concept-why">${pass.evidenceCount||0} evidence records · ${(pass.competencies||[]).length} evidence-backed competencies.</p>
+    <p class="concept-why"><b>Verified competencies:</b> ${names.length?names.join(', '):'None yet — more evidence is needed.'}</p>
+    <button id="passportExportBtn" class="task-btn" type="button">Export passport JSON</button>`;
+  document.getElementById('passportExportBtn').onclick=()=>{
+    const blob=new Blob([BAALearningPassport.exportJson()],{type:'application/json'});
+    const url=URL.createObjectURL(blob);const a=document.createElement('a');
+    a.href=url;a.download='baa-learning-passport.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),0);
+  };
+}
+
+function refreshPredictionPanel(){
+  const el=document.getElementById('predictionPanel');
+  if(!el||typeof BAAPrediction==='undefined') return;
+  const p=BAAPrediction.getPredictionSummary();
+  if(p.status!=='forecast'){
+    el.innerHTML='<h2>🔮 Academic Forecast</h2><p class="concept-why">'+(p.message||'More evidence is needed before a forecast can be shown.')+'</p>';
+    return;
+  }
+  el.innerHTML=`<h2>🔮 Academic Forecast <span class="confidence-tag ct-checking">${p.confidence}</span></h2>
+    <div class="concept-why"><b>Readiness estimate:</b> ${p.readiness}/100</div>
+    <div class="concept-why" style="margin-top:8px;"><b>Recent trajectory:</b> ${p.gradeTrajectory.direction} · current ${p.gradeTrajectory.currentPercentage}% vs recent average ${p.gradeTrajectory.previousAverage}%</div>
+    <div class="concept-why" style="margin-top:8px;"><b>Milestone outlook:</b> ${p.milestone}</div>
+    <div class="concept-why" style="margin-top:8px;">Based on ${p.evidence.assessments} assessments and ${p.evidence.trackedConcepts} evidence-tracked concepts.</div>`;
+}
+
+function refreshGuardianPanel(){
+  const el=document.getElementById('guardianSummaryPanel');
+  if(!el || typeof BAAGuardian==='undefined') return;
+  const summary=BAAGuardian.getSummary();
+  if(!summary.alertCount){
+    el.innerHTML='<h2>🟢 No active academic support alerts</h2><p class="concept-why">BAA does not currently see a qualifying academic-risk signal in the evidence it has. That is not a guarantee that everything is perfect — it simply means no defined alert threshold is currently met.</p>';
+    return;
+  }
+  el.innerHTML=`<h2>🛡️ ${summary.alertCount} support signal${summary.alertCount===1?'':'s'}</h2>`+
+    summary.alerts.map(a=>`<div class="concept-row" style="margin-top:12px;"><b>${a.title}</b><br><span class="concept-why">${a.reason}</span><br><span class="state-badge">${a.severity.toUpperCase()} · academic support</span><button class="task-btn" type="button" data-guardian-id="${a.id}" style="margin-left:8px;">Acknowledge</button></div>`).join('');
+  el.querySelectorAll('[data-guardian-id]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      BAAGuardian.acknowledgeAlert(btn.dataset.guardianId);
+      refreshGuardianPanel();
+    });
+  });
+}
+
 function refreshLearningProfilePanels(){
   if(typeof BAAAssessment === 'undefined') return; // Section B scripts not loaded
   // Section C: prefer BAAIntelligence's refined states (adds trend/confidence/why on top of
@@ -2057,6 +2852,55 @@ function refreshLearningProfilePanels(){
   // Section B memory so this panel still works if Section C scripts are ever missing.
   const useIntel = typeof BAAIntelligence !== 'undefined';
   const concepts = useIntel ? BAAIntelligence.getConceptStates() : Object.values(BAAAssessment.getLearningMemory());
+
+
+  const academicProfile = BAAAssessment.getAcademicProfile();
+  const profileEl = document.getElementById('pfAcademicProfileDynamic');
+  if(profileEl){
+    const strengthHtml = academicProfile.strengths.length
+      ? academicProfile.strengths.slice(0,4).map(x=>`<span class="state-badge">${x.concept.replace(/-/g,' ')} · ${x.correctCount}/${x.evidenceCount}</span>`).join(' ')
+      : '<span style="color:var(--faint);">No evidence-gated strengths yet.</span>';
+    const weaknessHtml = academicProfile.weaknesses.length
+      ? academicProfile.weaknesses.slice(0,4).map(x=>`<span class="state-badge">${x.concept.replace(/-/g,' ')} · ${x.correctCount}/${x.evidenceCount}</span>`).join(' ')
+      : '<span style="color:var(--faint);">No evidence-gated weaknesses yet.</span>';
+    const habits = academicProfile.habits || {};
+    profileEl.innerHTML = `
+      <h2>🧠 Academic Profile <span class="confidence-tag ct-checking">Persistent evidence</span></h2>
+      <div class="concept-why"><b>Strengths</b><br>${strengthHtml}</div>
+      <div class="concept-why" style="margin-top:10px;"><b>Areas to improve</b><br>${weaknessHtml}</div>
+      <div class="concept-why" style="margin-top:10px;"><b>Learning habits</b><br>
+        ${habits.assessmentsCompleted || 0} assessments completed ·
+        ${habits.activeLearningDays || 0} active learning day${habits.activeLearningDays===1?'':'s'} ·
+        ${habits.reattemptRate || 0}% reattempt rate
+        ${habits.mostPracticedSubject ? ` · most practiced: ${habits.mostPracticedSubject}` : ''}
+      </div>`;
+  }
+
+  // M10-C1: render the confidence meter from BAAIntelligence only.
+  // No numeric percentage is shown because the underlying evidence is categorical.
+  if(useIntel && typeof BAAIntelligence.getConfidenceSummary === 'function'){
+    const confidence = BAAIntelligence.getConfidenceSummary();
+    const bandMeta = {
+      high:   {width:'100%', cls:'ct-confirmed'},
+      medium: {width:'66%', cls:'ct-checking'},
+      low:    {width:'33%', cls:'ct-building'},
+      insufficient_evidence: {width:'0%', cls:'ct-building'}
+    };
+    const meta = bandMeta[confidence.band] || bandMeta.insufficient_evidence;
+    const bandEl = document.getElementById('pfConfidenceBand');
+    const fillEl = document.getElementById('pfConfidenceFill');
+    const copyEl = document.getElementById('pfConfidenceCopy');
+    const metaEl = document.getElementById('pfConfidenceMeta');
+    if(bandEl && fillEl && copyEl && metaEl){
+      bandEl.textContent = confidence.label;
+      bandEl.className = 'confidence-meter-band ' + meta.cls;
+      fillEl.style.width = meta.width;
+      copyEl.textContent = confidence.explanation;
+      metaEl.textContent = confidence.eligibleConcepts
+        ? `${confidence.eligibleConcepts} concept${confidence.eligibleConcepts===1?'':'s'} contributing from real evidence · ${confidence.totalTrackedConcepts} tracked`
+        : 'No concept has enough evidence to contribute yet.';
+    }
+  }
 
   if(concepts.length){
     const mastered = concepts.filter(c=>c.state==='mastered' || c.status==='mastered');
@@ -2107,6 +2951,31 @@ function refreshLearningProfilePanels(){
    Every render call re-fetches fresh state; nothing here is cached stale
    data. Task actions (Complete/Skip/Reschedule) call BAAPlanner directly
    and then re-render, so the UI always reflects the real stored state. */
+function renderSchoolCalendar(){
+  if(typeof BAASchoolCalendar==='undefined') return;
+  const list=document.getElementById('calendarEventsList');
+  if(!list) return;
+  list.replaceChildren();
+  BAASchoolCalendar.getEvents().slice(0,12).forEach(ev=>{
+    const row=document.createElement('div');row.className='concept-row';
+    row.textContent=`${ev.date} · ${ev.type.replace('_',' ')} · ${ev.title}`;
+    const btn=document.createElement('button');btn.className='task-btn';btn.textContent='Remove';
+    btn.onclick=()=>{BAASchoolCalendar.removeEvent(ev.id);renderSchoolCalendar();refreshPlannerPanel();};
+    row.appendChild(btn);list.appendChild(row);
+  });
+  if(!list.children.length){const empty=document.createElement('div');empty.className='concept-why';empty.textContent='No school calendar events entered yet.';list.appendChild(empty);}
+  const add=document.getElementById('calendarAddBtn');
+  if(add&&!add.dataset.bound){
+    add.dataset.bound='1';
+    add.onclick=()=>{
+      const title=document.getElementById('calendarTitleInput').value.trim();
+      const date=document.getElementById('calendarDateInput').value;
+      const type=document.getElementById('calendarTypeInput').value;
+      if(BAASchoolCalendar.addEvent({title,date,type})){document.getElementById('calendarTitleInput').value='';renderSchoolCalendar();refreshPlannerPanel();}
+    };
+  }
+}
+
 function refreshPlannerPanel(){
   if (typeof BAAPlanner === 'undefined') return;
   renderPlannerTimeRow();
@@ -2114,6 +2983,7 @@ function refreshPlannerPanel(){
   renderPlannerUpcoming();
   renderPlannerWeekStrip();
   renderPlannerDailyTasks();
+  renderPlannerMonthlyPlan();
 }
 
 function renderPlannerTimeRow(){
@@ -2182,6 +3052,41 @@ function renderPlannerWeekStrip(){
 }
 
 const TASK_TYPE_ICON = {practice:'🎯', learn:'📘', revise:'🔁', assessment:'📝', reassessment:'🔁', review_mistake:'🔍', tutor_session:'✦'};
+
+function renderPlannerMonthlyPlan(){
+  if(typeof BAAPlanner==='undefined') return;
+  const el=document.getElementById('plannerMonthlyPlan');
+  if(!el) return;
+  const plan=BAAPlanner.getMonthlyPlan();
+  if(plan.error){ el.textContent='Monthly plan is unavailable right now.'; return; }
+  el.replaceChildren();
+  plan.weeks.forEach((week,index)=>{
+    const card=document.createElement('div');
+    card.className='pf-card';
+    const title=document.createElement('h2');
+    title.textContent=`Week ${index+1} · ${week.start} → ${week.end}`;
+    card.appendChild(title);
+    const summary=document.createElement('p');
+    summary.className='concept-why';
+    summary.textContent=`${week.tasks.length} scheduled task${week.tasks.length===1?'':'s'} · ${week.plannedMinutes} planned minutes · ${week.assessments.length} upcoming assessment${week.assessments.length===1?'':'s'}`;
+    card.appendChild(summary);
+    if(week.assessments.length){
+      week.assessments.forEach(a=>{
+        const row=document.createElement('div');
+        row.className='concept-row';
+        row.textContent=`Assessment: ${a.title} · ${a.date}${a.subject?' · '+a.subject:''}`;
+        card.appendChild(row);
+      });
+    }
+    el.appendChild(card);
+  });
+  if(!plan.generatedFromEvidence){
+    const note=document.createElement('div');
+    note.className='concept-why';
+    note.textContent='No learning evidence exists yet, so the monthly view only shows explicitly scheduled items.';
+    el.appendChild(note);
+  }
+}
 
 function renderPlannerDailyTasks(){
   const plan = BAAPlanner.getDailyPlan();
@@ -2267,6 +3172,17 @@ const _origOpenWorld = openWorld;
 openWorld = function(name){
   _origOpenWorld(name);
   if(name==='profile') refreshLearningProfilePanels();
+  if(name==='guardian') refreshGuardianPanel();
+  if(name==='profile') refreshPredictionPanel();
+  if(name==='profile') refreshLearningPassportPanel();
+  if(name==='profile') refreshRevisionGoalsPanels();
+  if(name==='profile') refreshLearningPathPanel();
+  if(name==='profile') refreshRewardsPanel();
+  if(name==='profile') refreshEcosystemHub();
+  if(name==='profile') refreshExpansionHub();
+  if(name==='profile') refreshResearchHub();
+  if(name==='profile') refreshResourcePanel();
+  if(name==='career') refreshCareerPlan();
   if(name==='planner') refreshPlannerPanel();
 };
 document.addEventListener('DOMContentLoaded', refreshLearningProfilePanels);
@@ -2321,6 +3237,54 @@ document.addEventListener('keydown', function(e){
 <script src="js/baa-assessment.js"></script>
 <script src="js/baa-intelligence.js"></script>
 <script src="js/baa-planner.js"></script>
+<script src="js/baa-guardian.js"></script>
+<script src="js/baa-prediction.js"></script>
+<script src="js/baa-parent-approval.js"></script>
+<script src="js/baa-school-calendar.js"></script>
+<script src="js/baa-learning-passport.js"></script>
+<script src="js/baa-career.js"></script>
+<script src="js/baa-practice.js"></script>
+<script src="js/baa-weakness.js"></script>
+<script src="js/baa-strength.js"></script>
+<script src="js/baa-revision.js"></script>
+<script src="js/baa-goals.js"></script>
+<script src="js/baa-learning-paths.js"></script>
+<script src="js/baa-rewards.js"></script>
+<script src="js/baa-voice.js"></script>
+<script src="js/baa-labs.js"></script>
+<script src="js/baa-school.js"></script>
+<script src="js/baa-community.js"></script>
+<script src="js/baa-insights.js"></script>
+<script src="js/baa-explainability.js"></script>
+<script src="js/baa-appeals.js"></script>
+<script src="js/baa-curriculum.js"></script>
+<script src="js/baa-pedagogy.js"></script>
+<script src="js/baa-mistakes.js"></script>
+<script src="js/baa-outcomes.js"></script>
+<script src="js/baa-cognitive-safety.js"></script>
+<script src="js/baa-fresh-start.js"></script>
+<script src="js/baa-adaptive-pacing.js"></script>
+<script src="js/baa-parent-conversation.js"></script>
+<script src="js/baa-teacher-diagnostic.js"></script>
+<script src="js/baa-governance.js"></script>
+<script src="js/baa-purpose-design.js"></script>
+<script src="js/baa-founder-lab.js"></script>
+<script src="js/baa-ai-council.js"></script>
+<script src="js/baa-low-bandwidth.js"></script>
+<script src="js/baa-offline-sync.js"></script>
+<script src="js/baa-anti-cheating.js"></script>
+<script src="js/baa-scholarships.js"></script>
+<script src="js/baa-career-prep.js"></script>
+<script src="js/baa-mentors.js"></script>
+<script src="js/baa-erp.js"></script>
+<script src="js/baa-institution.js"></script>
+<script src="js/baa-global-collab.js"></script>
+<script src="js/baa-olympiad.js"></script>
+<script src="js/baa-plugins.js"></script>
+<script src="js/baa-learning-resources.js"></script>
+<script src="js/baa-ai-mode.js"></script>
+<script src="js/baa-hybrid-mode.js"></script>
+<script src="js/baa-custom-mode.js"></script>
 <script src="js/baa-trust.js"></script>
 <script src="js/baa-wellbeing.js"></script>
 <!-- ---- Section D: discreet parent/teacher access (not part of the student's play surface) ---- -->
@@ -2364,5 +3328,250 @@ document.addEventListener('keydown', function(e){
 })();
 </script>
 
+
+<script>
+(function(){
+  const addBtn = document.getElementById('customModeAddBtn');
+  const clearBtn = document.getElementById('customModeClearBtn');
+  const titleInput = document.getElementById('customModeTitleInput');
+  const minutesInput = document.getElementById('customModeMinutesInput');
+  const typeInput = document.getElementById('customModeTypeInput');
+  const list = document.getElementById('customModeList');
+  const result = document.getElementById('customModeResult');
+  if(!addBtn || !clearBtn || !titleInput || !minutesInput || !typeInput || !list || !result || typeof BAACustomMode === 'undefined') return;
+
+  function showResult(message, isError){
+    result.textContent = message || '';
+    result.className = isError ? 'ai-mode-error' : '';
+  }
+
+  function button(label, action, disabled){
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'task-btn';
+    b.textContent = label;
+    b.disabled = Boolean(disabled);
+    b.addEventListener('click', action);
+    return b;
+  }
+
+  function render(){
+    list.textContent = '';
+    const path = BAACustomMode.getPath();
+    if(!path.steps.length){
+      const empty = document.createElement('div');
+      empty.className = 'custom-mode-empty';
+      empty.textContent = 'No custom steps yet. Add the exact learning activities you want to do.';
+      list.appendChild(empty);
+      return;
+    }
+    const total = path.steps.reduce((sum, step) => sum + step.minutes, 0);
+    const header = document.createElement('div');
+    header.className = 'custom-mode-empty';
+    header.textContent = `${path.steps.filter(step => step.completed).length}/${path.steps.length} completed · ${total} minutes · student-controlled order`;
+    list.appendChild(header);
+
+    path.steps.forEach((step, index) => {
+      const row = document.createElement('div');
+      row.className = 'custom-mode-step' + (step.completed ? ' completed' : '');
+
+      const main = document.createElement('div');
+      main.className = 'custom-mode-step-main';
+      const title = document.createElement('div');
+      title.className = 'custom-mode-step-title';
+      title.textContent = `${index + 1}. ${step.title}`;
+      const meta = document.createElement('div');
+      meta.className = 'custom-mode-step-meta';
+      meta.textContent = `${step.minutes} min · ${step.type}`;
+      main.append(title, meta);
+
+      const actions = document.createElement('div');
+      actions.className = 'custom-mode-step-actions';
+      actions.appendChild(button(step.completed ? 'Undo' : 'Done', () => { BAACustomMode.toggleStep(step.id); render(); }));
+      actions.appendChild(button('↑', () => { BAACustomMode.moveStep(step.id, 'up'); render(); }, index === 0));
+      actions.appendChild(button('↓', () => { BAACustomMode.moveStep(step.id, 'down'); render(); }, index === path.steps.length - 1));
+      actions.appendChild(button('Remove', () => { BAACustomMode.removeStep(step.id); render(); }));
+
+      row.append(main, actions);
+      list.appendChild(row);
+    });
+  }
+
+  addBtn.addEventListener('click', function(){
+    const outcome = BAACustomMode.addStep(titleInput.value, Number(minutesInput.value), typeInput.value);
+    if(!outcome.ok){
+      showResult(outcome.error?.message || 'Custom Mode could not add this step.', true);
+      return;
+    }
+    titleInput.value = '';
+    showResult('Step added. Your order remains exactly as you chose it.', false);
+    render();
+  });
+
+  clearBtn.addEventListener('click', function(){
+    BAACustomMode.clearPath();
+    showResult('Custom path cleared. AI Mode and your learning evidence were not changed.', false);
+    render();
+  });
+
+  render();
+})();
+</script>
+
+<script>
+(function(){
+  const btn = document.getElementById('aiModeGenerateBtn');
+  const adaptBtn = document.getElementById('aiModeAdaptBtn');
+  const hybridBtn = document.getElementById('hybridModeBtn');
+  const input = document.getElementById('aiModeGoalInput');
+  const result = document.getElementById('aiModeResult');
+  if(!btn || !adaptBtn || !hybridBtn || !input || !result ||
+     typeof BAAAIMode === 'undefined' || typeof BAAHybridMode === 'undefined') return;
+
+  const hybridResetBtn = document.getElementById('hybridModeResetBtn');
+  if (hybridResetBtn) {
+    hybridResetBtn.addEventListener('click', function(){
+      const reset = BAAHybridMode.resetPath();
+      if (!reset.ok) {
+        result.textContent = reset.error.message;
+        return;
+      }
+      const controls = document.getElementById('hybridModeControls');
+      if (controls) controls.textContent = 'Hybrid path reset. Create a new path when ready.';
+      result.textContent = '';
+      if (hybridPrioritySelect) hybridPrioritySelect.value = 'balanced';
+    });
+  }
+
+  const hybridPrioritySelect = document.getElementById('hybridPrioritySelect');
+  if (hybridPrioritySelect) {
+    hybridPrioritySelect.addEventListener('change', function(){
+      const current = BAAHybridMode.getPath();
+      if (!current.steps.length) return;
+      const saved = BAAHybridMode.applyPriority(current, hybridPrioritySelect.value);
+      if (saved.ok) {
+        BAAAIMode.renderPlan(result, {
+          ok: true,
+          plan: {
+            ...saved.path,
+            summary: saved.path.conflictPolicy
+          }
+        });
+        renderHybridControls(saved.path);
+      }
+    });
+  }
+
+  async function runAndRemember(action, label){
+    btn.disabled = true;
+    adaptBtn.disabled = true;
+    result.textContent = '';
+    const outcome = await action.fn();
+    BAAAIMode.rememberPlan(outcome);
+    BAAAIMode.renderPlan(result, outcome);
+    btn.disabled = false;
+    adaptBtn.disabled = false;
+    btn.textContent = 'Build AI path';
+    adaptBtn.textContent = 'Adapt to latest evidence';
+  }
+
+  btn.addEventListener('click', function(){
+    runAndRemember({textContent:'', fn:() => BAAAIMode.generatePlan(input.value)}, 'Building…');
+  });
+
+  adaptBtn.addEventListener('click', function(){
+    runAndRemember({textContent:'', fn:() => BAAAIMode.adaptPlan()}, 'Adapting…');
+  });
+
+
+  function renderHybridControls(path) {
+    const controls = document.getElementById('hybridModeControls');
+    if (!controls) return;
+    controls.textContent = '';
+    const steps = Array.isArray(path?.steps) ? path.steps : [];
+    if (!steps.length) {
+      controls.textContent = 'No Hybrid steps available yet.';
+      return;
+    }
+
+    const summary = BAAHybridMode.getSummary(path);
+    const summaryNode = document.createElement('div');
+    summaryNode.textContent = `Active: ${summary.activeSteps}/${summary.totalSteps} • AI: ${summary.aiSteps} • Student: ${summary.customSteps} • ${summary.totalMinutes} min`;
+    controls.appendChild(summaryNode);
+
+    steps.forEach((step) => {
+      const row = document.createElement('span');
+      row.className = 'hybrid-step-control';
+      row.textContent = `${step.source === 'custom' ? 'Student' : 'AI'}: ${step.title} (${step.minutes}m) `;
+      const keep = document.createElement('button');
+      keep.type = 'button';
+      keep.className = 'task-btn';
+      keep.textContent = step.included === false ? 'Include' : 'Exclude';
+      keep.setAttribute('aria-label', `${step.included === false ? 'Include' : 'Exclude'} ${step.title}`);
+      keep.addEventListener('click', function () {
+        const result = BAAHybridMode.setStepIncluded(path, step.id, step.included === false);
+        if (result.ok) {
+          renderHybridControls(result.path);
+          BAAAIMode.renderPlan(document.getElementById('aiModeResult'), {
+            ok: true,
+            plan: {
+              ...result.path,
+              summary: `Student-adjusted Hybrid path: ${BAAHybridMode.getActiveSteps(result.path).length} active step(s).`
+            }
+          });
+        }
+      });
+      row.appendChild(keep);
+      controls.appendChild(row);
+    });
+  }
+
+  hybridBtn.addEventListener('click', function(){
+    btn.disabled = true;
+    adaptBtn.disabled = true;
+    hybridBtn.disabled = true;
+    hybridBtn.textContent = 'Combining…';
+    result.textContent = '';
+
+    const aiPlan = BAAAIMode.getLastPlan();
+    const customPath = (typeof BAACustomMode !== 'undefined' && BAACustomMode.getPath) ? BAACustomMode.getPath() : { steps: [] };
+
+    if (!aiPlan && (!customPath.steps || customPath.steps.length === 0)) {
+      const empty = {
+        ok: false,
+        error: { code: 'NO_HYBRID_SOURCES', message: 'Create an AI Mode plan or add Custom Mode steps first.' }
+      };
+      BAAAIMode.renderPlan(result, empty);
+    } else {
+      const path = BAAHybridMode.compose(aiPlan, customPath);
+      const priority = hybridPrioritySelect ? hybridPrioritySelect.value : 'balanced';
+      const saved = BAAHybridMode.applyPriority(path, priority);
+      if (!saved.ok) {
+        BAAAIMode.renderPlan(result, saved);
+      } else {
+        BAAAIMode.renderPlan(result, {
+          ok: true,
+          plan: {
+            ...saved.path,
+            summary: saved.path.conflictPolicy
+          }
+        });
+        renderHybridControls(saved.path);
+      }
+    }
+
+    btn.disabled = false;
+    adaptBtn.disabled = false;
+    hybridBtn.disabled = false;
+    hybridBtn.textContent = 'Create Hybrid Path';
+  });
+})();
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () { navigator.serviceWorker.register('./service-worker.js').catch(function () {}); });
+}
+</script>
 </body>
 </html>

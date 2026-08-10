@@ -111,6 +111,7 @@ h1{font-family:var(--display);font-weight:500;font-size:clamp(1.5rem,4vw,2.1rem)
 
 <script src="js/question-bank.js"></script>
 <script src="js/baa-assessment.js"></script>
+<script src="js/baa-homework.js"></script>
 <script>
 let currentFilter = 'pending';
 
@@ -219,8 +220,78 @@ function escapeHtml(s){
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
+function homeworkRows(){
+  return BAAHomework.getHomeworkReviewQueue().map(r => ({ ...r, type:'homework' }));
+}
+
+function assessmentRows(){
+  return BAAAssessment.getTeacherReviewQueue().map(r => ({ ...r, type:'assessment' }));
+}
+
+function renderHomeworkCard(r){
+  const isDone = r.teacherStatus !== 'pending';
+  const ai = r.evaluation || r.originalAiEvaluation || {};
+  const statusClass = isDone ? `status-${r.teacherStatus}` : '';
+  const statusPill = r.teacherStatus === 'pending'
+    ? `<span class="rc-status">Awaiting review</span>`
+    : `<span class="rc-status ${r.teacherStatus === 'rejected' ? 'rejected' : 'done'}">${r.teacherStatus === 'edited' ? 'Edited' : r.teacherStatus === 'rejected' ? 'Rejected' : 'Accepted'}</span>`;
+  const attachmentNote = (r.attachments||[]).map(a => `${a.type}${a.fileName ? ` · ${escapeHtml(a.fileName)}` : ''}`).join(' · ');
+  const historyNote = (Array.isArray(r.decisionHistory) && r.decisionHistory.length)
+    ? `<div style="color:var(--faint);font-size:.75rem;margin-top:6px;">Prior decision${r.decisionHistory.length>1?'s':''} preserved: ${r.decisionHistory.map(h=>`${h.teacherStatus} by ${h.reviewer||'reviewer'}`).join('; ')}</div>` : '';
+
+  const controls = isDone ? `
+    <div class="final-note">
+      <b>${r.teacherStatus === 'edited' ? 'Edited' : r.teacherStatus === 'rejected' ? 'Rejected' : 'Accepted'}</b>
+      by ${escapeHtml(r.reviewer || 'reviewer')}.${r.teacherComment ? `<br>Comment: ${escapeHtml(r.teacherComment)}` : ''}
+      ${r.finalAssessment ? `<br>Final assessment: ${escapeHtml(r.finalAssessment)}` : ''}
+      ${r.finalSummary ? `<br>Final summary: ${escapeHtml(r.finalSummary)}` : ''}
+      ${historyNote}
+    </div>` : `
+    <div class="review-controls">
+      <textarea class="comment-box" id="hw-assessment-${r.id}" placeholder="Optional final assessment. Leave blank to accept the AI assessment…">${escapeHtml(ai.overallAssessment || '')}</textarea>
+      <textarea class="comment-box" id="hw-summary-${r.id}" placeholder="Optional final summary. Leave blank to accept the AI summary…">${escapeHtml(ai.summary || '')}</textarea>
+      <textarea class="comment-box" id="hw-comment-${r.id}" placeholder="Optional teacher comment for the student…"></textarea>
+      <div class="btn-row">
+        <button class="btn btn-accept" onclick="doHomeworkReview('${r.id}','accept')">Accept AI evaluation</button>
+        <button class="btn btn-edit" onclick="doHomeworkReview('${r.id}','edit')">Save edited evaluation</button>
+        <button class="btn btn-reject" onclick="doHomeworkReview('${r.id}','reject')">Reject AI evaluation</button>
+      </div>
+      <div class="err-note" id="hw-err-${r.id}"></div>
+    </div>`;
+
+  return `
+    <div class="rcard ${statusClass}" style="border-left-color:var(--gold);">
+      <div class="rc-top">
+        <div class="rc-meta">Homework Scanner · ${escapeHtml(r.subjectHint || 'Unspecified subject')} · ${new Date(r.submittedAt).toLocaleString()}</div>
+        ${statusPill}
+      </div>
+      <div class="tag-list"><span class="tag">📄 Homework submission</span>${attachmentNote ? `<span class="tag">${attachmentNote}</span>` : ''}</div>
+      <div class="rc-block" style="margin-top:10px;">
+        <h5>Student submission</h5>
+        <p>${escapeHtml(r.text || '(no extracted text)')}</p>
+      </div>
+      <div class="rc-block">
+        <h5>AI evaluation · original, preserved</h5>
+        <p><b>Assessment:</b> ${escapeHtml(ai.overallAssessment || '—')}</p>
+        <p><b>Summary:</b> ${escapeHtml(ai.summary || '—')}</p>
+        <div class="ai-eval-grid">
+          <div class="ai-stat">Confidence<b>${escapeHtml(ai.confidence || '—')}</b></div>
+          <div class="ai-stat">Image evaluated<b>${ai.imageEvaluated === true ? 'Yes' : 'No'}</b></div>
+          <div class="ai-stat">Review reason(s)<b>${(ai.humanReviewReasons||[]).length || 0}</b></div>
+        </div>
+        ${(ai.mistakes||[]).length ? `<div class="tag-list">${ai.mistakes.map(e=>`<span class="tag">⚠ ${escapeHtml(e)}</span>`).join('')}</div>` : ''}
+        ${(ai.suggestions||[]).length ? `<p style="margin-top:8px;"><i>Suggestions: ${ai.suggestions.map(escapeHtml).join(' · ')}</i></p>` : ''}
+      </div>
+      ${controls}
+    </div>`;
+}
+
 function renderAll(){
-  const all = BAAAssessment.getTeacherReviewQueue();
+  const all = [...assessmentRows(), ...homeworkRows()].sort((a,b) => {
+    const ad = new Date(a.reviewedAt || a.createdAt || a.submittedAt || 0);
+    const bd = new Date(b.reviewedAt || b.createdAt || b.submittedAt || 0);
+    return bd - ad;
+  });
   renderTabs(all);
   let list = all;
   if(currentFilter === 'pending') list = all.filter(r => r.teacherStatus === 'pending');
@@ -230,12 +301,12 @@ function renderAll(){
   if(!list.length){
     q.innerHTML = `<div class="empty-note">${
       all.length === 0
-        ? 'No AI evaluations have been flagged for review yet. This queue fills up automatically when a student submits an assessment and the AI evaluator sets low confidence or humanReviewRequired on an answer.'
+        ? 'No AI evaluations have been flagged for review yet. Assessment and Homework Scanner reviews appear here automatically when human review is required.'
         : 'Nothing in this view.'
     }</div>`;
     return;
   }
-  q.innerHTML = list.map(renderCard).join('');
+  q.innerHTML = list.map(r => r.type === 'homework' ? renderHomeworkCard(r) : renderCard(r)).join('');
 }
 
 function doReview(reviewId, action){
@@ -250,6 +321,26 @@ function doReview(reviewId, action){
   if(commentEl) opts.teacherComment = commentEl.value;
 
   const result = BAAAssessment.submitTeacherReview(reviewId, opts);
+  if(result.error){
+    if(errEl) errEl.textContent = result.error;
+    return;
+  }
+  renderAll();
+}
+
+function doHomeworkReview(reviewId, action){
+  const errEl = document.getElementById(`hw-err-${reviewId}`);
+  if(errEl) errEl.textContent = '';
+  const assessmentEl = document.getElementById(`hw-assessment-${reviewId}`);
+  const summaryEl = document.getElementById(`hw-summary-${reviewId}`);
+  const commentEl = document.getElementById(`hw-comment-${reviewId}`);
+  const result = BAAHomework.submitHomeworkReview(reviewId, {
+    action,
+    reviewer: reviewerName(),
+    finalAssessment: assessmentEl ? assessmentEl.value : '',
+    finalSummary: summaryEl ? summaryEl.value : '',
+    teacherComment: commentEl ? commentEl.value : ''
+  });
   if(result.error){
     if(errEl) errEl.textContent = result.error;
     return;
