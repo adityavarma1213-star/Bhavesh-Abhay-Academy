@@ -235,26 +235,32 @@ function showView(id){
 }
 
 /* ---------------- CATALOG ---------------- */
+function ensureSmartAdaptiveAssessment(){
+  const generated = BAAAssessment.buildAdaptiveAssessment();
+  const existingIndex = BAAAssessmentCatalog.findIndex(a => a.id === 'a_smart_adaptive_current');
+  if(existingIndex >= 0) BAAAssessmentCatalog.splice(existingIndex, 1);
+  if(generated) BAAAssessmentCatalog.unshift(generated);
+  return generated;
+}
+
 function renderCatalog(filter){
   const grid = document.getElementById('catGrid');
-  grid.innerHTML = '';
+  grid.replaceChildren();
+  ensureSmartAdaptiveAssessment();
   const list = BAAAssessmentCatalog.filter(a => filter==='all' || a.subject===filter);
   if(!list.length){ grid.innerHTML = '<div class="empty-note">No assessments in this subject yet.</div>'; return; }
   list.forEach(a=>{
-    const card = document.createElement('div');
-    card.className = 'cat-card';
-    card.onclick = ()=>beginAssessment(a.id);
-    card.innerHTML = `
-      <div class="cat-type">${a.type.replace('_',' ')}</div>
-      <div class="cat-title">${a.title}</div>
-      <div class="cat-desc">${a.description}</div>
-      <div class="cat-meta">
-        <span>${a.questionCount} questions</span>
-        <span>${a.totalMarks} marks</span>
-        <span>${Math.round(a.timeLimitSec/60)} min</span>
-        <span>${a.difficulty}</span>
-      </div>`;
-    grid.appendChild(card);
+    const card=document.createElement('div');
+    card.className='cat-card';
+    card.onclick=()=>beginAssessment(a.id);
+    const type=document.createElement('div'); type.className='cat-type';
+    type.textContent=(a.type||'assessment').replace('_',' ')+(a.adaptive?' · adaptive':'');
+    const title=document.createElement('div'); title.className='cat-title'; title.textContent=a.title;
+    const desc=document.createElement('div'); desc.className='cat-desc'; desc.textContent=a.description;
+    const meta=document.createElement('div'); meta.className='cat-meta';
+    [a.questionCount+' questions',a.totalMarks+' marks',Math.round(a.timeLimitSec/60)+' min',a.difficulty]
+      .forEach(value=>{const span=document.createElement('span');span.textContent=value;meta.appendChild(span);});
+    card.append(type,title,desc,meta); grid.appendChild(card);
   });
 }
 function filterCatalog(f){
@@ -484,6 +490,11 @@ function renderResults(attempt){
       if(r.errors && r.errors.length) html += `<div class="qr-detail" style="margin-top:6px;">Errors noted: ${r.errors.join(', ')}</div>`;
       if(r.missingConcepts && r.missingConcepts.length) html += `<div class="qr-detail" style="margin-top:4px;">Missing: ${r.missingConcepts.join(', ')}</div>`;
       if(r.suggestedImprovement) html += `<div class="qr-detail" style="margin-top:4px;">💡 ${r.suggestedImprovement}</div>`;
+      if(Array.isArray(r.rubric) && r.rubric.length){
+        html += `<div class="practice-card" style="margin-top:10px;padding:14px 16px;"><h4>🔎 How this was marked</h4>` +
+          r.rubric.map(item => `<p><b>${item.criterion}</b> — ${item.score} / ${item.maxScore}<br><span style="color:var(--dim);">${item.evidence || 'No evidence note supplied.'}</span></p>`).join('') +
+          `</div>`;
+      }
       html += `<div><span class="qr-tag">AI confidence: ${r.confidence}</span>`;
       if(r.humanReview) html += `<span class="qr-tag" style="background:rgba(52,211,153,0.14);color:var(--emerald);">Reviewed by ${r.humanReview.reviewer} (${r.humanReview.status})</span>`;
       else if(r.humanReviewRequired) html += `<span class="qr-tag review">Flagged for human review</span>`;
@@ -523,6 +534,7 @@ renderHistory();
 // "Practice X" / "Reassess X" task actually opens the real assessment, not a dead button.
 // Falls back to the normal catalog view if the id is missing or invalid.
 (function handleDeepLinkStart(){
+  ensureSmartAdaptiveAssessment();
   const params = new URLSearchParams(window.location.search);
   const startId = params.get('start');
   if (startId && BAAGetAssessment(startId)){

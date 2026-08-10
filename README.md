@@ -531,3 +531,292 @@ reads, or writes to them. No signup/login UI, no session code, and no
 password hashing are implemented by G2.1; see `SCHEMA.md` section 15
 for the full scope and what's intentionally left for later G2
 checkpoints and G3/G4. Validated by `test/run-g2.1-tests.js`.
+
+## Module 8 — AI Homework Scanner (M8-A1 → M8-C)
+
+The Homework Scanner is implemented as a dedicated student-facing page and is developed in isolated production checkpoints.
+
+- **M8-A1 — Text foundation:** dedicated Homework Scanner page and text-only submission flow.
+- **M8-A2 — Image attachment:** PNG/JPEG/WEBP photo selection, preview and browser-side compression. Image bytes are held only in memory during selection and are not persisted. The current evaluation endpoint records that a photo exists but does **not** evaluate its pixels.
+- **M8-B1 — Evaluation endpoint:** dedicated server-side homework evaluation endpoint using the existing Gemini/Vercel pattern, with server-side input validation, rate limiting/retry handling and no client-side API secret.
+- **M8-B2 — Structured evaluation:** schema-versioned evaluation result, confidence and human-review flags.
+- **M8-C — PDF support:** PDF.js extracts selectable text in the browser, with a 20 MB / 40-page limit and an 8,000-character extraction cap. Scanned/image-only PDFs are rejected honestly; OCR and image-content evaluation are not claimed.
+- **M8-C hardening:** common image/PDF attachment metadata is now shaped through `js/baa-homework-attachment-base.js`; the evaluation endpoint re-validates extracted text server-side before sending it to Gemini.
+
+**Storage/privacy:** the current implementation uses browser-local testing storage. Raw image and PDF bytes are not persisted by the Homework Scanner. PDF text extracted for evaluation is stored as submission text under the existing local testing model.
+
+**Deferred from M8-C:** broader image-content/OCR evaluation is not claimed by M8-C; Learning Memory / Mistake Archeology is now covered by M8-D2 below.
+
+**Files added/changed for M8-C hardening:** `js/baa-homework-attachment-base.js`, `js/baa-homework-image.js`, `js/baa-homework-pdf.js`, `js/baa-homework.js`, `api/evaluate-homework.js`, `homework-scanner.html`, `README.md`, `DEPLOYMENT.md`, `SECTION-M8-STATUS.md`, and `test/run-m8-c-hardening-tests.js`.
+
+## Module 8 — M8-D1 Teacher Review Integration
+
+The Homework Scanner now integrates with the existing `teacher-review.html` human-review surface. Evaluations marked `humanReviewRequired` create a dedicated homework review record. Teachers can accept, edit, or reject the AI evaluation. The original AI evaluation is preserved separately and prior human decisions are retained in `decisionHistory`.
+
+## Module 8 — M8-D2 Learning Memory / Mistake Archeology Integration
+
+M8-D2 connects explicit, evidence-gated homework learning signals to the existing Section B Learning Memory / Mistake Archeology engine. The AI evaluator may return up to five concept-level `learningSignals`; only high-confidence, non-uncertain signals are admitted as Section B evidence. They are stored with `evidenceType: homework_evaluation` and `source: module_8_homework_scanner`, then run through the existing Learning Memory and Mistake Archeology rules. A single homework submission cannot claim mastery: the existing minimum-evidence gate remains in force. Repeated integration is idempotent, and the Homework Scanner records whether integration succeeded, produced no admissible signal, or was unavailable.
+
+**M8-D2 files changed:** `api/evaluate-homework.js`, `js/baa-homework.js`, `js/baa-assessment.js`, `js/data-access/repositories/evidenceRepository.js`, `homework-scanner.html`, and `test/run-m8-d2-tests.js`.
+
+**Still deferred:** image-pixel evaluation/OCR and the later production backend/database gates.
+
+This remains browser-local/private-testing storage; it is not a production server-side teacher account system.
+
+
+## Module 10 — AI Confidence Meter (M10-C1)
+M10-C1 adds an evidence-backed confidence meter to the Student OS Learning Profile. It reports categorical evidence confidence (`high`, `medium`, `low`, or `insufficient_evidence`) from real Learning Memory evidence. It deliberately does not fabricate a numeric mastery percentage. M10-C1 does not claim emotional/self-confidence measurement or live production telemetry.
+
+Files added: `test/run-m10-c1-tests.js`.
+Files updated: `js/baa-intelligence.js`, `student-os.html`, `README.md`.
+
+
+## Module 1 — AI Mode (M1-A1)
+M1-A1 adds a real server-side AI-directed learning-path endpoint and Student OS planner control. It uses only bounded learner goals, Learning Memory concept states, evidence confidence/counts, available study time, and upcoming assessments. It does not implement Custom Mode, Hybrid Mode, production persistence, teacher routing, or claim Module 1 is fully complete.
+
+Files added: `api/ai-mode.js`, `js/baa-ai-mode.js`, `test/run-m1-a1-tests.js`.
+Files updated: `student-os.html`, `README.md`.
+
+
+## Module 1 — AI Mode (M1-A2)
+M1-A2 adds adaptive regeneration of an existing AI Mode learning path using the latest bounded Learning Memory evidence. The student can ask AI Mode to adapt the previous plan rather than blindly repeating it. The checkpoint does not implement Custom Mode, Hybrid Mode, production persistence, or claim Module 1 is complete.
+
+Files added: `test/run-m1-a2-tests.js`.
+Files updated: `api/ai-mode.js`, `js/baa-ai-mode.js`, `student-os.html`, `README.md`.
+
+## Module 2 — Custom / Individual Mode (Current checkpoint)
+This checkpoint adds a student-controlled learning path in Student OS. The student can add, reorder, complete, undo, and remove learning steps with a chosen type and time estimate. The path is stored in browser-local testing storage with a schema version. Custom Mode does not call AI to reorder the student's choices, does not alter AI Mode plans, and does not claim Hybrid Mode, teacher routing, authentication, or production persistence.
+
+Files added: `js/baa-custom-mode.js`, `test/run-m2-custom-mode-tests.js`.
+Files updated: `student-os.html`, `README.md`.
+
+
+### M2 Custom Mode hardening
+- Corrected normalization of corrupted stored paths so a valid step retains its own ID and completion state even when an earlier stored step is invalid.
+- Added a regression test for this corruption case.
+
+
+## Module 3 — Hybrid Mode (M3-A)
+M3-A adds the Hybrid Mode foundation: a student can combine an existing AI Mode plan with their saved Custom Mode path into one explicitly sourced Hybrid path. This checkpoint does not implement AI/student conflict resolution, automatic weighting, adaptive Hybrid Mode, or server persistence.
+
+Files added: `js/baa-hybrid-mode.js`, `test/run-m3-a-tests.js`.
+Files updated: `js/baa-ai-mode.js`, `student-os.html`, `README.md`.
+
+
+## Module 3 — Hybrid Mode (M3-B)
+M3-B adds student control over the combined Hybrid path. Students can include/exclude individual AI or Custom steps and save the adjusted path. This checkpoint does not implement automatic AI/student conflict resolution, weighting, adaptive Hybrid decisions, or server persistence.
+
+Files added: `test/run-m3-b-tests.js`.
+Files updated: `js/baa-hybrid-mode.js`, `student-os.html`, `README.md`.
+
+
+## Module 3 — Hybrid Mode (M3-C)
+M3-C adds explicit Hybrid priority behavior. The student can choose Balanced (keep both conflicting same-title steps and decide), Student Priority (student-created step wins), or AI Priority (AI step wins). This checkpoint uses deterministic rules only; it does not invent evidence, add a new AI endpoint, or add server persistence.
+
+Files added: `test/run-m3-c-tests.js`.
+Files updated: `js/baa-hybrid-mode.js`, `student-os.html`, `README.md`.
+
+
+## Module 3 — Hybrid Mode (M3-D)
+M3-D completes the final Hybrid integration/hardening checkpoint. It adds a safe reset action and a real Hybrid summary (active steps, AI steps, student steps, and active minutes), with corruption recovery and limit coverage. M3 remains client-side/localStorage at this stage; server/database persistence is outside M3-D.
+
+Files added: `test/run-m3-d-tests.js`, `SECTION-M3-STATUS.md`.
+Files updated: `js/baa-hybrid-mode.js`, `student-os.html`, `README.md`.
+
+
+## Module 4 — AI Tutor (M4-A)
+M4-A hardens the existing AI Tutor connection without rebuilding the Tutor. Temporary frontend/backend debug logging was removed, while the server-side Gemini key, input limits, image validation, CORS configuration, rate limiting, retries, timeout, and Section B learning-context connection remain intact.
+
+Files added: `test/run-m4-a-tests.js`, `SECTION-M4-STATUS.md`.
+Files updated: `api/chat.js`, `student-os.html`, `README.md`.
+
+## Module 4 — AI Tutor (M4-B)
+M4-B hardens the large `student-os.html` Tutor implementation: the SSE event processor is explicitly retained, decoded chunks are buffered correctly, the final unterminated event is flushed, and streamed Markdown is sanitized before DOM insertion. Existing backend, model, and Learning Context wiring are retained; no M5 functionality is introduced.
+
+Files added: `test/run-m4-b-tests.js`.
+Files updated: `student-os.html`, `README.md`, `SECTION-M4-STATUS.md`.
+
+## Module 4 — AI Tutor (M4-C)
+M4-C makes Tutor conversation recovery explicit: saved text history is strictly validated and bounded, restored safely on reload, assistant messages use the existing Markdown sanitizer, and a Clear saved conversation control is provided. Image bytes are excluded from persistence. No new AI endpoint or backend behavior is introduced.
+
+Files added: `test/run-m4-c-tests.js`.
+Files updated: `student-os.html`, `README.md`, `SECTION-M4-STATUS.md`.
+
+## Module 4 — AI Tutor (M4-D)
+M4-D is the final implementation/hardening pass for the Tutor conversation layer. Persistence is schema-versioned and migration-safe, storage failures are surfaced honestly, text-only conversation export/import is available, and clearing a saved conversation is confirmable and keyboard accessible. No image bytes are persisted/exported, and no new AI endpoint or model is introduced.
+
+Files added: `test/run-m4-d-tests.js`.
+Files updated: `student-os.html`, `README.md`, `SECTION-M4-STATUS.md`.
+
+## Module 5 — AI Mentor Chat
+M5 implements the blueprint's AI Mentor Chat as a distinct academic-profile conversational assistant focused on guidance and motivation. It reuses the existing secure chat backend through an explicit `mentor` mode, uses available assessment learning evidence when relevant, keeps a bounded schema-versioned conversation locally, and applies professional safety boundaries. It does not replace the AI Tutor and does not introduce a second AI API endpoint.
+
+Files added: `test/run-m5-tests.js`.
+Files updated: `student-os.html`, `api/chat.js`, `README.md`, `SECTION-M5-STATUS.md`.
+
+## Module 6 — Smart Assessment System
+M6 adds a real adaptive assessment layer using only questions already present in the BAA question bank. It ranks recent Learning Evidence by concept performance, prioritizes weaker concepts, varies question type/difficulty where possible, and presents a real runnable assessment. With no evidence yet, it uses a small diagnostic starter mix. No fake questions or invented scores are generated.
+
+Files updated: `js/baa-assessment.js`, `assessment.html`, `README.md`, `SECTION-M6-STATUS.md`.
+Files added: `test/run-m6-tests.js`.
+
+## Module 7 — Transparent AI Evaluation
+M7 adds structured rubric output to subjective AI evaluation, including criterion-level scores and evidence notes, confidence, human-review flags, and student-visible “How this was marked” rationale. The original AI evaluation remains preserved when a human reviewer later accepts, edits, or rejects it. Unreadable AI output remains unscored and reviewable.
+
+Files added: `test/run-m7-tests.js`.
+Files updated: `api/evaluate.js`, `js/baa-assessment.js`, `assessment.html`, `README.md`, `SECTION-M7-STATUS.md`.
+
+## Module 9 — AI Learning Memory
+M9 makes the academic profile a persistent, schema-versioned evidence-derived summary of historical strengths, weaknesses, and learning habits. It updates from completed assessment/homework evidence and is surfaced in the Learning Profile. No personality, health, or psychological diagnosis is inferred.
+
+Files added: `test/run-m9-tests.js`.
+Files updated: `js/baa-assessment.js`, `student-os.html`, `README.md`, `SECTION-M9-STATUS.md`.
+
+## Module 11 — AI Planner
+M11 provides an evidence-driven living planner with daily, weekly, and monthly views. It uses learning states, mistake patterns, goals, available time, and upcoming assessments to prioritize tasks, while keeping completion and rescheduling under student control.
+
+Files added: `test/run-m11-tests.js`.
+Files updated: `js/baa-planner.js`, `student-os.html`, `README.md`, `SECTION-M11-STATUS.md`.
+
+## Module 12 — AI Guardian
+M12 adds evidence-based academic early-support signals for repeated low performance, pending human review, and missed planner tasks. Alerts are explainable, acknowledgeable, and explicitly scoped away from mental-health/personality diagnosis.
+
+Files added: `js/baa-guardian.js`, `test/run-m12-tests.js`.
+Files updated: `student-os.html`, `README.md`, `SECTION-M12-STATUS.md`.
+
+## Module 13 — AI Prediction Engine
+M13 provides bounded academic forecasts from real assessment and concept evidence: readiness estimate, recent grade trajectory, milestone outlook, and evidence/confidence context. It refuses to forecast when evidence is insufficient and labels predictions as estimates rather than guarantees.
+
+Files added: `js/baa-prediction.js`, `test/run-m13-tests.js`.
+Files updated: `student-os.html`, `README.md`, `SECTION-M13-STATUS.md`.
+
+## Module 14 — Parent Dashboard
+M14 extends the existing parent-facing dashboard with evidence-derived academic profile, bounded academic forecast, and Guardian support signals while preserving the project's single-student private-testing scope. It explicitly avoids health/personality/family inference.
+
+Files added: `test/run-m14-tests.js`.
+Files updated: `parent-os.html`, `README.md`, `SECTION-M14-STATUS.md`.
+
+## Module 15 — Parent Approval Mode
+M15 adds versioned parent governance controls for AI Tutor, AI Mentor, and Planner use, including a validated daily study-minute cap. The controls are enforced by the corresponding frontend/planner paths and are explicitly local/private-testing governance, not a production security boundary.
+
+Files added: `js/baa-parent-approval.js`, `test/run-m15-tests.js`.
+Files updated: `student-os.html`, `js/baa-planner.js`, `parent-os.html`, `README.md`, `SECTION-M15-STATUS.md`.
+
+## Module 16 — Teacher Recommendation System
+M16 generates differentiated teacher assignment recommendations from real Learning Intelligence states, prioritizing struggling/needs-revision concepts and linking only to real available assessments. Recommendations remain suggestions; a teacher makes the final assignment decision.
+
+Files added: `js/baa-teacher-recommendation.js`, `test/run-m16-tests.js`.
+Files updated: `teacher-os.html`, `README.md`, `SECTION-M16-STATUS.md`.
+
+## Module 17 — Teacher Analytics
+M17 adds evidence-derived teacher analytics plus a reusable multi-student aggregation adapter. The current single-student private-testing build displays concept analytics but does not fabricate a class heatmap. Full class-wide analytics remains pending a real multi-student data source.
+
+Files added: `js/baa-teacher-analytics.js`, `test/run-m17-tests.js`.
+Files updated: `teacher-os.html`, `README.md`, `SECTION-M17-STATUS.md`.
+
+## Module 18 — School Calendar Integration
+M18 adds a local school-calendar layer for explicit exams, deadlines, holidays, and school events. The Planner reads calendar context and avoids automatically generating daily study tasks on explicitly entered holidays.
+
+Files added: `js/baa-school-calendar.js`, `test/run-m18-tests.js`.
+Files updated: `js/baa-planner.js`, `student-os.html`, `README.md`, `SECTION-M18-STATUS.md`.
+
+## Module 19 — AI Learning Passport
+M19 adds a portable, schema-versioned academic passport built from real evidence-backed competencies and completed assessments, with JSON export. It is explicitly a local testing record, not an external credential.
+
+Files added: `js/baa-learning-passport.js`, `test/run-m19-tests.js`.
+Files updated: `student-os.html`, `README.md`, `SECTION-M19-STATUS.md`.
+
+## Module 20 — AI Career & Future Planning Center
+M20 replaces the static career preview with exploratory career tracks, evidence-aligned skills, and next skills to explore based on the student's academic profile. It explicitly avoids guaranteed job, salary, admission, or personal-future predictions.
+
+Files added: `js/baa-career.js`, `test/run-m20-tests.js`.
+Files updated: `student-os.html`, `README.md`, `SECTION-M20-STATUS.md`.
+
+## Modules 21–23 — Practice, Weakness & Strength Engines
+M21 adds evidence-prioritized practice selection from the real question bank. M22 exposes repeated evidence-based weakness signals. M23 exposes evidence-backed strength recognition. These modules do not invent questions, scores, or psychological diagnoses.
+
+Files added: `js/baa-practice.js`, `js/baa-weakness.js`, `js/baa-strength.js`, `test/run-m21-23-tests.js`.
+
+## Modules 24–25 — Revision & Goal Tracking
+M24 adds evidence-state-based revision intervals and due signals. M25 formalizes the existing Planner goal store as an evidence-linked goal tracker. Neither invents completion or mastery percentages.
+
+Files added: `js/baa-revision.js`, `js/baa-goals.js`, `test/run-m24-25-tests.js`.
+
+## Module 26 — AI Notes Generator
+M26 creates a factual, reviewable teacher-note draft from existing BAA academic evidence. It does not call an AI endpoint, invent facts, or auto-save. The teacher explicitly reviews the draft before deciding whether to save/share it.
+
+Files added: `js/baa-notes-generator.js`, `test/run-m26-tests.js`.
+Files updated: `teacher-os.html`, `README.md`, `SECTION-M26-STATUS.md`.
+
+## Module 27 — AI Learning Resources
+M27 adds evidence-backed multimodal learning-resource recommendations. The student may explicitly choose a preferred format (visual, video, interactive, or practice). BAA does not infer or diagnose a fixed "learning style." External destinations are search targets, not claims that every returned resource is BAA-validated.
+
+Files added: `js/baa-learning-resources.js`, `test/run-m27-tests.js`.
+Files updated: `student-os.html`, `README.md`, `SECTION-M27-STATUS.md`.
+
+## Module 28 — AI Explain Like... Mode
+M28 adds student-controlled explanation styles to the existing AI Tutor. Modes are bounded and backend-validated; analogy modes explicitly distinguish analogies from literal facts.
+
+Files added: `test/run-m28-tests.js`, `SECTION-M28-STATUS.md`.
+Files updated: `student-os.html`, `api/chat.js`, `README.md`.
+
+## Module 29 — AI Learning Paths
+M29 creates a transparent sequential, node-based learning journey from real BAA concept evidence. It does not invent a syllabus prerequisite graph. Each node exposes its concept, evidence count, confidence, state, and next action.
+
+Files added: `js/baa-learning-paths.js`, `test/run-m29-tests.js`, `SECTION-M29-STATUS.md`.
+Files updated: `student-os.html`, `README.md`.
+
+## Module 30 — Achievement & Rewards Center
+M30 adds evidence-backed gamified XP, milestones, badges, and positive reinforcement. Rewards are motivational and separate from academic marks. XP and badge rules are explicit product rules because the roadmap does not specify a canonical economy.
+
+Files added: `js/baa-rewards.js`, `test/run-m30-tests.js`, `SECTION-M30-STATUS.md`.
+Files updated: `student-os.html`, `README.md`.
+
+## Module 31 — Multilingual Learning Ecosystem
+M31 adds student-controlled multilingual Tutor responses with English plus seven Indian regional languages. The backend re-validates the selection and preserves mathematics, code, proper nouns, and technical terminology. This is not a claim of professional translation certification or dialect-level localization.
+
+Files added: `js/baa-language.js`, `test/run-m31-tests.js`, `SECTION-M31-STATUS.md`.
+Files updated: `student-os.html`, `api/chat.js`, `README.md`.
+
+
+## M32–M62 Continuous Build
+All remaining roadmap module IDs M32–M62 now have implemented capabilities in the continuous baseline. Module-specific status files, focused batch tests, and a project-wide LIMITATIONS.md are included. See `CONTINUOUS-M32-M62-STATUS.md` and `DEFINITION-OF-DONE.md`.
+
+Important: 100% module completion means implemented and tested software capabilities. It does not mean external production dependencies are magically connected; those boundaries are explicitly documented.
+
+
+## 👤 For Users
+
+If you downloaded BAA and want to know how to operate it, start with **`USER-GUIDE.md`**.
+
+The quickest route is:
+
+1. Extract the ZIP.
+2. Open `index.html`.
+3. Choose Student OS, Parent OS or Teacher OS.
+4. Follow the on-screen controls.
+5. Use `USER-GUIDE.md` whenever you need an explanation of a feature.
+
+`USER-GUIDE.md` is written for normal users. `README.md` remains the project/developer overview.
+
+## Production graduation — G4/G5/G6
+
+The project now includes a real production backend boundary rather than only a browser-local design:
+
+- `api/auth/*` — server signup/login/logout/session
+- `api/_lib/auth.js` — server-enforced role/learner authorization
+- `api/_lib/security.js` — password/session/security helpers
+- `api/v1/learner.js` — protected durable learner endpoint
+- `api/v1/consent.js` — consent controls
+- `api/v1/audit.js` — admin-only audit inspection
+- `api/health.js` — database health check
+- `db/migrations/001_initial.sql` — production hardening migration
+- `scripts/apply-migrations.mjs` — database deployment script
+- `scripts/migrate-localstorage.mjs` — migration foundation
+- `scripts/export-backup.mjs` — logical backup export
+- `account.html` — account UI
+- `service-worker.js` + `js/baa-offline-sync.js` — M41 offline-first cache/queue foundation
+
+### Production environment gate
+
+The code is deployment-ready but cannot honestly claim a live production database until `POSTGRES_URL` is configured and `GET /api/health` returns `database: connected`. Likewise, provider-native backups, monitoring, legal compliance certification and external service credentials must be configured in the real deployment.

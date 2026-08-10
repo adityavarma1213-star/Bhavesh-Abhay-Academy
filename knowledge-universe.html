@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Knowledge Universe — BAA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;1,9..144,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --void: #05061a;
+    --cosmos: #0d1240;
+    --violet: #7C5CFC;
+    --cyan: #4CD9E8;
+    --gold: #F5B942;
+    --warmwhite: #FDF9F0;
+    --dim: rgba(253,249,240,0.62);
+    --faint: rgba(253,249,240,0.32);
+    --display: 'Fraunces', serif;
+    --body: 'Inter', sans-serif;
+  }
+  *{ margin:0; padding:0; box-sizing:border-box; }
+  html, body{ height:100%; }
+  body{
+    background: radial-gradient(ellipse 1200px 900px at 50% 30%, #0d1240, var(--void) 70%);
+    color: var(--warmwhite);
+    font-family: var(--body);
+    overflow: hidden;
+    position: relative;
+  }
+  ::selection{ background: var(--gold); color: var(--void); }
+
+  #deep-stars{ position: fixed; inset:0; z-index:0; }
+
+  /* ---------- Nebula clouds ---------- */
+  .nebula{
+    position: fixed;
+    inset: -10%;
+    z-index: 1;
+    pointer-events: none;
+    background:
+      radial-gradient(ellipse 620px 420px at 12% 18%, rgba(124,92,252,0.16), transparent 60%),
+      radial-gradient(ellipse 520px 460px at 88% 12%, rgba(76,217,232,0.10), transparent 60%),
+      radial-gradient(ellipse 700px 500px at 78% 82%, rgba(232,96,143,0.08), transparent 60%),
+      radial-gradient(ellipse 640px 480px at 8% 85%, rgba(52,211,153,0.08), transparent 60%);
+    animation: nebulaDrift 40s ease-in-out infinite alternate;
+    filter: blur(2px);
+  }
+  @keyframes nebulaDrift{
+    0%{ transform: translate(0,0) scale(1); }
+    100%{ transform: translate(-3%, 2%) scale(1.06); }
+  }
+
+  /* ---------- Comet ---------- */
+  .comet{
+    position: fixed;
+    top: -5%;
+    left: -5%;
+    width: 3px; height: 3px;
+    border-radius: 50%;
+    background: var(--warmwhite);
+    box-shadow: 0 0 12px 2px rgba(253,249,240,0.9);
+    z-index: 3;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .comet::after{
+    content:'';
+    position: absolute;
+    top: 50%; right: 100%;
+    width: 140px; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(253,249,240,0.7));
+    transform: translateY(-50%);
+  }
+  .comet.fly{
+    animation: cometFly 3.2s cubic-bezier(.3,.1,.4,1) forwards;
+  }
+  @keyframes cometFly{
+    0%{ opacity:0; transform: translate(0,0); }
+    8%{ opacity:1; }
+    85%{ opacity:1; }
+    100%{ opacity:0; transform: translate(112vw, 78vh); }
+  }
+
+  /* ---------- AI companion ---------- */
+  .companion{
+    position: fixed;
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #fff, var(--gold) 60%, #b3781f);
+    box-shadow: 0 0 18px 5px rgba(245,185,66,0.4);
+    z-index: 55;
+    pointer-events: none;
+    transition: transform .12s linear;
+  }
+  .companion::before{
+    content:'';
+    position:absolute; inset:-6px;
+    border-radius:50%;
+    border: 1px solid rgba(245,185,66,0.35);
+    animation: companionRing 2.4s ease-out infinite;
+  }
+  @keyframes companionRing{
+    0%{ transform: scale(0.9); opacity: 0.8; }
+    100%{ transform: scale(1.8); opacity: 0; }
+  }
+  .companion-bubble{
+    position: fixed;
+    z-index: 56;
+    background: rgba(13,18,64,0.92);
+    border: 1px solid rgba(253,249,240,0.14);
+    border-radius: 14px;
+    padding: 10px 16px;
+    font-size: 0.82rem;
+    color: var(--warmwhite);
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity .3s ease, transform .3s ease;
+  }
+  .companion-bubble.show{ opacity: 1; transform: translateY(0); }
+
+  /* ---------- Flythrough transition ---------- */
+  .flythrough{
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    pointer-events: none;
+    opacity: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .flythrough.active{ pointer-events: auto; }
+  .flythrough-disc{
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    transform: scale(1);
+  }
+  .flythrough.active .flythrough-disc{
+    animation: flyZoom 1.1s cubic-bezier(.5,0,.6,1) forwards;
+  }
+  .flythrough.active{
+    animation: flyFade 1.1s ease forwards;
+  }
+  @keyframes flyZoom{
+    0%{ transform: scale(1); }
+    100%{ transform: scale(140); }
+  }
+  @keyframes flyFade{
+    0%{ opacity: 0; }
+    30%{ opacity: 1; }
+    100%{ opacity: 1; }
+  }
+
+  .scene{
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    z-index: 2;
+  }
+
+  /* ---------- Top bar ---------- */
+  .topbar{
+    position: fixed;
+    top:0; left:0; right:0;
+    z-index: 60;
+    display:flex;
+    justify-content: space-between;
+    align-items:center;
+    padding: 22px 5vw;
+  }
+  .back-link{
+    font-size: 0.82rem;
+    color: var(--dim);
+    display:flex;
+    align-items:center;
+    gap:8px;
+    cursor:pointer;
+    letter-spacing:0.02em;
+    transition: color .3s ease;
+  }
+  .back-link:hover{ color: var(--warmwhite); }
+  .universe-title{
+    font-family: var(--display);
+    font-style: italic;
+    font-weight: 400;
+    font-size: 1.1rem;
+    color: var(--faint);
+    letter-spacing: 0.02em;
+  }
+
+  /* ---------- Intro caption ---------- */
+  .intro-caption{
+    position: absolute;
+    top: 14vh;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align:center;
+    z-index: 20;
+    pointer-events:none;
+    opacity: 0;
+    animation: fadeCaption 1.4s ease forwards .3s;
+  }
+  @keyframes fadeCaption{ to{ opacity:1; } }
+  .intro-caption .eyebrow{
+    font-size: 0.74rem;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 14px;
+  }
+  .intro-caption h1{
+    font-family: var(--display);
+    font-weight: 400;
+    font-style: italic;
+    font-size: clamp(1.8rem, 3.4vw, 2.6rem);
+    color: var(--warmwhite);
+  }
+  .intro-caption p{
+    margin-top: 12px;
+    color: var(--dim);
+    font-size: 0.95rem;
+  }
+
+  /* ---------- Orbital system ---------- */
+  .orbit-field{
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(74vw, 720px);
+    height: min(74vw, 720px);
+  }
+
+  .sun{
+    position: absolute;
+    top:50%; left:50%;
+    width: 68px; height: 68px;
+    border-radius:50%;
+    transform: translate(-50%,-50%);
+    background: radial-gradient(circle at 35% 30%, #fff3d6, var(--gold) 55%, #b3781f 100%);
+    box-shadow: 0 0 60px 18px rgba(245,185,66,0.35), 0 0 140px 50px rgba(245,185,66,0.12);
+    z-index: 5;
+    animation: sunPulse 5s ease-in-out infinite;
+  }
+  @keyframes sunPulse{
+    0%,100%{ box-shadow: 0 0 60px 18px rgba(245,185,66,0.35), 0 0 140px 50px rgba(245,185,66,0.12); }
+    50%{ box-shadow: 0 0 70px 22px rgba(245,185,66,0.45), 0 0 160px 60px rgba(245,185,66,0.18); }
+  }
+  .sun::after{
+    content:'Your curiosity';
+    position:absolute;
+    top: 110%; left:50%;
+    transform: translateX(-50%);
+    font-size: 0.68rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--faint);
+    white-space:nowrap;
+  }
+
+  .ring{
+    position: absolute;
+    top:50%; left:50%;
+    border: 1px solid rgba(253,249,240,0.09);
+    border-radius: 50%;
+    transform: translate(-50%,-50%);
+  }
+
+  .orbit-path{
+    position: absolute;
+    top:50%; left:50%;
+    transform: translate(-50%,-50%);
+    border-radius:50%;
+    animation: spin linear infinite;
+  }
+  @keyframes spin{ from{ transform: translate(-50%,-50%) rotate(0deg); } to{ transform: translate(-50%,-50%) rotate(360deg); } }
+
+  .planet{
+    position:absolute;
+    top: 0; left: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    cursor: pointer;
+    display:flex; align-items:center; justify-content:center;
+    transition: filter .3s ease;
+  }
+  .planet .core{
+    width:100%; height:100%;
+    border-radius:50%;
+    animation: counterSpin linear infinite;
+  }
+  @keyframes counterSpin{ from{ transform: rotate(0deg); } to{ transform: rotate(-360deg); } }
+
+  .planet .label{
+    position:absolute;
+    top: 130%;
+    left:50%;
+    transform: translateX(-50%);
+    white-space:nowrap;
+    font-size: 0.78rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    opacity: 0;
+    transition: opacity .35s ease, transform .35s ease;
+    pointer-events:none;
+  }
+  .planet:hover .label{ opacity: 1; transform: translateX(-50%) translateY(-2px); }
+  .planet:hover{ filter: brightness(1.25); }
+  .planet:hover .core{ animation-play-state: paused; }
+
+  /* subject planets */
+  .p-math .core{
+    background: radial-gradient(circle at 35% 30%, #d7ccff, var(--violet) 55%, #3f2f9c);
+    box-shadow: 0 0 26px rgba(124,92,252,0.5);
+    clip-path: polygon(50% 0%, 90% 20%, 100% 60%, 70% 100%, 30% 100%, 0% 60%, 10% 20%);
+  }
+  .p-math{ overflow: visible; }
+  .glyph-orbit{
+    position:absolute;
+    top:50%; left:50%;
+    width: 64px; height: 64px;
+    transform: translate(-50%,-50%);
+    animation: spin 9s linear infinite;
+    pointer-events:none;
+  }
+  .glyph-orbit span{
+    position:absolute;
+    top:0; left:50%;
+    transform: translateX(-50%);
+    font-family: var(--display);
+    font-style: italic;
+    font-size: 0.72rem;
+    color: #d7ccff;
+    text-shadow: 0 0 8px rgba(124,92,252,0.8);
+  }
+  .glyph-orbit span:nth-child(2){ top:auto; bottom:0; left:auto; right:2px; transform:none; }
+  .glyph-orbit span:nth-child(3){ top:auto; bottom:2px; left:2px; transform:none; }
+  .p-science .core{ background: radial-gradient(circle at 35% 30%, #b6ffe8, #34d399 55%, #0d6b4f); box-shadow: 0 0 26px rgba(52,211,153,0.5); }
+  .p-history .core{ background: radial-gradient(circle at 35% 30%, #ffd9b0, #e0813f 55%, #7a3b12); box-shadow: 0 0 26px rgba(224,129,63,0.5); }
+  .p-geo .core{ background: radial-gradient(circle at 35% 30%, #bdeaff, var(--cyan) 55%, #0f7d8c); box-shadow: 0 0 26px rgba(76,217,232,0.5); }
+  .p-lang .core{ background: radial-gradient(circle at 35% 30%, #ffd6e6, #e8608f 55%, #7a2c47); box-shadow: 0 0 26px rgba(232,96,143,0.5); }
+
+  /* orbiting moon = a skill unlocked */
+  .moon{
+    position:absolute;
+    width: 7px; height:7px;
+    border-radius:50%;
+    background: var(--warmwhite);
+    box-shadow: 0 0 8px rgba(253,249,240,0.7);
+    top: -3px; left: 50%;
+    transform: translateX(-50%);
+  }
+
+  /* ---------- Detail panel ---------- */
+  .detail-panel{
+    position: fixed;
+    top:0; right:0;
+    height: 100vh;
+    width: min(400px, 88vw);
+    background: linear-gradient(200deg, rgba(20,26,80,0.96), rgba(6,8,26,0.98));
+    border-left: 1px solid rgba(253,249,240,0.1);
+    z-index: 80;
+    padding: 100px 40px 40px;
+    transform: translateX(100%);
+    transition: transform .55s cubic-bezier(.2,.8,.2,1);
+    display:flex;
+    flex-direction:column;
+  }
+  .detail-panel.open{ transform: translateX(0); }
+  .detail-close{
+    position:absolute; top:26px; right:28px;
+    width:36px;height:36px;
+    border-radius:50%;
+    background: rgba(253,249,240,0.06);
+    border:none; color: var(--warmwhite);
+    cursor:pointer; font-size:1rem;
+    transition: background .3s ease;
+  }
+  .detail-close:hover{ background: rgba(253,249,240,0.14); }
+
+  .detail-planet-icon{
+    width: 70px; height:70px;
+    border-radius:50%;
+    margin-bottom: 26px;
+  }
+  .detail-panel .tag{
+    font-size: 0.72rem;
+    letter-spacing:0.18em;
+    text-transform:uppercase;
+    margin-bottom: 12px;
+    display:block;
+  }
+  .detail-panel h2{
+    font-family: var(--display);
+    font-weight: 500;
+    font-size: 2rem;
+    margin-bottom: 16px;
+    line-height:1.15;
+  }
+  .detail-panel h2 em{ font-style:italic; font-weight:400; }
+  .detail-panel p{
+    color: var(--dim);
+    font-size: 0.95rem;
+    line-height: 1.65;
+    margin-bottom: 30px;
+  }
+  .detail-stats{
+    display:flex;
+    gap: 22px;
+    margin-bottom: 34px;
+  }
+  .detail-stats div{ flex:1; }
+  .detail-stats .num{
+    font-family: var(--display);
+    font-size: 1.5rem;
+    font-weight: 500;
+  }
+  .detail-stats .lab{
+    font-size: 0.7rem;
+    color: var(--faint);
+    text-transform:uppercase;
+    letter-spacing: 0.1em;
+    margin-top: 4px;
+  }
+  .enter-btn{
+    margin-top: auto;
+    font-family: var(--body);
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--void);
+    background: linear-gradient(120deg, var(--gold), #f7c96b);
+    padding: 16px 0;
+    border-radius: 100px;
+    border:none;
+    cursor:pointer;
+    transition: transform .3s ease, box-shadow .3s ease;
+    box-shadow: 0 10px 30px -8px rgba(245,185,66,0.4);
+  }
+  .enter-btn:hover{ transform: translateY(-2px); box-shadow: 0 14px 34px -8px rgba(245,185,66,0.55); }
+
+  .hint{
+    position: absolute;
+    bottom: 6vh;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.76rem;
+    color: var(--faint);
+    letter-spacing: 0.06em;
+    z-index: 20;
+    opacity: 0;
+    animation: fadeCaption 1.4s ease forwards 1.2s;
+  }
+
+  @media (max-width: 720px){
+    .orbit-field{ width: 90vw; height: 90vw; }
+    .intro-caption{ top: 10vh; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration: 0.01ms !important; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="deep-stars"></canvas>
+<div class="nebula"></div>
+<div class="comet" id="comet"></div>
+<div class="companion" id="companion"></div>
+<div class="companion-bubble" id="companionBubble"></div>
+<div class="flythrough" id="flythrough"><div class="flythrough-disc" id="flythroughDisc"></div></div>
+
+<div class="topbar">
+  <div class="back-link" onclick="window.location.href='student-os.html'">← Back to BAA OS</div>
+  <div class="universe-title">Knowledge Universe</div>
+  <div style="width:100px"></div>
+</div>
+
+<div class="scene">
+  <div class="intro-caption">
+    <div class="eyebrow">Your knowledge universe</div>
+    <h1>Every subject is a <em>world.</em></h1>
+    <p>Pick a planet. Step inside.</p>
+  </div>
+
+  <div class="orbit-field" id="orbitField">
+    <div class="sun"></div>
+
+    <!-- rings -->
+    <div class="ring" style="width:200px;height:200px;"></div>
+    <div class="ring" style="width:330px;height:330px;"></div>
+    <div class="ring" style="width:460px;height:460px;"></div>
+    <div class="ring" style="width:590px;height:590px;"></div>
+    <div class="ring" style="width:710px;height:710px;"></div>
+
+    <!-- orbit paths hold planets, rotate over time -->
+    <div class="orbit-path" style="width:200px;height:200px;animation-duration:34s;">
+      <div class="planet p-math" style="width:30px;height:30px;" onclick="openDetail('math', event)">
+        <div class="core"></div>
+        <div class="glyph-orbit"><span>π</span><span>∑</span><span>∞</span></div>
+        <span class="label">Mathematics</span>
+      </div>
+    </div>
+
+    <div class="orbit-path" style="width:330px;height:330px;animation-duration:52s; animation-direction:reverse;">
+      <div class="planet p-science" style="width:38px;height:38px;" onclick="openDetail('science', event)">
+        <div class="core"></div>
+        <span class="label">Science</span>
+        <div class="moon" style="animation: spin 6s linear infinite;"></div>
+      </div>
+    </div>
+
+    <div class="orbit-path" style="width:460px;height:460px;animation-duration:70s;">
+      <div class="planet p-history" style="width:34px;height:34px;" onclick="openDetail('history', event)">
+        <div class="core"></div>
+        <span class="label">History</span>
+      </div>
+    </div>
+
+    <div class="orbit-path" style="width:590px;height:590px;animation-duration:88s; animation-direction:reverse;">
+      <div class="planet p-geo" style="width:42px;height:42px;" onclick="openDetail('geo', event)">
+        <div class="core"></div>
+        <span class="label">Geography</span>
+        <div class="moon" style="animation: spin 8s linear infinite;"></div>
+      </div>
+    </div>
+
+    <div class="orbit-path" style="width:710px;height:710px;animation-duration:108s;">
+      <div class="planet p-lang" style="width:32px;height:32px;" onclick="openDetail('lang', event)">
+        <div class="core"></div>
+        <span class="label">Language</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="hint">Drag to look around · click a planet to enter</div>
+</div>
+
+<div class="detail-panel" id="detailPanel">
+  <button class="detail-close" onclick="closeDetail()">✕</button>
+  <div class="detail-planet-icon" id="detailIcon"></div>
+  <span class="tag" id="detailTag">Subject</span>
+  <h2 id="detailTitle">Mathematics</h2>
+  <p id="detailBody">Numbers stop being numbers here. They become patterns, puzzles, music, and magic tricks that always work.</p>
+  <div class="detail-stats">
+    <div><div class="num" id="statLessons">42</div><div class="lab">Lessons</div></div>
+    <div><div class="num" id="statUnlocked">7</div><div class="lab">Unlocked</div></div>
+    <div><div class="num" id="statHours">12h</div><div class="lab">Explored</div></div>
+  </div>
+  <button class="enter-btn" id="enterBtn" onclick="enterWorld()">Enter Mathematics</button>
+</div>
+
+<script>
+  const planetData = {
+    math:   { tag:'Subject · Logic',    color:'#7C5CFC', title:'Mathe<em>matics</em>', body:'Numbers stop being numbers here. They become patterns, puzzles, and magic tricks that always work.', lessons: 42, unlocked: 7, hours: '12h' },
+    science:{ tag:'Subject · Discovery', color:'#34d399', title:'Sci<em>ence</em>', body:'Break things safely. Ask why. Build a working theory of the entire physical world, one experiment at a time.', lessons: 58, unlocked: 11, hours: '19h' },
+    history:{ tag:'Subject · Time',      color:'#e0813f', title:'His<em>tory</em>', body:'Every century is a place you can stand in. Walk through empires, revolutions, and the people who lived them.', lessons: 36, unlocked: 5, hours: '8h' },
+    geo:    { tag:'Subject · Earth',     color:'#4CD9E8', title:'Geo<em>graphy</em>', body:'The whole planet, seen from orbit and from the ground. Rivers, borders, cultures, weather — all connected.', lessons: 40, unlocked: 9, hours: '14h' },
+    lang:   { tag:'Subject · Voice',     color:'#e8608f', title:'Lang<em>uage</em>', body:'Every language is a different way of seeing the world. Collect a few, and the world gets bigger.', lessons: 33, unlocked: 4, hours: '6h' },
+  };
+
+  function fillDetail(key){
+    currentPlanetKey = key;
+    const d = planetData[key];
+    document.getElementById('detailTag').textContent = d.tag;
+    document.getElementById('detailTitle').innerHTML = d.title;
+    document.getElementById('detailBody').textContent = d.body;
+    document.getElementById('statLessons').textContent = d.lessons;
+    document.getElementById('statUnlocked').textContent = d.unlocked;
+    document.getElementById('statHours').textContent = d.hours;
+    document.getElementById('detailIcon').style.background = `radial-gradient(circle at 35% 30%, #fff, ${d.color} 55%)`;
+    document.getElementById('enterBtn').textContent = 'Enter ' + d.title.replace(/<[^>]+>/g,'');
+  }
+  let currentPlanetKey = 'math';
+  function enterWorld(){
+    if(currentPlanetKey === 'math'){
+      window.location.href = 'mathematics-world.html';
+    } else {
+      const btn = document.getElementById('enterBtn');
+      const original = btn.textContent;
+      btn.textContent = 'This world is still being built';
+      setTimeout(() => { btn.textContent = original; }, 1800);
+    }
+  }
+
+  function openDetail(key, evt){
+    const d = planetData[key];
+    const fly = document.getElementById('flythrough');
+    const disc = document.getElementById('flythroughDisc');
+
+    // origin point = where the planet was clicked
+    let originX = window.innerWidth/2, originY = window.innerHeight/2;
+    if(evt && evt.clientX){ originX = evt.clientX; originY = evt.clientY; }
+    disc.style.position = 'fixed';
+    disc.style.left = originX + 'px';
+    disc.style.top = originY + 'px';
+    disc.style.marginLeft = '-10px';
+    disc.style.marginTop = '-10px';
+    disc.style.background = `radial-gradient(circle at 35% 30%, #fff, ${d.color} 60%)`;
+
+    fly.classList.remove('active');
+    void fly.offsetWidth; // restart animation
+    fly.classList.add('active');
+
+    setTimeout(() => {
+      fillDetail(key);
+      document.getElementById('detailPanel').classList.add('open');
+    }, 650);
+
+    setTimeout(() => { fly.classList.remove('active'); }, 1150);
+  }
+  function closeDetail(){ document.getElementById('detailPanel').classList.remove('open'); }
+
+  // ---------- AI companion: drifts toward cursor, comments on nearby planets ----------
+  const companion = document.getElementById('companion');
+  const bubble = document.getElementById('companionBubble');
+  let compX = window.innerWidth * 0.5, compY = window.innerHeight * 0.35;
+  let targetX = compX, targetY = compY;
+  const companionLines = {
+    math: "Mathematics — patterns everywhere.",
+    science: "Science — let's break something.",
+    history: "History — step into the past.",
+    geo: "Geography — the whole Earth, right here.",
+    lang: "Language — new worlds of words.",
+  };
+  let lastHover = null;
+
+  window.addEventListener('mousemove', (e) => {
+    targetX = e.clientX + 46;
+    targetY = e.clientY - 30;
+  });
+
+  document.querySelectorAll('.planet').forEach(p => {
+    p.addEventListener('mouseenter', () => {
+      const key = [...p.classList].find(c => c.startsWith('p-'))?.replace('p-','');
+      if(key && companionLines[key]){
+        bubble.textContent = companionLines[key];
+        bubble.classList.add('show');
+        lastHover = key;
+      }
+    });
+    p.addEventListener('mouseleave', () => {
+      bubble.classList.remove('show');
+    });
+  });
+
+  function animateCompanion(){
+    compX += (targetX - compX) * 0.08;
+    compY += (targetY - compY) * 0.08;
+    companion.style.transform = `translate(${compX}px, ${compY}px)`;
+    bubble.style.left = (compX + 24) + 'px';
+    bubble.style.top = (compY - 8) + 'px';
+    requestAnimationFrame(animateCompanion);
+  }
+  animateCompanion();
+
+  // ---------- Occasional comet ----------
+  function launchComet(){
+    const c = document.getElementById('comet');
+    c.style.top = (Math.random()*30) + '%';
+    c.style.left = (Math.random()*20 - 10) + '%';
+    c.classList.remove('fly');
+    void c.offsetWidth;
+    c.classList.add('fly');
+    setTimeout(launchComet, 14000 + Math.random()*12000);
+  }
+  setTimeout(launchComet, 4000);
+
+  // subtle parallax on mouse move
+  const field = document.getElementById('orbitField');
+  window.addEventListener('mousemove', (e) => {
+    const x = (e.clientX / window.innerWidth - 0.5) * 24;
+    const y = (e.clientY / window.innerHeight - 0.5) * 24;
+    field.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
+  });
+
+  // deep starfield with parallax depth layers
+  const canvas = document.getElementById('deep-stars');
+  const ctx = canvas.getContext('2d');
+  let W,H, layers = [];
+  function resize(){ W = canvas.width = innerWidth; H = canvas.height = innerHeight; }
+  window.addEventListener('resize', resize); resize();
+
+  function initLayers(){
+    layers = [
+      { count: 90,  speed: 0.02, size: [0.4,1],   stars: [] },
+      { count: 55,  speed: 0.05, size: [0.8,1.6], stars: [] },
+      { count: 25,  speed: 0.10, size: [1.2,2.2], stars: [] },
+    ];
+    layers.forEach(l => {
+      for(let i=0;i<l.count;i++){
+        l.stars.push({ x: Math.random()*W, y: Math.random()*H, tw: Math.random()*Math.PI*2 });
+      }
+    });
+  }
+  initLayers();
+
+  let t = 0;
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    t += 0.01;
+    layers.forEach((l,li) => {
+      l.stars.forEach(s => {
+        s.tw += 0.015;
+        const alpha = 0.3 + Math.sin(s.tw)*0.3;
+        ctx.beginPath();
+        const r = l.size[0] + Math.sin(s.tw)*(l.size[1]-l.size[0])*0.5 + (l.size[1]-l.size[0])*0.5;
+        ctx.arc(s.x, s.y, r, 0, Math.PI*2);
+        ctx.fillStyle = `rgba(253,249,240,${alpha})`;
+        ctx.fill();
+      });
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+</script>
+
+</body>
+</html>

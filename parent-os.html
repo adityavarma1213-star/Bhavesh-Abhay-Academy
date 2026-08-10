@@ -89,6 +89,9 @@ h2.section-h{font-family:var(--display);font-weight:500;font-size:1.2rem;margin:
 <script src="js/baa-assessment.js"></script>
 <script src="js/baa-intelligence.js"></script>
 <script src="js/baa-planner.js"></script>
+<script src="js/baa-guardian.js"></script>
+<script src="js/baa-prediction.js"></script>
+<script src="js/baa-parent-approval.js"></script>
 <script>
 function esc(s){ const d=document.createElement('div'); d.textContent = String(s ?? ''); return d.innerHTML; }
 function fmtDate(iso){ try{ return new Date(iso).toLocaleDateString(undefined,{month:'short',day:'numeric'}); }catch{ return ''; } }
@@ -189,6 +192,49 @@ function render(){
     }
   }
   html += `</div>`;
+
+  // ---- Parent Approval Mode ----
+  if(typeof BAAParentApproval!=='undefined'){
+    const policy=BAAParentApproval.getPolicy();
+    html += `<h2 class="section-h">🛡️ Parent Approval Mode</h2><div class="card">
+      <p class="subline">These controls govern AI access and planner limits on this private testing device.</p>
+      <label class="subline"><input id="paTutor" type="checkbox" ${policy.aiTutorEnabled?'checked':''}> Allow AI Tutor</label><br>
+      <label class="subline"><input id="paMentor" type="checkbox" ${policy.aiMentorEnabled?'checked':''}> Allow AI Mentor</label><br>
+      <label class="subline"><input id="paPlanner" type="checkbox" ${policy.plannerEnabled?'checked':''}> Allow AI Planner</label><br>
+      <label class="subline">Maximum daily study minutes <input id="paMinutes" type="number" min="15" max="180" value="${policy.maxDailyStudyMinutes}"></label>
+      <button id="paSave" class="task-btn primary" type="button" style="margin-top:10px;">Save parent controls</button>
+      <div id="paStatus" class="subline" aria-live="polite"></div>
+    </div>`;
+  }
+
+  // ---- Academic profile / forecast / Guardian ----
+  const profile = typeof BAAAssessment.getAcademicProfile === 'function' ? BAAAssessment.getAcademicProfile() : null;
+  if(profile){
+    html += `<h2 class="section-h">🧠 Academic profile</h2><div class="card">`;
+    html += `<p class="subline"><b>Strengths:</b> ${profile.strengths.length ? profile.strengths.slice(0,5).map(x=>esc(x.concept.replace(/-/g,' '))).join(', ') : 'Not enough evidence yet.'}</p>`;
+    html += `<p class="subline"><b>Areas to improve:</b> ${profile.weaknesses.length ? profile.weaknesses.slice(0,5).map(x=>esc(x.concept.replace(/-/g,' '))).join(', ') : 'None currently evidence-flagged.'}</p>`;
+    html += `<p class="subline"><b>Academic activity:</b> ${profile.habits.assessmentsCompleted || 0} assessments · ${profile.habits.activeLearningDays || 0} active learning days.</p>`;
+    html += `</div>`;
+  }
+
+  if(typeof BAAPrediction !== 'undefined'){
+    const forecast=BAAPrediction.getPredictionSummary();
+    html += `<h2 class="section-h">🔮 Academic forecast</h2><div class="card">`;
+    html += forecast.status==='forecast'
+      ? `<p class="subline"><b>Readiness estimate:</b> ${forecast.readiness}/100 · <b>trajectory:</b> ${esc(forecast.gradeTrajectory.direction)} · <b>confidence:</b> ${esc(forecast.confidence)}.</p><p class="subline">${esc(forecast.milestone)}</p>`
+      : `<div class="empty-note">${esc(forecast.message || 'More evidence is needed before a forecast can be shown.')}</div>`;
+    html += `</div>`;
+  }
+
+  if(typeof BAAGuardian !== 'undefined'){
+    const guardian=BAAGuardian.getSummary();
+    html += `<h2 class="section-h">🛡️ Academic support signals</h2><div class="card">`;
+    html += guardian.alertCount
+      ? guardian.alerts.map(a=>`<p class="subline"><b>${esc(a.severity.toUpperCase())}:</b> ${esc(a.title)} — ${esc(a.reason)}</p>`).join('')
+      : `<div class="empty-note">No defined academic support alert is currently active. This is not a guarantee that everything is perfect; it means no configured threshold is currently met.</div>`;
+    html += `<p class="subline" style="margin-top:10px;color:var(--faint);">BAA does not infer mental health, personality, or family conditions from this dashboard.</p>`;
+    html += `</div>`;
+  }
 
   // ---- Planner summary ----
   html += `<h2 class="section-h">🗓️ Today's plan</h2><div class="card">`;

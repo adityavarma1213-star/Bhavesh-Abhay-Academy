@@ -330,3 +330,42 @@ extra deployment step, just the `SPEAK_API_URL` line to update alongside
 **Quick test after deploying:** open the AI Tutor, send a message, and turn
 on "Auto-speak replies" — the reply should play back as natural speech once
 the text finishes streaming in.
+
+### Module 8 M8-C — PDF support and hardening
+
+`homework-scanner.html` loads PDF.js from the existing CDN URL and uses `js/baa-homework-pdf.js` for browser-side extraction of selectable PDF text. No new environment variable is required. The PDF.js CDN dependency must remain reachable for PDF uploads to work. Scanned/image-only PDFs are intentionally rejected because M8-C does not claim OCR or image-content evaluation.
+
+M8-C hardening adds `js/baa-homework-attachment-base.js` as the shared common attachment contract for image/PDF metadata and adds server-side re-validation of extracted homework text in `api/evaluate-homework.js`. No raw PDF/image bytes are added to the browser-local submission record. No additional deployment secret is required for this hardening pass.
+
+### Module 8 M8-D1 — Teacher Review integration
+
+`teacher-review.html` now reads both the existing Section B assessment review queue and the Module 8 Homework Scanner review queue. Homework evaluations requiring human review are surfaced automatically. Human decisions are stored separately from the original AI evaluation so the original AI output remains auditable. The current implementation continues to use localStorage for private testing; real server-side teacher authorization/database persistence remains part of the later backend production gates.
+
+### Module 8 M8-D2 — Learning Memory / Mistake Archeology integration
+
+`homework-scanner.html` loads the existing `js/baa-assessment.js` engine so an evaluated homework submission can feed explicit `learningSignals` into the same Section B evidence store used by assessments. Only high-confidence, non-uncertain signals are accepted. They are tagged as `homework_evaluation` evidence and passed through the existing Learning Memory and Mistake Archeology thresholds; no new mastery algorithm or parallel memory store is introduced. No new environment variable is required. The current localStorage-backed data layer remains testing-only until the G4/G5 backend and database gates are implemented.
+
+## 10. Production graduation — G4/G5/G6
+
+### G4 — Authentication / authorization
+Deploy the Node-runtime auth endpoints under `api/auth/`. Configure `POSTGRES_URL` and HTTPS. The account page is `account.html`. Server authorization is enforced in `api/_lib/auth.js`; never rely on localStorage role checks for production access.
+
+### G5 — Database
+1. Provision PostgreSQL.
+2. Set `POSTGRES_URL` (and optionally `POSTGRES_URL_NON_POOLING`).
+3. Run `npm install`.
+4. Run `npm run db:migrate`.
+5. Check `/api/health` until it reports `database: connected`.
+6. Export a representative localStorage dataset and run `node scripts/migrate-localstorage.mjs <export.json>` as the migration starting point.
+7. Verify learner ownership, assessment/evidence counts and planner records before cutover.
+
+### G6 — Security / audit / backup
+- Keep HTTPS enabled.
+- Keep the auth cookie HttpOnly/Secure/SameSite.
+- Configure a strict `ALLOWED_ORIGIN`.
+- Review `api/v1/audit.js` as an admin-only endpoint.
+- Run `npm run db:export` for logical exports.
+- Also enable the database provider's encrypted snapshots, retention and recovery testing; code alone cannot create those external controls.
+
+### M41 offline-first
+`service-worker.js` caches the main BAA shell and `js/baa-offline-sync.js` queues local learning events in IndexedDB. Real server synchronization requires a configured sync endpoint and should only be enabled after authentication is available.
