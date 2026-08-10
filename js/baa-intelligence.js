@@ -232,6 +232,48 @@
   // Planner both read, so "what am I good at / learning / need to revise /
   // what mistakes keep appearing / what's improving" all come from one place.
   // ============================================================
+  // M10-C1: Aggregate confidence is a band, never a fabricated percentage.
+  // It is based only on concepts with enough real evidence to support a confidence label.
+  // This deliberately reports "insufficient_evidence" instead of manufacturing a score.
+  function getConfidenceSummary() {
+    const concepts = getConceptStates();
+    const eligible = concepts.filter(c => ['high', 'medium', 'low'].includes(c.confidence));
+    if (!eligible.length) {
+      return {
+        band: 'insufficient_evidence',
+        label: 'Not enough evidence yet',
+        eligibleConcepts: 0,
+        totalTrackedConcepts: concepts.length,
+        explanation: 'BAA needs at least 3 evidence rows for a concept before it contributes to the confidence meter.',
+      };
+    }
+
+    const counts = { high: 0, medium: 0, low: 0 };
+    eligible.forEach(c => { counts[c.confidence] += 1; });
+
+    // Conservative aggregate: the weakest evidence band represented among the
+    // concepts with sufficient evidence. This avoids averaging labels into false precision.
+    const band = counts.low > 0 ? 'low' : counts.medium > 0 ? 'medium' : 'high';
+    const labels = {
+      high: 'High evidence confidence',
+      medium: 'Moderate evidence confidence',
+      low: 'Low evidence confidence',
+    };
+    const explanations = {
+      high: 'Most tracked concepts have at least 6 evidence rows and no low-confidence AI evidence.',
+      medium: 'Tracked concepts have enough evidence to judge, but some still have fewer than 6 evidence rows.',
+      low: 'At least one tracked concept contains low-confidence or human-review-required evidence.',
+    };
+
+    return {
+      band,
+      label: labels[band],
+      eligibleConcepts: eligible.length,
+      totalTrackedConcepts: concepts.length,
+      explanation: explanations[band],
+    };
+  }
+
   function getLearningSummary() {
     const states = getConceptStates();
     const mistakes = getMistakeIntelligence();
@@ -258,6 +300,7 @@
     getMistakeIntelligence,
     whyForConcept,
     getLearningSummary,
+    getConfidenceSummary,
     STATE_META,
     _humanConcept: humanConcept,
   };

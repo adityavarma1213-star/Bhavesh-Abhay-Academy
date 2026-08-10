@@ -297,9 +297,15 @@
 
   function getDailyPlan(dateStr) {
     dateStr = dateStr || todayStr();
+    if (typeof global.BAAParentApproval !== 'undefined' && !global.BAAParentApproval.canUse('planner')) {
+      return {date:dateStr,minutesBudget:0,minutesPlanned:0,tasks:[],hasAnyEvidence:intel().getLearningSummary().hasAnyEvidence,hasCarriedMissedTasks:false,disabledByParentApproval:true};
+    }
     checkAndRebalanceMissedTasks();
     const store = load();
-    const minutesBudget = store.preferences.availableMinutesPerDay;
+    const parentLimit = typeof global.BAAParentApproval !== 'undefined' ? global.BAAParentApproval.getDailyMinutesLimit() : Infinity;
+    const calendarContext = typeof global.BAASchoolCalendar !== 'undefined' ? global.BAASchoolCalendar.getDateContext(dateStr) : {events:[],isHoliday:false,examSubjects:[]};
+    if(calendarContext.isHoliday){ return {date:dateStr,minutesBudget:minutesBudget,minutesPlanned:0,tasks:[],hasAnyEvidence:intel().getLearningSummary().hasAnyEvidence,hasCarriedMissedTasks:false,schoolHoliday:true,calendarEvents:calendarContext.events}; }
+    const minutesBudget = Math.min(store.preferences.availableMinutesPerDay, parentLimit);
 
     let existing = store.tasks.filter(t => t.scheduledDate === dateStr && t.status !== 'cancelled');
     // Carry forward missed tasks from before today as eligible-for-today candidates too,
@@ -358,6 +364,7 @@
       tasks: allForToday,
       hasAnyEvidence: intel().getLearningSummary().hasAnyEvidence,
       hasCarriedMissedTasks: carriedMissed.length > 0,
+      calendarEvents: calendarContext.events,
     };
   }
 
@@ -374,6 +381,51 @@
       days.push({ date: d, isToday: i === 0, tasks });
     }
     return { days, upcomingAssessments: getUpcomingAssessments() };
+  }
+
+  // ============================================================
+  // MONTHLY VIEW — Module 11
+  // Read-only month-level view of the living plan. It groups real scheduled
+  // tasks and student-entered upcoming assessments; it does not fabricate
+  // future completion or mastery.
+  // ============================================================
+  function getMonthlyPlan(monthDate) {
+    const base = monthDate ? new Date(monthDate) : new Date();
+    if (Number.isNaN(base.getTime())) return { error: 'INVALID_MONTH', weeks: [] };
+    const year = base.getFullYear();
+    const month = base.getMonth();
+    const first = new Date(year, month, 1);
+    const last = new Date(year, month + 1, 0);
+    const store = load();
+    const weeks = [];
+    let cursor = new Date(first);
+    while (cursor <= last) {
+      const weekStart = new Date(cursor);
+      const weekEnd = new Date(Math.min(
+        new Date(year, month, cursor.getDate() + (6 - cursor.getDay())).getTime(),
+        last.getTime()
+      ));
+      const startStr = weekStart.toISOString().slice(0,10);
+      const endStr = weekEnd.toISOString().slice(0,10);
+      const tasks = store.tasks.filter(t =>
+        t.scheduledDate >= startStr && t.scheduledDate <= endStr && t.status !== 'cancelled'
+      );
+      const assessments = getUpcomingAssessments().filter(a => a.date >= startStr && a.date <= endStr);
+      weeks.push({
+        start: startStr,
+        end: endStr,
+        tasks,
+        assessments,
+        plannedMinutes: tasks.reduce((sum,t)=>sum+(Number(t.estimatedMinutes)||0),0),
+      });
+      cursor = new Date(year, month, weekEnd.getDate() + 1);
+    }
+    return {
+      month: `${year}-${String(month+1).padStart(2,'0')}`,
+      weeks,
+      generatedFromEvidence: intel().getLearningSummary().hasAnyEvidence,
+      activeGoals: getGoals().length,
+    };
   }
 
   // ============================================================
@@ -422,6 +474,7 @@
     getUpcomingAssessments,
     getDailyPlan,
     getWeeklyPlan,
+    getMonthlyPlan,
     completeTask,
     skipTask,
     rescheduleTask,

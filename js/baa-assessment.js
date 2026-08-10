@@ -51,6 +51,7 @@
       attempts: [],       // full attempt records, one per assessment start
       evidence: [],        // one row per question answered, feeds Learning Memory
       learningMemory: {},  // keyed by concept -> {status, evidenceCount, ...}
+      academicProfile: { schemaVersion: 1, strengths: [], weaknesses: [], habits: {}, lastUpdated: null },
       mistakePatterns: [], // keyed list of possible-misconception patterns
       teacherReviews: [],  // one row per question result that could be reviewed
     };
@@ -229,6 +230,7 @@
         errors: Array.isArray(result.errors) ? result.errors : [],
         missingConcepts: Array.isArray(result.missingConcepts) ? result.missingConcepts : [],
         suggestedImprovement: result.suggestedImprovement || null,
+        rubric: Array.isArray(result.rubric) ? result.rubric.slice(0,4) : [],
         confidence: result.confidence || 'low',
         humanReviewRequired: !!result.humanReviewRequired || result.confidence === 'low',
         answered: true,
@@ -350,6 +352,7 @@
       }
     }
 
+    refreshAcademicProfile(store);
     save(store);
     return { attempt: stored, evidence: newEvidence };
   }
@@ -400,8 +403,154 @@
     }
   }
 
+  // ============================================================
+  // ACADEMIC PROFILE — Module 9
+  // Persistent, evidence-derived summary of historical strengths,
+  // weaknesses, and learning habits. No personality/health diagnosis
+  // is inferred; every item is derived from stored academic activity.
+  // ============================================================
+  function refreshAcademicProfile(store) {
+    const memory = Object.values(store.learningMemory || {});
+    const strengths = memory
+      .filter(m => m.status === 'mastered' || m.status === 'strong')
+      .sort((a,b) => b.evidenceCount - a.evidenceCount)
+      .slice(0, 8)
+      .map(m => ({
+        concept: m.concept,
+        subject: m.subject,
+        status: m.status,
+        evidenceCount: m.evidenceCount,
+        correctCount: m.correctCount,
+      }));
+    const weaknesses = memory
+      .filter(m => m.status === 'needs_revision' || m.status === 'struggling')
+      .sort((a,b) => b.evidenceCount - a.evidenceCount)
+      .slice(0, 8)
+      .map(m => ({
+        concept: m.concept,
+        subject: m.subject,
+        status: m.status,
+        evidenceCount: m.evidenceCount,
+        correctCount: m.correctCount,
+      }));
+
+    const completed = (store.attempts || []).filter(a => a.status === 'submitted' || a.status === 'evaluated');
+    const activeDates = new Set(completed.map(a => String(a.endTime || a.startTime || '').slice(0,10)).filter(Boolean));
+    const subjectCounts = {};
+    completed.forEach(a => {
+      const qs = Array.isArray(global.BAAQuestionBank) ? a.assessmentId : null;
+      const catalog = Array.isArray(global.BAAAssessmentCatalog)
+        ? global.BAAAssessmentCatalog.find(x => x.id === a.assessmentId) : null;
+      const subject = catalog?.subject || 'Unknown';
+      subjectCounts[subject] = (subjectCounts[subject] || 0) + 1;
+    });
+    const favoriteSubject = Object.entries(subjectCounts).sort((a,b)=>b[1]-a[1])[0]?.[0] || null;
+    const reattempts = completed.filter(a => Number(a.attemptNumber) > 1).length;
+
+    store.academicProfile = {
+      schemaVersion: 1,
+      strengths,
+      weaknesses,
+      habits: {
+        assessmentsCompleted: completed.length,
+        activeLearningDays: activeDates.size,
+        reattempts,
+        reattemptRate: completed.length ? Math.round((reattempts / completed.length) * 100) : 0,
+        mostPracticedSubject: favoriteSubject,
+      },
+      lastUpdated: new Date().toISOString(),
+    };
+    return store.academicProfile;
+  }
+
+  function getAcademicProfile() {
+    const store = load();
+    if (!store.academicProfile || store.academicProfile.schemaVersion !== 1) {
+      refreshAcademicProfile(store);
+      save(store);
+    }
+    return store.academicProfile;
+  }
+
   function getLearningMemory() {
     return load().learningMemory;
+  }
+
+  // ============================================================
+  // M8-D2 HOMEWORK EVIDENCE INTEGRATION
+  // Homework evaluation is qualitative rather than a fixed-mark question.
+  // Only explicit, evaluator-produced learningSignals are admitted.
+  // Low-confidence/uncertain signals are skipped so this integration cannot
+  // manufacture mastery or misconception evidence from vague feedback.
+  // ============================================================
+  function recordHomeworkEvaluation({ submissionId, submittedAt, subjectHint, evaluation } = {}) {
+    if (!submissionId || !evaluation || evaluation.schemaVersion !== 1) {
+      return { ok: false, error: 'INVALID_HOMEWORK_EVALUATION', evidenceIds: [] };
+    }
+    const signals = Array.isArray(evaluation.learningSignals) ? evaluation.learningSignals : [];
+    if (!signals.length) return { ok: true, error: null, evidenceIds: [] };
+
+    const store = load();
+    const evidenceIds = [];
+    const newEvidence = [];
+    const allowedOutcomes = ['strong', 'good', 'needs_improvement', 'incomplete', 'uncertain'];
+    const now = new Date().toISOString();
+
+    signals.slice(0, 5).forEach((signal, index) => {
+      if (!signal || typeof signal !== 'object') return;
+      const concept = typeof signal.concept === 'string' ? signal.concept.trim().slice(0, 120) : '';
+      const confidence = ['high', 'medium', 'low'].includes(signal.confidence) ? signal.confidence : 'low';
+      const outcome = allowedOutcomes.includes(signal.outcome) ? signal.outcome : 'uncertain';
+      if (!concept || confidence !== 'high' || outcome === 'uncertain') return;
+
+      // Qualitative mapping only: strong/good means the submitted work was
+      // broadly successful for this explicit concept; needs_improvement /
+      // incomplete means the evaluator found a substantive gap. This is not
+      // a numeric grade and is never used as one.
+      const correctness = (outcome === 'strong' || outcome === 'good') ? 'correct' : 'incorrect';
+      const errorType = correctness === 'incorrect' && typeof signal.errorType === 'string' && signal.errorType.trim()
+        ? signal.errorType.trim().slice(0, 120)
+        : (correctness === 'incorrect' ? 'homework_evaluation_gap' : null);
+      const evidenceId = uid('hw_ev');
+      const row = {
+        id: evidenceId,
+        attemptId: submissionId,
+        assessmentId: null,
+        questionId: `homework_signal_${index + 1}`,
+        subject: typeof subjectHint === 'string' && subjectHint.trim() ? subjectHint.trim().slice(0, 120) : 'Homework',
+        chapter: null,
+        topic: typeof subjectHint === 'string' && subjectHint.trim() ? subjectHint.trim().slice(0, 120) : null,
+        concept,
+        difficulty: null,
+        correctness,
+        errorType,
+        score: null,
+        maxScore: null,
+        confidence,
+        evidenceType: 'homework_evaluation',
+        source: 'module_8_homework_scanner',
+        timestamp: typeof submittedAt === 'string' ? submittedAt : now,
+      };
+      newEvidence.push(row);
+      evidenceIds.push(evidenceId);
+    });
+
+    // Prevent a retry/re-render from duplicating the same submission's
+    // evidence rows. The homework layer is the source record; Section B is
+    // its derived evidence projection.
+    const fresh = newEvidence.filter(row => !store.evidence.some(existing =>
+      existing.attemptId === row.attemptId && existing.questionId === row.questionId
+    ));
+    if (!fresh.length) return { ok: true, error: null, evidenceIds: [] };
+
+    store.evidence.push(...fresh);
+    updateLearningMemory(store, fresh);
+    updateMistakePatterns(store, fresh);
+    refreshAcademicProfile(store);
+    const persisted = save(store);
+    return persisted
+      ? { ok: true, error: null, evidenceIds: fresh.map(row => row.id) }
+      : { ok: false, error: 'STORAGE_WRITE_FAILED', evidenceIds: [] };
   }
 
   // ============================================================
@@ -492,6 +641,7 @@
         confidence: qResult.confidence,
         errors: qResult.errors,
         missingConcepts: qResult.missingConcepts,
+        rubric: qResult.rubric,
       };
     }
     const maxScore = qResult.maxScore;
@@ -749,7 +899,103 @@
   // ============================================================
   // Public API
   // ============================================================
+
+  // ============================================================
+  // SMART ADAPTIVE ASSESSMENT — Module 6
+  // Builds a real assessment only from questions already present in
+  // the question bank. It prioritizes concepts with the weakest recent
+  // evidence, then varies question type/difficulty where possible.
+  // With no evidence yet, it returns a small diagnostic starter mix.
+  // ============================================================
+  function buildAdaptiveAssessment() {
+    const bank = Array.isArray(global.BAAQuestionBank) ? global.BAAQuestionBank.slice() : [];
+    if (!bank.length) return null;
+
+    const store = load();
+    const evidence = Array.isArray(store.evidence) ? store.evidence : [];
+
+    const conceptStats = new Map();
+    evidence.forEach(row => {
+      if (!row || !row.concept) return;
+      const arr = conceptStats.get(row.concept) || [];
+      arr.push(row);
+      conceptStats.set(row.concept, arr.slice(-RECENT_WINDOW));
+    });
+
+    const rankedConcepts = [...conceptStats.entries()]
+      .map(([concept, rows]) => {
+        const scored = rows.filter(r => r.correctness === 'correct' || r.correctness === 'incorrect');
+        const rate = scored.length ? scored.filter(r => r.correctness === 'correct').length / scored.length : 0;
+        return { concept, evidenceCount: rows.length, rate };
+      })
+      .filter(x => x.evidenceCount > 0)
+      .sort((a,b) => a.rate - b.rate || b.evidenceCount - a.evidenceCount);
+
+    const selected = [];
+    const used = new Set();
+
+    function addBest(list, predicate) {
+      const candidates = list.filter(q => !used.has(q.id) && predicate(q));
+      if (!candidates.length) return false;
+      candidates.sort((a,b) => {
+        const typeRank = (q) => q.type === 'mcq' ? 0 : q.type === 'true_false' ? 1 : q.type === 'short_answer' ? 2 : 3;
+        return typeRank(a)-typeRank(b) || (a.marks-b.marks);
+      });
+      selected.push(candidates[0]);
+      used.add(candidates[0].id);
+      return true;
+    }
+
+    if (rankedConcepts.length) {
+      rankedConcepts.slice(0,3).forEach(item => {
+        const pool = bank.filter(q => q.concept === item.concept);
+        addBest(pool, () => true);
+      });
+    }
+
+    // Add a different question type/difficulty so the adaptive check is not
+    // simply a repetition of one format.
+    addBest(bank, q => q.type !== (selected[0] && selected[0].type));
+    addBest(bank, q => q.difficulty === 'medium' || q.difficulty === 'hard');
+
+    if (!selected.length) {
+      addBest(bank, q => q.difficulty === 'easy');
+      addBest(bank, q => q.difficulty === 'medium');
+      addBest(bank, q => q.type === 'short_answer' || q.type === 'written_response');
+    }
+
+    if (!selected.length) return null;
+
+    const subjectSet = [...new Set(selected.map(q => q.subject))];
+    const conceptLabel = rankedConcepts.length
+      ? `Focus: ${rankedConcepts.slice(0,2).map(x => x.concept.replace(/-/g,' ')).join(' + ')}`
+      : 'Starter diagnostic';
+
+    return {
+      id: 'a_smart_adaptive_current',
+      title: 'Smart Adaptive Check',
+      type: 'practice_test',
+      subject: subjectSet.length === 1 ? subjectSet[0] : 'Mixed',
+      chapter: null,
+      topic: conceptLabel,
+      description: rankedConcepts.length
+        ? 'A short adaptive check built from your recent Learning Evidence — it prioritizes concepts that need the most attention and varies the question format.'
+        : 'A short diagnostic check using real BAA question-bank items. Complete it to give the adaptive engine evidence for your next check.',
+      difficulty: 'adaptive',
+      instructions: 'Answer honestly. The next adaptive check will use your real result to adjust the focus.',
+      questionIds: selected.map(q => q.id),
+      questionCount: selected.length,
+      totalMarks: selected.reduce((sum,q)=>sum+q.marks,0),
+      timeLimitSec: selected.reduce((sum,q)=>sum+(q.timeEstimateSec||60),0),
+      curriculumMapping: 'Generated from BAA Learning Evidence',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      adaptive: true,
+    };
+  }
+
   global.BAAAssessment = {
+    buildAdaptiveAssessment,
     STORAGE_KEY,
     getStudentName,
     setStudentName,
@@ -762,6 +1008,8 @@
     gradeWithAI,
     submitAttempt,
     getLearningMemory,
+    getAcademicProfile,
+    recordHomeworkEvaluation,
     getMistakePatterns,
     getTargetedPracticeRecommendations,
     getTeacherReviewQueue,

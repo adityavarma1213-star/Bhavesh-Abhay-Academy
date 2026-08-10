@@ -99,6 +99,7 @@ function buildPrompt(question, studentAnswer) {
     `  "errors": ["<short phrase per specific error found, empty array if none>"],\n` +
     `  "missingConcepts": ["<short phrase per concept the answer should have used but didn't>"],\n` +
     `  "suggestedImprovement": "<one short, encouraging, concrete suggestion, or null>",\n` +
+    `  "rubric": [{"criterion":"<criterion name>","score":<number>,"maxScore":<number>,"evidence":"<brief evidence from the answer>"}],\n` +
     `  "confidence": "high" | "medium" | "low",\n` +
     `  "humanReviewRequired": <true|false>\n` +
     `}\n\n` +
@@ -111,6 +112,7 @@ function buildPrompt(question, studentAnswer) {
     `- If you are not confident in your judgement (ambiguous answer, handwriting-style transcription issues, ` +
     `a genuinely borderline case), set "confidence" to "low" or "medium" and "humanReviewRequired" to true. ` +
     `Do not present an uncertain judgement as a guaranteed fact.\n` +
+    `- The rubric must break the mark into 1-4 concrete criteria appropriate to the question. Criterion scores must be numeric, non-negative, and never exceed maxScore. Rubric scores should add up to the overall score within a small rounding tolerance. Evidence must point only to what the student actually wrote.\n` +
     `- Never invent facts about the student or claim history you were not given.\n` +
     `- Keep the tone constructive — a mistake is information, not a failure.\n` +
     `- Respond with ONLY the JSON object.`
@@ -212,7 +214,6 @@ export default async function handler(req) {
   try {
     upstream = await callGeminiWithRetry(payload, apiKey);
   } catch (err) {
-    console.log('[DEBUG evaluate] upstream exception:', err && err.message);
     // Evaluation failure -> the frontend flags this question for human
     // review instead of showing a broken score. See js/baa-assessment.js
     // gradeWithAI's catch path.
@@ -225,7 +226,6 @@ export default async function handler(req) {
       const errBody = await upstream.json();
       const errObj = Array.isArray(errBody) ? errBody[0]?.error : errBody?.error;
       detail = errObj?.message || detail;
-      console.log('[DEBUG evaluate] Gemini non-200:', JSON.stringify(errBody));
     } catch { /* ignore parse failure */ }
     return jsonError(upstream.status === 429 ? 429 : 502, detail);
   }
@@ -264,6 +264,14 @@ export default async function handler(req) {
     errors: Array.isArray(parsed.errors) ? parsed.errors.slice(0, 10).map(String) : [],
     missingConcepts: Array.isArray(parsed.missingConcepts) ? parsed.missingConcepts.slice(0, 10).map(String) : [],
     suggestedImprovement: typeof parsed.suggestedImprovement === 'string' ? parsed.suggestedImprovement.slice(0, 400) : null,
+    rubric: Array.isArray(parsed.rubric)
+      ? parsed.rubric.slice(0, 4).map((item) => ({
+          criterion: typeof item?.criterion === 'string' ? item.criterion.slice(0, 120) : 'Criterion',
+          score: clampScore(Number(item?.score), Number(item?.maxScore) || question.marks),
+          maxScore: Math.max(0, Math.min(question.marks, Number(item?.maxScore) || question.marks)),
+          evidence: typeof item?.evidence === 'string' ? item.evidence.slice(0, 300) : '',
+        })).filter(item => item.maxScore > 0)
+      : [],
     confidence: ['high', 'medium', 'low'].includes(parsed.confidence) ? parsed.confidence : 'low',
     humanReviewRequired: parsed.score === null || parsed.score === undefined
       ? true : (!!parsed.humanReviewRequired || parsed.confidence === 'low'),

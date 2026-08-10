@@ -235,7 +235,14 @@ export default async function handler(req) {
     return jsonError(req, 400, 'Invalid JSON body');
   }
 
-  const { messages, studentName, learningContext } = body || {};
+  const { messages, studentName, learningContext, mode, explainLikeMode, responseLanguage } = body || {};
+  const safeMode = mode === 'mentor' ? 'mentor' : 'tutor';
+  const allowedExplainLike = new Set(['default','child','story','everyday','exam','visual']);
+  const safeExplainLike = allowedExplainLike.has(explainLikeMode) ? explainLikeMode : 'default';
+  const allowedResponseLanguages = new Set(['en','hi','mr','gu','bn','ta','te','kn']);
+  const safeResponseLanguage = allowedResponseLanguages.has(responseLanguage) ? responseLanguage : 'en';
+  const responseLanguageNames = {en:'English',hi:'Hindi',mr:'Marathi',gu:'Gujarati',bn:'Bengali',ta:'Tamil',te:'Telugu',kn:'Kannada'};
+  const responseLanguageName = responseLanguageNames[safeResponseLanguage];
   const validated = validateMessages(messages);
   if (validated.error) {
     return jsonError(req, 400, validated.error);
@@ -251,8 +258,30 @@ export default async function handler(req) {
   const safeLearningContext = (typeof learningContext === 'string' && learningContext.trim())
     ? learningContext.trim().slice(0, MAX_LEARNING_CONTEXT_CHARS)
     : null;
-  const systemPrompt =
-    `You are the BAA AI Tutor, talking to a school student named ${safeName}. ` +
+  const explainLikeInstruction = safeMode === 'tutor' && safeExplainLike !== 'default'
+    ? ({
+      child: 'Explain simply for a younger learner; simplify language without changing facts.',
+      story: 'Use one short story analogy and clearly label it as an analogy.',
+      everyday: 'Use one familiar everyday-life analogy and state its limits.',
+      exam: 'Use an exam-focused explanation with key idea, common trap, worked example, and check question.',
+      visual: 'Use a concrete visual/spatial analogy described in words; do not claim an image was generated.'
+    }[safeExplainLike] || '')
+    : '';
+  const languageInstruction = safeResponseLanguage !== 'en'
+    ? `\n\nRESPONSE LANGUAGE — Reply in ${responseLanguageName}. Preserve mathematical notation, code, proper nouns, and essential scientific/technical terminology accurately. Do not translate code syntax. If a technical term is clearer in English, retain the original term in parentheses.`
+    : '';
+  const systemPrompt = safeMode === 'mentor'
+    ? `You are the BAA AI Mentor Chat, talking to a school student named ${safeName}. ` +
+      `Your job is academic guidance and motivation: help the student reflect on goals, choose a realistic next step, build confidence through evidence, and stay oriented toward learning. ` +
+      `You are not the student's therapist, doctor, parent, teacher, or best friend. Do not diagnose, manipulate, shame, pressure, or create dependency. ` +
+      `Do not invent grades, achievements, weaknesses, schedules, or personal facts. Use the supplied learning evidence only when relevant and describe it as evidence, not as a diagnosis. ` +
+      `For decisions that require a teacher, parent, school, or qualified professional, say so clearly. ` +
+      `Prefer one or two concrete next actions over long motivational speeches. Keep the tone warm, encouraging, age-appropriate, and professionally bounded. ` +
+      `If the student is discouraged, acknowledge the difficulty and help them identify a small achievable academic step. ` +
+      `If they ask for a study plan, ask for missing constraints only when necessary; otherwise propose a simple plan grounded in the available evidence. ` +
+      `If you are uncertain about a fact, say so rather than guessing. ` +
+      `FORMAT — Use markdown for structure when helpful. For math, use LaTeX with $...$ or $$...$$.`
+    : `You are the BAA AI Tutor, talking to a school student named ${safeName}. ` +
     `Your job is not to answer questions — it is to help ${safeName} understand, so they can ` +
     `answer it themselves next time.\n\n` +
     `CORE TEACHING RULE — Do not give the final answer/solution immediately by default. Follow ` +
@@ -297,6 +326,11 @@ export default async function handler(req) {
         `the student.`
       : '');
 
+  if (explainLikeInstruction) {
+    systemPrompt += `\n\nEXPLAIN LIKE MODE — ${explainLikeInstruction}`;
+  }
+  if (languageInstruction) systemPrompt += languageInstruction;
+
   const payload = {
     system_instruction: { parts: [{ text: systemPrompt }] },
     contents: toGeminiContents(validated.messages),
@@ -336,9 +370,6 @@ export default async function handler(req) {
       try {
         upstream = await callGeminiWithRetry(payload, apiKey);
       } catch (err) {
-        console.log('[DEBUG] Exception calling Gemini - name:', err && err.name);
-        console.log('[DEBUG] Exception calling Gemini - message:', err && err.message);
-        console.log('[DEBUG] Exception calling Gemini - stack:', err && err.stack);
         controller.enqueue(
           encoder.encode(`data: ${JSON.stringify({ error: { message: err.message || 'Failed to reach the AI service' } })}\n\n`)
         );
@@ -350,12 +381,10 @@ export default async function handler(req) {
         let detail = 'AI service error';
         try {
           const errBody = await upstream.json();
-          console.log('[DEBUG] Gemini non-200 response body:', JSON.stringify(errBody));
           // Gemini errors can come back as an object or a single-element array.
           const errObj = Array.isArray(errBody) ? errBody[0]?.error : errBody?.error;
           detail = errObj?.message || detail;
         } catch (parseErr) {
-          console.log('[DEBUG] Gemini non-200 response body: <failed to parse as JSON>', parseErr && parseErr.message);
           /* ignore parse failure, use default message */
         }
         controller.enqueue(

@@ -38,8 +38,8 @@
             score: e.score,
             max_score: e.maxScore,
             confidence: e.confidence,
-            evidence_type: 'assessment_answer',
-            source: 'section_b_assessment',
+            evidence_type: e.evidenceType || 'assessment_answer',
+            source: e.source || 'section_b_assessment',
             created_at: e.timestamp,
           }));
       },
