@@ -820,22 +820,3 @@ The project now includes a real production backend boundary rather than only a b
 ### Production environment gate
 
 The code is deployment-ready but cannot honestly claim a live production database until `POSTGRES_URL` is configured and `GET /api/health` returns `database: connected`. Likewise, provider-native backups, monitoring, legal compliance certification and external service credentials must be configured in the real deployment.
-
-## Final OS Design Update — August 2026
-
-BAA OS now uses a shared theme architecture with six visual experiences:
-
-1. Aurora — flagship/default
-2. Galaxy — student/teen exploration
-3. Academic — parents, teachers and schools
-4. NeoGlass — premium alternative
-5. Calm — focus and wellbeing
-6. Duology — animated kids experience
-
-Each theme supports Light, Dark and System display modes. The theme choice is stored locally and does not change learning data or module behavior.
-
-### XP + Challenge Arena
-
-The Student OS home screen now exposes live evidence-backed XP, calculated level, challenge count and challenge wins. Module 51 adds a Challenge Arena UI for cross-grade competition. Supported modes are XP Race, Quiz Battle, Study Streak Battle, Weekly XP Battle and Team Battle.
-
-The browser build has a local-first challenge store for safe UI testing. The authenticated `/api/challenges` route and PostgreSQL migration provide the production persistence boundary; a deployed database/API is required for real cross-student network play.

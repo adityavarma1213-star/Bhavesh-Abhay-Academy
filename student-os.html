@@ -789,33 +789,92 @@ async function sendMentorChat(overrideText){
 .next-step-card h3{font-size:1rem;font-weight:600;margin-bottom:8px;}
 .next-step-card p{font-size:.85rem;color:var(--dim);line-height:1.55;}
 .next-step-card .ns-arrow{margin-top:14px;font-size:.78rem;color:var(--cyan);}
+
+/* ================= BAA THEME ENGINE ================= */
+.baa-theme-wrap{position:relative;z-index:100;}
+.baa-theme-button{display:flex;align-items:center;gap:6px;background:rgba(253,249,240,.06);border:1px solid rgba(253,249,240,.12);color:var(--warmwhite);padding:8px 11px;border-radius:100px;font:600 .78rem var(--body);cursor:pointer;transition:.2s ease;}
+.baa-theme-button:hover{background:rgba(253,249,240,.11);transform:translateY(-1px)}
+.baa-theme-button-label{opacity:.62;font-weight:500}.baa-theme-chevron{opacity:.5;font-size:.9rem}
+.baa-theme-panel{position:absolute;right:0;top:calc(100% + 10px);width:min(390px,calc(100vw - 24px));padding:16px;border:1px solid rgba(253,249,240,.14);border-radius:20px;background:rgba(11,15,46,.97);backdrop-filter:blur(24px);box-shadow:0 24px 70px rgba(0,0,0,.45);opacity:0;transform:translateY(-8px) scale(.98);pointer-events:none;transition:.2s ease;}
+.baa-theme-panel.open{opacity:1;transform:none;pointer-events:auto}.baa-theme-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px}.baa-theme-head strong{font-size:1rem}.baa-theme-head small{display:block;color:var(--dim);font-size:.68rem;margin-top:3px}.baa-theme-close{border:0;background:transparent;color:var(--dim);font-size:1.35rem;cursor:pointer}
+.baa-theme-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.baa-theme-option{position:relative;display:flex;align-items:center;gap:9px;text-align:left;min-height:64px;padding:10px;border-radius:14px;border:1px solid rgba(253,249,240,.09);background:rgba(253,249,240,.035);color:var(--warmwhite);cursor:pointer}.baa-theme-option:hover,.baa-mode-option:hover{background:rgba(253,249,240,.08)}.baa-theme-option.selected{border-color:var(--theme-accent,#7c5cfc);box-shadow:0 0 0 1px var(--theme-accent,#7c5cfc) inset}.baa-theme-icon{font-size:1.35rem}.baa-theme-option b{display:block;font-size:.78rem}.baa-theme-option small{display:block;color:var(--dim);font-size:.6rem;line-height:1.25;margin-top:2px}.baa-theme-check{margin-left:auto;opacity:0;color:var(--theme-accent,#7c5cfc);font-weight:800}.baa-theme-option.selected .baa-theme-check{opacity:1}.baa-mode-title{font-size:.67rem;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin:14px 0 7px}.baa-mode-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.baa-mode-option{border:1px solid rgba(253,249,240,.09);border-radius:11px;background:rgba(253,249,240,.035);color:var(--warmwhite);padding:9px 6px;font:600 .68rem var(--body);cursor:pointer}.baa-mode-option.selected{border-color:var(--theme-accent,#7c5cfc);background:color-mix(in srgb,var(--theme-accent,#7c5cfc) 13%,transparent)}.baa-theme-note{font-size:.6rem;color:var(--faint);line-height:1.35;margin-top:10px}
+/* Theme palettes */
+html[data-baa-theme="aurora"]{--theme-accent:#7c5cfc;--theme-bg:#0b0f2e;--theme-panel:rgba(20,27,77,.86)}
+html[data-baa-theme="galaxy"]{--theme-accent:#4cd9e8;--theme-bg:#070a20;--theme-panel:rgba(14,18,61,.88)}
+html[data-baa-theme="academic"]{--theme-accent:#2563eb;--theme-bg:#f5f7fb;--theme-panel:rgba(255,255,255,.94)}
+html[data-baa-theme="neoglass"]{--theme-accent:#a78bfa;--theme-bg:#111827;--theme-panel:rgba(31,41,55,.72)}
+html[data-baa-theme="calm"]{--theme-accent:#10b981;--theme-bg:#0d1b17;--theme-panel:rgba(19,48,40,.84)}
+html[data-baa-theme="duology"]{--theme-accent:#f97316;--theme-bg:#fff8ef;--theme-panel:rgba(255,255,255,.96)}
+html[data-baa-theme="academic"][data-baa-mode="light"] body,html[data-baa-theme="duology"][data-baa-mode="light"] body{background:var(--theme-bg);color:#182033}
+html[data-baa-theme="academic"][data-baa-mode="light"] .topbar,html[data-baa-theme="duology"][data-baa-mode="light"] .topbar{background:rgba(255,255,255,.82);border-bottom-color:rgba(15,23,42,.1)}
+html[data-baa-theme="academic"][data-baa-mode="light"] .baa-theme-panel,html[data-baa-theme="duology"][data-baa-mode="light"] .baa-theme-panel{background:var(--theme-panel);color:#182033;border-color:rgba(15,23,42,.1)}
+html[data-baa-theme="academic"][data-baa-mode="light"] .baa-theme-option,html[data-baa-theme="duology"][data-baa-mode="light"] .baa-theme-option,html[data-baa-theme="academic"][data-baa-mode="light"] .baa-mode-option,html[data-baa-theme="duology"][data-baa-mode="light"] .baa-mode-option{color:#182033;background:rgba(15,23,42,.035);border-color:rgba(15,23,42,.09)}
+html[data-baa-theme="academic"][data-baa-mode="light"] .baa-theme-head small,html[data-baa-theme="duology"][data-baa-mode="light"] .baa-theme-head small{color:#64748b}
+html[data-baa-theme="academic"][data-baa-mode="light"] .baa-theme-note,html[data-baa-theme="duology"][data-baa-mode="light"] .baa-theme-note{color:#64748b}
+/* Explicit dark mode keeps all themes dark, with distinct accents. */
+html[data-baa-mode="dark"] body{background:var(--theme-bg);}
+html[data-baa-mode="dark"] .topbar{background:color-mix(in srgb,var(--theme-bg) 82%,transparent);}
+/* System mode: academic/duology become light when device is light; all other themes remain their dark visual identity. */
+@media (prefers-color-scheme:light){
+ html[data-baa-mode="system"][data-baa-theme="academic"] body,html[data-baa-mode="system"][data-baa-theme="duology"] body{background:#f5f7fb;color:#182033}
+ html[data-baa-mode="system"][data-baa-theme="academic"] .topbar,html[data-baa-mode="system"][data-baa-theme="duology"] .topbar{background:rgba(255,255,255,.82);border-bottom-color:rgba(15,23,42,.1)}
+}
+/* Duology: gentle child-friendly motion, disabled for reduced-motion users. */
+html[data-baa-theme="duology"] .world-tile,html[data-baa-theme="duology"] .hero-mission{border-radius:24px}
+html[data-baa-theme="duology"] .world-tile:hover{transform:translateY(-5px) rotate(-.4deg)}
+@keyframes baaDuologyFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+html[data-baa-theme="duology"] .world-tile:nth-child(odd) .t-icon{animation:baaDuologyFloat 2.8s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){html[data-baa-theme="duology"] *{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}}
+@media(max-width:650px){.baa-theme-button-label{display:none}.baa-theme-grid{grid-template-columns:1fr}.baa-theme-panel{right:-6px}}
+
+
+/* ================= BAA MASTER DASHBOARD v2 ================= */
+.baa-dashboard{display:flex;min-height:calc(100vh - 70px);position:relative;z-index:12;}
+.baa-sidebar{width:238px;flex:0 0 238px;padding:22px 14px 30px;border-right:1px solid rgba(253,249,240,.08);background:rgba(9,13,39,.72);backdrop-filter:blur(18px);position:sticky;top:70px;height:calc(100vh - 70px);overflow-y:auto;}
+.baa-side-label{font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);padding:8px 12px;margin-top:6px}
+.baa-nav{display:flex;align-items:center;gap:11px;width:100%;padding:11px 12px;margin:3px 0;border:1px solid transparent;border-radius:12px;background:transparent;color:var(--dim);font:600 .78rem var(--body);text-align:left;cursor:pointer;transition:.2s}
+.baa-nav:hover,.baa-nav.active{color:var(--warmwhite);background:rgba(124,92,252,.12);border-color:rgba(124,92,252,.22)}
+.baa-nav .ni{width:22px;text-align:center;font-size:1rem}
+.baa-main{flex:1;min-width:0;padding:28px clamp(18px,3.2vw,42px) 70px;max-width:1500px}
+.baa-welcome{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;margin-bottom:20px}
+.baa-eyebrow{font-size:.66rem;letter-spacing:.15em;text-transform:uppercase;color:var(--cyan);margin-bottom:7px}
+.baa-title{font-family:var(--display);font-weight:500;font-size:clamp(1.8rem,3vw,2.55rem);line-height:1.1}
+.baa-subtitle{color:var(--dim);margin-top:8px;font-size:.86rem;line-height:1.55}
+.baa-quick-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.baa-action{border:1px solid rgba(253,249,240,.12);background:rgba(253,249,240,.055);color:var(--warmwhite);padding:10px 13px;border-radius:12px;font:600 .74rem var(--body);cursor:pointer}
+.baa-action.primary{background:linear-gradient(120deg,var(--violet),#5bc7ff);border:0}
+.baa-stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:20px}
+.baa-stat{border:1px solid rgba(253,249,240,.1);background:rgba(253,249,240,.045);border-radius:16px;padding:14px;min-width:0}
+.baa-stat .s-top{display:flex;justify-content:space-between;gap:8px;color:var(--faint);font-size:.64rem;text-transform:uppercase;letter-spacing:.08em}
+.baa-stat .s-value{font-size:1.35rem;font-weight:800;margin-top:7px}.baa-stat .s-note{font-size:.62rem;color:var(--dim);margin-top:3px}
+.baa-progress{height:6px;border-radius:20px;background:rgba(253,249,240,.1);margin-top:9px;overflow:hidden}.baa-progress span{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--violet),var(--cyan));width:78%}
+.baa-grid{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(280px,.9fr);gap:16px}
+.baa-card{border:1px solid rgba(253,249,240,.1);background:rgba(20,27,77,.62);border-radius:18px;padding:18px;box-shadow:0 14px 45px rgba(0,0,0,.12)}
+.baa-card-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px}.baa-card-head h2{font-size:.98rem}.baa-card-head span{font-size:.65rem;color:var(--faint)}
+.baa-learning{display:grid;grid-template-columns:1fr auto;gap:14px;align-items:center}.baa-learning h3{font-size:.9rem}.baa-learning p{font-size:.72rem;color:var(--dim);margin-top:4px}.baa-score{font-size:1.5rem;font-weight:800;color:var(--cyan)}
+.baa-mini-actions{display:flex;gap:7px;margin-top:13px;flex-wrap:wrap}.baa-mini{padding:8px 11px;border-radius:10px;border:1px solid rgba(253,249,240,.1);background:rgba(253,249,240,.045);color:var(--warmwhite);font-size:.68rem;font-weight:700;cursor:pointer}
+.baa-challenge{background:linear-gradient(145deg,rgba(124,92,252,.2),rgba(76,217,232,.07));border-color:rgba(124,92,252,.25)}
+.baa-challenge-banner{display:flex;gap:12px;align-items:center;padding:12px;border-radius:13px;background:rgba(0,0,0,.16);margin-bottom:10px}.baa-challenge-icon{font-size:1.55rem}.baa-challenge strong{font-size:.8rem}.baa-challenge small{display:block;color:var(--dim);margin-top:3px;font-size:.65rem}
+.baa-rank-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(253,249,240,.07);font-size:.72rem}.baa-rank-row:last-child{border-bottom:0}.baa-rank-num{width:22px;color:var(--gold);font-weight:800}.baa-rank-xp{margin-left:auto;color:var(--cyan);font-weight:800}
+.baa-feature-section{margin-top:18px}.baa-feature-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.baa-feature{min-height:108px;padding:14px;border:1px solid rgba(253,249,240,.09);background:rgba(253,249,240,.035);border-radius:15px;color:var(--warmwhite);cursor:pointer;transition:.2s}.baa-feature:hover{transform:translateY(-2px);border-color:rgba(124,92,252,.35);background:rgba(124,92,252,.08)}.baa-feature .fi{font-size:1.25rem}.baa-feature h3{font-size:.76rem;margin-top:9px}.baa-feature p{font-size:.61rem;color:var(--dim);line-height:1.35;margin-top:4px}
+.baa-side-card{margin-top:16px}.baa-side-card .baa-card{height:100%}
+.baa-all-modules{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.baa-module{padding:9px 10px;border-radius:10px;background:rgba(253,249,240,.035);border:1px solid rgba(253,249,240,.07);font-size:.66rem;color:var(--dim);cursor:pointer}.baa-module:hover{color:var(--warmwhite);border-color:rgba(76,217,232,.3)}
+.baa-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 7px;border-radius:999px;background:rgba(52,211,153,.1);color:#6ee7b7;font-size:.6rem;font-weight:800}
+@media(max-width:1050px){.baa-stats{grid-template-columns:repeat(3,1fr)}.baa-grid{grid-template-columns:1fr}.baa-feature-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:780px){.baa-sidebar{display:none}.baa-main{padding:20px 14px 55px}.baa-stats{grid-template-columns:repeat(2,1fr)}.baa-feature-grid{grid-template-columns:repeat(2,1fr)}.baa-welcome{display:block}.baa-quick-actions{justify-content:flex-start;margin-top:14px}.baa-all-modules{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:430px){.baa-stats{grid-template-columns:1fr 1fr}.baa-feature-grid{grid-template-columns:1fr 1fr}.baa-stat{padding:11px}.baa-stat .s-value{font-size:1.1rem}}
+/* Light treatment for the dashboard themes */
+html[data-baa-mode="light"][data-baa-theme="academic"] .baa-sidebar,html[data-baa-mode="light"][data-baa-theme="duology"] .baa-sidebar{background:rgba(255,255,255,.82);border-right-color:rgba(15,23,42,.09)}
+html[data-baa-mode="light"][data-baa-theme="academic"] .baa-card,html[data-baa-mode="light"][data-baa-theme="duology"] .baa-card{background:rgba(255,255,255,.9);border-color:rgba(15,23,42,.09);box-shadow:0 12px 35px rgba(15,23,42,.06)}
+html[data-baa-mode="light"][data-baa-theme="academic"] .baa-stat,html[data-baa-mode="light"][data-baa-theme="duology"] .baa-stat,html[data-baa-mode="light"][data-baa-theme="academic"] .baa-feature,html[data-baa-mode="light"][data-baa-theme="duology"] .baa-feature{background:rgba(255,255,255,.8);border-color:rgba(15,23,42,.09);color:#182033}
+html[data-baa-mode="light"][data-baa-theme="academic"] .baa-title,html[data-baa-mode="light"][data-baa-theme="duology"] .baa-title,html[data-baa-mode="light"][data-baa-theme="academic"] .baa-card h2,html[data-baa-mode="light"][data-baa-theme="duology"] .baa-card h2{color:#182033}
+
 </style>
 <link rel="stylesheet" href="css/image.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
-
-<style id="baa-final-theme-overrides">
-:root{--void:var(--baa-bg,#0B0F2E);--cosmos:var(--baa-surface,#141B4D);--cosmos-2:var(--baa-surface2,#1B2460);--warmwhite:var(--baa-text,#FDF9F0);--dim:var(--baa-muted,rgba(253,249,240,.62));--faint:var(--baa-muted,rgba(253,249,240,.34));--violet:var(--baa-accent,#7C5CFC);--cyan:var(--baa-accent2,#4CD9E8);--gold:var(--baa-gold,#F5B942);}
-body{background:var(--void);color:var(--warmwhite);transition:background .35s ease,color .35s ease}
-.topbar{background:color-mix(in srgb,var(--baa-surface,#141B4D) 78%,transparent);border-color:var(--baa-border,rgba(255,255,255,.10))}
-.widget,.world-tile,.next-step-card,.hero-mission{border-color:var(--baa-border,rgba(255,255,255,.10))}
-.baa-theme-btn{border:1px solid var(--baa-border);background:var(--baa-surface2);color:var(--warmwhite);padding:9px 12px;border-radius:999px;font-weight:700;font-size:.78rem;display:flex;gap:7px;align-items:center}
-.baa-theme-btn:hover{transform:translateY(-1px);border-color:var(--baa-accent)}
-.baa-theme-picker{position:fixed;inset:0;z-index:500;display:none}.baa-theme-picker.open{display:block}.baa-theme-backdrop{position:absolute;inset:0;background:rgba(4,7,20,.58);backdrop-filter:blur(10px)}
-.baa-theme-panel{position:relative;width:min(820px,92vw);max-height:88vh;overflow:auto;margin:6vh auto;background:var(--baa-surface);color:var(--baa-text);border:1px solid var(--baa-border);border-radius:28px;padding:30px;box-shadow:0 30px 90px rgba(0,0,0,.35)}
-.baa-theme-close{position:absolute;right:18px;top:16px;border:0;background:transparent;color:inherit;font-size:28px}.baa-theme-eyebrow{font-size:.7rem;letter-spacing:.18em;text-transform:uppercase;color:var(--baa-accent2);margin-bottom:8px}.baa-theme-panel h2{font-family:var(--display);font-size:2rem;margin-bottom:8px}.baa-theme-panel>p{color:var(--baa-muted);margin-bottom:22px}
-.baa-theme-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.baa-theme-option{border:1px solid var(--baa-border);background:var(--baa-surface2);color:inherit;border-radius:18px;padding:16px;text-align:left;display:grid;grid-template-columns:36px 1fr;gap:2px 8px;transition:.25s}.baa-theme-option:hover{transform:translateY(-3px);border-color:var(--baa-accent)}.baa-theme-option>span{font-size:1.55rem;grid-row:span 2}.baa-theme-option small{color:var(--baa-muted);font-size:.72rem}.baa-mode-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:18px;padding-top:18px;border-top:1px solid var(--baa-border)}.baa-mode-row b{margin-right:auto}.baa-mode-row button{border:1px solid var(--baa-border);background:var(--baa-surface2);color:inherit;border-radius:999px;padding:9px 13px}
-.baa-xp-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:24px 0}.baa-stat{background:var(--baa-surface);border:1px solid var(--baa-border);border-radius:18px;padding:16px;box-shadow:0 12px 30px rgba(0,0,0,.08)}.baa-stat span{display:block;font-size:.72rem;color:var(--baa-muted);margin-bottom:5px}.baa-stat b{font-size:1.35rem}.baa-stat.xp b{color:var(--baa-gold)}.baa-stat.challenge b{color:var(--baa-accent)}
-.baa-arena-row{display:grid;grid-template-columns:1.35fr 1fr;gap:16px;margin-bottom:12px}.baa-home-card{background:linear-gradient(135deg,color-mix(in srgb,var(--baa-accent) 14%,var(--baa-surface)),var(--baa-surface));border:1px solid var(--baa-border);border-radius:22px;padding:20px}.baa-home-card h3{font-family:var(--display);font-size:1.25rem;margin-bottom:6px}.baa-home-card p{color:var(--baa-muted);font-size:.83rem;line-height:1.5;margin-bottom:14px}.baa-home-actions{display:flex;gap:8px;flex-wrap:wrap}.baa-mini-list{display:grid;gap:8px}.baa-mini-row{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--baa-border);font-size:.82rem}.baa-mini-row:last-child{border-bottom:0}.baa-mini-row small{color:var(--baa-muted)}
-.world-overlay.theme-challenge{background:var(--baa-bg);color:var(--baa-text)}.arena-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:24px 0}.arena-stats>div{background:var(--baa-surface);border:1px solid var(--baa-border);border-radius:18px;padding:16px}.arena-stats span{display:block;color:var(--baa-muted);font-size:.72rem;margin-bottom:6px}.arena-stats b{font-size:1.45rem}.arena-grid{display:grid;grid-template-columns:1.2fr 1fr;gap:16px}.arena-card{background:var(--baa-surface);border:1px solid var(--baa-border);border-radius:22px;padding:22px}.arena-card-head{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:10px}.arena-card-head h3{font-family:var(--display);font-size:1.3rem}.arena-card-head span{font-size:.7rem;color:var(--baa-accent2)}.arena-card p{color:var(--baa-muted);line-height:1.6;font-size:.88rem}.arena-form{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;margin-top:16px}.arena-form input,.arena-form select{background:var(--baa-surface2);border:1px solid var(--baa-border);color:var(--baa-text);border-radius:12px;padding:12px}.arena-note{display:block;color:var(--baa-muted);font-size:.7rem;margin-top:10px}.challenge-row{display:grid;grid-template-columns:1fr auto auto auto;gap:8px;align-items:center;padding:12px 0;border-bottom:1px solid var(--baa-border)}.challenge-row:last-child{border-bottom:0}.challenge-row small{display:block;color:var(--baa-muted);margin-top:3px}.challenge-row>strong{font-size:.7rem;text-transform:uppercase;color:var(--baa-accent2)}.challenge-row button{border:1px solid var(--baa-border);background:var(--baa-surface2);color:var(--baa-text);border-radius:9px;padding:7px 9px}.empty-arena{padding:20px 0;color:var(--baa-muted);font-size:.85rem}
-html[data-baa-theme="galaxy"] #stars,html[data-baa-theme="galaxy"] .aurora{display:block}html:not([data-baa-theme="galaxy"]) #stars{display:none}html:not([data-baa-theme="galaxy"]) .aurora{opacity:.45}
-html[data-baa-theme="duology"] .world-tile,html[data-baa-theme="duology"] .widget{border-radius:26px}html[data-baa-theme="duology"] .world-tile:hover{transform:translateY(-7px) rotate(-.25deg)}html[data-baa-theme="duology"] .hm-eyebrow{color:#ff6f91}
-@media(max-width:800px){.baa-theme-grid{grid-template-columns:repeat(2,1fr)}.baa-xp-strip,.arena-stats{grid-template-columns:repeat(2,1fr)}.baa-arena-row,.arena-grid{grid-template-columns:1fr}.arena-form{grid-template-columns:1fr}.tb-right .lbl{display:none}}
-@media(max-width:520px){.baa-theme-grid{grid-template-columns:1fr}.baa-theme-panel{padding:22px}.baa-xp-strip{grid-template-columns:1fr 1fr}.baa-stat{padding:12px}.challenge-row{grid-template-columns:1fr 1fr}.challenge-row>strong{grid-column:2}}
-</style>
-
 </head>
 <body>
 
@@ -889,212 +948,76 @@ html[data-baa-theme="duology"] .world-tile,html[data-baa-theme="duology"] .widge
 <!-- ============ SCREEN 4: STUDENT OS HOME ============ -->
 <section id="screen-home" class="screen">
   <div class="topbar">
-    <div class="tb-left">
-      <div class="tb-logo">
-        <svg viewBox="0 0 30 30" fill="none"><circle cx="15" cy="15" r="2" fill="#F5B942"/><circle cx="6" cy="10" r="1.4" fill="#4CD9E8"/><circle cx="24" cy="8" r="1.4" fill="#7C5CFC"/><circle cx="23" cy="22" r="1.4" fill="#F5B942"/><circle cx="7" cy="21" r="1.2" fill="#4CD9E8"/><line x1="15" y1="15" x2="6" y2="10" stroke="#4CD9E8" stroke-width="0.6" opacity="0.6"/><line x1="15" y1="15" x2="24" y2="8" stroke="#7C5CFC" stroke-width="0.6" opacity="0.6"/><line x1="15" y1="15" x2="23" y2="22" stroke="#F5B942" stroke-width="0.6" opacity="0.6"/><line x1="15" y1="15" x2="7" y2="21" stroke="#4CD9E8" stroke-width="0.6" opacity="0.6"/></svg>
-        BAA OS
-      </div>
-    </div>
+    <div class="tb-left"><div class="tb-logo"><svg viewBox="0 0 30 30" fill="none"><circle cx="15" cy="15" r="2" fill="#F5B942"/><circle cx="6" cy="10" r="1.4" fill="#4CD9E8"/><circle cx="24" cy="8" r="1.4" fill="#7C5CFC"/><circle cx="23" cy="22" r="1.4" fill="#F5B942"/><circle cx="7" cy="21" r="1.2" fill="#4CD9E8"/><line x1="15" y1="15" x2="6" y2="10" stroke="#4CD9E8" stroke-width="0.6"/><line x1="15" y1="15" x2="24" y2="8" stroke="#7C5CFC" stroke-width="0.6"/><line x1="15" y1="15" x2="23" y2="22" stroke="#F5B942" stroke-width="0.6"/><line x1="15" y1="15" x2="7" y2="21" stroke="#4CD9E8" stroke-width="0.6"/></svg> BAA OS</div></div>
     <div class="tb-right">
-      <div class="pill xp" id="headerXp">⭐ <span class="lbl">0 XP</span></div>
-      <div class="pill xp" id="headerLevel">🏆 <span class="lbl">Level 1</span></div>
-      <div class="pill coin" id="headerChallenges">⚔️ <span class="lbl">0 challenges</span></div>
-      <button class="baa-theme-btn" onclick="BAATheme.openPicker()" aria-label="Choose BAA OS theme"><span data-baa-theme-label>⭐ Aurora</span> <span>⌄</span></button><div class="avatar-btn" id="avatarInitial">B</div>
+      <div class="pill streak">🔥 <span class="lbl">12 day streak</span></div>
+      <div class="pill xp">⚡ <span class="lbl">3,450 XP</span></div>
+      <div class="pill coin">🪙 <span class="lbl">1,240</span></div>
+      <div class="avatar-btn" id="avatarInitial">B</div>
     </div>
   </div>
-
-  <div class="home-inner">
-    <div class="hero-mission">
-      <div class="hm-eyebrow"><span class="dot"></span> Today's Mission</div>
-      <h1 class="hm-title" id="homeGreetTitle">Ready when you are, Bhavesh.</h1>
-      <p class="hm-sub">Master Quadratic Equations, then step into Quiz Arena for a live battle. Your AI mentor picked this because it unlocks the next stop on your Career Journey.</p>
-      <div class="hm-progress"><div class="hm-bar"><span></span></div><small>38% of today's mission</small></div>
-      <div class="hero-actions">
-        <button class="btn-primary-sm" onclick="openWorld('tutor')">Continue Learning →</button>
-        <button class="btn-ghost-sm" onclick="openWorld('quiz')">Jump to Quiz Arena</button>
+  <div class="baa-dashboard">
+    <aside class="baa-sidebar">
+      <div class="baa-side-label">Main</div>
+      <button class="baa-nav active"><span class="ni">🏠</span> Home</button>
+      <button class="baa-nav" onclick="openWorld('universe')"><span class="ni">📚</span> Learn</button>
+      <button class="baa-nav" onclick="openWorld('tutor')"><span class="ni">🤖</span> AI Tutor</button>
+      <button class="baa-nav" onclick="window.location.href='assessment.html'"><span class="ni">📝</span> Assessments</button>
+      <button class="baa-nav" onclick="openWorld('quiz')"><span class="ni">⚔️</span> Challenge Arena</button>
+      <button class="baa-nav" onclick="openWorld('achievements')"><span class="ni">🏆</span> XP & Rewards</button>
+      <button class="baa-nav" onclick="openWorld('planner')"><span class="ni">📅</span> Planner</button>
+      <button class="baa-nav" onclick="openWorld('profile')"><span class="ni">📊</span> Progress</button>
+      <div class="baa-side-label">Explore</div>
+      <button class="baa-nav" onclick="openWorld('lab')"><span class="ni">🧪</span> Virtual Labs</button>
+      <button class="baa-nav" onclick="openWorld('code')"><span class="ni">💻</span> Coding Lab</button>
+      <button class="baa-nav" onclick="openWorld('career')"><span class="ni">🎓</span> Career</button>
+      <button class="baa-nav" onclick="openWorld('community')"><span class="ni">👥</span> Community</button>
+      <button class="baa-nav" onclick="window.location.href='homework-scanner.html'"><span class="ni">🧾</span> Homework</button>
+      <div class="baa-side-label">Support</div>
+      <button class="baa-nav" onclick="openWorld('guardian')"><span class="ni">🛡️</span> AI Guardian</button>
+      <button class="baa-nav" onclick="openWorld('mentor')"><span class="ni">🧭</span> AI Mentor</button>
+    </aside>
+    <main class="baa-main">
+      <div class="baa-welcome">
+        <div><div class="baa-eyebrow">Student Command Center</div><h1 class="baa-title">Good morning, <span id="dashboardName">Bhavesh</span> 👋</h1><p class="baa-subtitle">Your learning, AI guidance, progress, challenges and rewards — all in one place.</p></div>
+        <div class="baa-quick-actions"><button class="baa-action primary" onclick="openWorld('tutor')">🤖 Ask AI Tutor</button><button class="baa-action" onclick="openWorld('quiz')">⚔️ Challenge</button><button class="baa-action" onclick="openWorld('achievements')">🏆 Rewards</button></div>
       </div>
-    </div>
-
-    <div class="baa-xp-strip" aria-label="Your BAA progress">
-      <div class="baa-stat xp"><span>⭐ XP Points</span><b id="homeXp">0</b></div>
-      <div class="baa-stat"><span>🏆 Level</span><b id="homeLevel">1</b></div>
-      <div class="baa-stat challenge"><span>⚔️ Challenges</span><b id="homeChallengeCount">0</b></div>
-      <div class="baa-stat"><span>🥇 Challenge Wins</span><b id="homeWins">0</b></div>
-    </div>
-    <div class="baa-arena-row">
-      <div class="baa-home-card"><h3>⚔️ Challenge Arena</h3><p>Challenge another student—even across grades. Quiz Battles use each student's own level and normalize results for a fair competition.</p><div class="baa-home-actions"><button class="btn-primary-sm" onclick="openWorld('challenge')">Open Arena →</button><button class="btn-ghost-sm" onclick="openWorld('challenge')">Challenge a Student</button></div></div>
-      <div class="baa-home-card"><h3>🏆 Leaderboard</h3><div class="baa-mini-list" id="homeLeaderboard"><div class="baa-mini-row"><span>Your current XP</span><b id="homeLeaderboardXp">0</b></div><div class="baa-mini-row"><span><small>Live ranking appears when the Challenge API is connected.</small></span></div></div></div>
-    </div>
-
-    <div class="section-label"><h2>Your Worlds</h2><span>Tap to step in</span></div>
-    <div class="worlds-grid">
-      <div class="world-tile wt-ai" role="button" tabindex="0" onclick="openWorld('tutor')">
-        <div class="t-bg"></div>
-        <div class="t-content">
-          <div class="t-icon">✦</div>
-          <h3>AI Tutor</h3>
-          <p>A patient mind that explains until it finally clicks.</p>
-          <span class="t-arrow">Enter →</span>
+      <section class="baa-stats">
+        <div class="baa-stat"><div class="s-top"><span>XP Points</span><span>⭐</span></div><div class="s-value">3,450</div><div class="s-note">+320 this week</div><div class="baa-progress"><span style="width:69%"></span></div></div>
+        <div class="baa-stat"><div class="s-top"><span>Level</span><span>🏆</span></div><div class="s-value">7</div><div class="s-note">550 XP to Level 8</div><div class="baa-progress"><span style="width:69%"></span></div></div>
+        <div class="baa-stat"><div class="s-top"><span>Streak</span><span>🔥</span></div><div class="s-value">12 days</div><div class="s-note">Personal best: 18</div></div>
+        <div class="baa-stat"><div class="s-top"><span>Rank</span><span>🥇</span></div><div class="s-value">#18</div><div class="s-note">Top 8% this week</div></div>
+        <div class="baa-stat"><div class="s-top"><span>Learning</span><span>📈</span></div><div class="s-value">78%</div><div class="s-note">Weekly progress</div><div class="baa-progress"><span></span></div></div>
+      </section>
+      <div class="baa-grid">
+        <div>
+          <section class="baa-card">
+            <div class="baa-card-head"><h2>📚 Today's Learning Plan</h2><span>3 tasks remaining</span></div>
+            <div class="baa-learning"><div><h3>Mathematics — Algebra</h3><p>Linear Equations & Expressions · Continue where you left off</p><div class="baa-progress"><span style="width:78%"></span></div></div><div class="baa-score">78%</div></div>
+            <div class="baa-mini-actions"><button class="baa-mini" onclick="openWorld('tutor')">Continue Learning →</button><button class="baa-mini" onclick="openWorld('planner')">View Planner</button><button class="baa-mini" onclick="window.location.href='assessment.html'">Take Assessment</button></div>
+          </section>
+          <section class="baa-feature-section"><div class="baa-card-head"><h2>🚀 BAA Learning Worlds</h2><span>Core experiences</span></div><div class="baa-feature-grid">
+            <div class="baa-feature" onclick="openWorld('tutor')"><div class="fi">🤖</div><h3>AI Tutor</h3><p>Ask, explain, practice and revise.</p></div>
+            <div class="baa-feature" onclick="openWorld('universe')"><div class="fi">🌌</div><h3>Knowledge Universe</h3><p>Explore subjects and curiosity paths.</p></div>
+            <div class="baa-feature" onclick="openWorld('quiz')"><div class="fi">⚔️</div><h3>Quiz Arena</h3><p>Quizzes and challenge battles.</p></div>
+            <div class="baa-feature" onclick="openWorld('lab')"><div class="fi">🧪</div><h3>Virtual Labs</h3><p>Interactive science and math labs.</p></div>
+            <div class="baa-feature" onclick="openWorld('code')"><div class="fi">💻</div><h3>Coding Lab</h3><p>Build, experiment and learn coding.</p></div>
+            <div class="baa-feature" onclick="openWorld('career')"><div class="fi">🎓</div><h3>Career Journey</h3><p>Skills, pathways and future goals.</p></div>
+            <div class="baa-feature" onclick="openWorld('profile')"><div class="fi">🧠</div><h3>Learning Profile</h3><p>Mastery, mistakes and learning evidence.</p></div>
+            <div class="baa-feature" onclick="openWorld('planner')"><div class="fi">🧭</div><h3>AI Planner</h3><p>Evidence-based daily study plan.</p></div>
+          </div></section>
+          <section class="baa-feature-section"><div class="baa-card"><div class="baa-card-head"><h2>🧩 All BAA Modules</h2><span>More than the dashboard</span></div><div class="baa-all-modules">
+            <div class="baa-module" onclick="openWorld('achievements')">🏆 Achievement & Rewards</div><div class="baa-module" onclick="openWorld('community')">👥 Community & Collaboration</div><div class="baa-module" onclick="openWorld('guardian')">🛡️ AI Guardian</div><div class="baa-module" onclick="openWorld('mentor')">🧭 AI Mentor</div><div class="baa-module" onclick="window.location.href='homework-scanner.html'">🧾 Homework Scanner</div><div class="baa-module" onclick="window.location.href='assessment.html'">📝 Smart Assessments</div><div class="baa-module">🌍 Multilingual Learning</div><div class="baa-module">🎤 Voice Learning</div><div class="baa-module">📖 AI Notes Generator</div><div class="baa-module">🎥 Learning Resources</div><div class="baa-module">🧠 Learning Intelligence</div><div class="baa-module">⚖️ AI Review & Appeal</div><div class="baa-module">🏫 School Portal</div><div class="baa-module">📊 Institution Analytics</div><div class="baa-module">🌍 Global Collaboration</div><div class="baa-module">🏅 Olympiad Center</div><div class="baa-module">🔒 Trust & Privacy</div><div class="baa-module">💬 Feedback Center</div>
+          </div></div></section>
         </div>
+        <aside>
+          <section class="baa-card baa-challenge"><div class="baa-card-head"><h2>⚔️ Challenge Arena</h2><span class="baa-badge">LIVE READY</span></div><div class="baa-challenge-banner"><div class="baa-challenge-icon">⚔️</div><div><strong>2 challenges waiting</strong><small>A student can challenge another class level using fair normalized scoring.</small></div></div><div class="baa-mini-actions"><button class="baa-mini" onclick="openWorld('quiz')">Open Arena →</button><button class="baa-mini">View Requests</button></div><p style="font-size:.62rem;color:var(--faint);margin-top:10px;line-height:1.4">Challenge modes: XP Race · Quiz Battle · Streak Battle · Weekly XP · Team Battle.</p></section>
+          <section class="baa-card baa-side-card"><div class="baa-card-head"><h2>🥇 Leaderboard</h2><span>This Week</span></div><div class="baa-rank-row"><span class="baa-rank-num">1</span><strong>Aarav</strong><span class="baa-rank-xp">4,820 XP</span></div><div class="baa-rank-row"><span class="baa-rank-num">2</span><strong>Riya</strong><span class="baa-rank-xp">4,510 XP</span></div><div class="baa-rank-row"><span class="baa-rank-num">3</span><strong>Vihaan</strong><span class="baa-rank-xp">4,120 XP</span></div><div class="baa-rank-row"><span class="baa-rank-num">18</span><strong>You</strong><span class="baa-rank-xp">3,450 XP</span></div><div class="baa-mini-actions"><button class="baa-mini" onclick="openWorld('achievements')">View Rewards & Rank →</button></div></section>
+          <section class="baa-card baa-side-card"><div class="baa-card-head"><h2>🤖 AI Recommendation</h2><span>Based on learning</span></div><p style="font-size:.74rem;color:var(--dim);line-height:1.55">Revise Linear Equations for 20 minutes, then take a short assessment. Your current evidence suggests this is the best next step.</p><div class="baa-mini-actions"><button class="baa-mini" onclick="openWorld('tutor')">Ask AI →</button><button class="baa-mini" onclick="openWorld('planner')">Add to Plan</button></div></section>
+          <section class="baa-card baa-side-card"><div class="baa-card-head"><h2>🎯 Today's Goals</h2><span>2 / 4</span></div><div style="font-size:.72rem;color:var(--dim);line-height:2"><div>✅ Complete Math Lesson</div><div>✅ Practice 10 Questions</div><div>⬜ Take a Quiz</div><div>⬜ Brain Buster</div></div><div class="baa-progress"><span style="width:50%"></span></div></section>
+        </aside>
       </div>
-      <div class="world-tile wt-universe" role="button" tabindex="0" onclick="openWorld('universe')">
-        <div class="t-bg"></div>
-        <div class="t-content">
-          <div class="t-icon">◐</div>
-          <h3>Knowledge Universe</h3>
-          <p>Every subject is a planet waiting to be explored.</p>
-          <span class="t-arrow">Explore →</span>
-        </div>
-      </div>
-      <div class="world-tile wt-quiz" role="button" tabindex="0" onclick="openWorld('quiz')">
-        <div class="t-bg"></div>
-        <div class="t-content">
-          <div class="t-icon">◆</div>
-          <h3>Quiz Arena</h3>
-          <p>Live, loud, and a little theatrical.</p>
-          <span class="t-arrow">Play →</span>
-        </div>
-      </div>
-      <div class="world-tile wt-trophy" role="button" tabindex="0" onclick="openWorld('challenge')">
-        <div class="t-bg"></div>
-        <div class="t-content">
-          <div class="t-icon">⚔️</div>
-          <h3>Challenge Arena</h3>
-          <p>Challenge any student, across grades, with fair normalized battles.</p>
-          <span class="t-arrow">Enter Arena →</span>
-        </div>
-      </div>
-      <div class="world-tile wt-lab" role="button" tabindex="0" onclick="openWorld('lab')">
-        <div class="t-bg"></div>
-        <div class="t-content">
-          <div class="t-icon">⬡</div>
-          <h3>Virtual Labs</h3>
-          <p>Break things safely, and find out why.</p>
-          <span class="t-arrow">Discover →</span>
-        </div>
-      </div>
-      <div class="world-tile wt-code" role="button" tabindex="0" onclick="openWorld('code')">
-        <div class="t-bg"></div>
-        <div class="t-content">
-          <div class="t-icon">◈</div>
-          <h3>Coding Lab</h3>
-          <p>Where an idea becomes something that runs.</p>
-          <span class="t-arrow">Build →</span>
-        </div>
-      </div>
-      <div class="world-tile wt-career" role="button" tabindex="0" onclick="openWorld('career')">
-        <div class="t-bg"></div>
-        <div class="t-content">
-          <div class="t-icon">⟡</div>
-          <h3>Career Journey</h3>
-          <p>A path from student to ISRO Scientist.</p>
-          <span class="t-arrow">Walk it →</span>
-        </div>
-      </div>
-      <div class="world-tile wt-profile" role="button" tabindex="0" onclick="openWorld('guardian')">
-        <div class="t-bg"></div>
-        <div class="t-content">
-          <div class="t-icon">🛡️</div>
-          <h3>AI Guardian</h3>
-          <p>Evidence-based early support when your academic signals need attention.</p>
-          <span class="t-arrow">Check →</span>
-        </div>
-      </div>
-      <div class="world-tile wt-profile" role="button" tabindex="0" onclick="openWorld('profile')">
-        <div class="t-bg"></div>
-        <div class="t-content">
-          <div class="t-icon">🧠</div>
-          <h3>Learning Profile</h3>
-          <p>What you've mastered, what's still forming, and why.</p>
-          <span class="t-arrow">Open →</span>
-        </div>
-      </div>
-      <div class="world-tile wt-quiz" role="link" tabindex="0" onclick="window.location.href='assessment.html'">
-        <div class="t-bg"></div>
-        <div class="t-content">
-          <div class="t-icon">📝</div>
-          <h3>Assessments</h3>
-          <p>Topic tests, mock tests, and quizzes — graded and reviewed for real.</p>
-          <span class="t-arrow">Start →</span>
-        </div>
-      </div>
-      <div class="world-tile wt-lab" role="link" tabindex="0" onclick="window.location.href='homework-scanner.html'">
-        <div class="t-bg"></div>
-        <div class="t-content">
-          <div class="t-icon">🧾</div>
-          <h3>Homework Scanner</h3>
-          <p>Paste your homework text and save it — foundation checkpoint, AI grading coming soon.</p>
-          <span class="t-arrow">Open →</span>
-        </div>
-      </div>
-      <div class="world-tile wt-profile" role="button" tabindex="0" onclick="openWorld('planner')">
-        <div class="t-bg"></div>
-        <div class="t-content">
-          <div class="t-icon">🧭</div>
-          <h3>AI Planner</h3>
-          <p>What to study today, chosen from your real evidence — not a static checklist.</p>
-          <span class="t-arrow">Plan →</span>
-        </div>
-      </div>
-      <div class="world-tile wt-trophy" role="button" tabindex="0" onclick="openWorld('achievements')">
-        <div class="t-bg"></div>
-        <div class="t-content">
-          <div class="t-icon">🏆</div>
-          <h3>Achievements</h3>
-          <p>Your trophy room — 18 earned, 6 to unlock.</p>
-          <span class="t-arrow">View →</span>
-        </div>
-      </div>
-      <div class="world-tile wt-community" role="button" tabindex="0" onclick="openWorld('community')">
-        <div class="t-bg"></div>
-        <div class="t-content">
-          <div class="t-icon">◎</div>
-          <h3>Community</h3>
-          <p>Where the whole learning galaxy hangs out.</p>
-          <span class="t-arrow">Join →</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="section-label"><h2>Next Steps</h2><span>Just a few, on purpose</span></div>
-    <div class="next-steps-grid">
-      <div class="next-step-card" role="button" tabindex="0" onclick="openWorld('tutor')">
-        <span class="ns-icon">✦</span>
-        <h3>Continue with your AI Tutor</h3>
-        <p>Pick up where you left off, or ask about anything you're stuck on right now.</p>
-        <div class="ns-arrow">Continue →</div>
-      </div>
-      <div class="next-step-card" role="button" tabindex="0" onclick="openWorld('mentor')">
-        <span class="ns-icon">🧭</span>
-        <h3>Talk to your AI Mentor</h3>
-        <p>Get academic guidance, motivation, and one realistic next step based on your learning evidence.</p>
-        <div class="ns-arrow">Talk →</div>
-      </div>
-      <div class="next-step-card" role="button" tabindex="0" onclick="openWorld('profile')">
-        <span class="ns-icon">🧠</span>
-        <h3>Check your Learning Profile</h3>
-        <p>See what's mastered, what's still forming, and any patterns worth a closer look.</p>
-        <div class="ns-arrow">Open →</div>
-      </div>
-      <div class="next-step-card" role="link" tabindex="0" onclick="window.location.href='assessment.html'">
-        <span class="ns-icon">📝</span>
-        <h3>Take an assessment</h3>
-        <p>A topic test, quiz, or mock test — graded instantly for MCQs, AI-evaluated for written answers.</p>
-        <div class="ns-arrow">Start →</div>
-      </div>
-      <div class="next-step-card" role="link" tabindex="0" onclick="window.location.href='knowledge-universe.html'">
-        <span class="ns-icon">◐</span>
-        <h3>Explore the Knowledge Universe</h3>
-        <p>Wander a subject that's calling you — no pressure, just curiosity.</p>
-        <div class="ns-arrow">Explore →</div>
-      </div>
-      <div class="next-step-card" role="button" tabindex="0" onclick="openWorld('planner')">
-        <span class="ns-icon">🧭</span>
-        <h3>See today's plan</h3>
-        <p>A short, realistic plan built from your actual evidence — adapts as you go.</p>
-        <div class="ns-arrow">Plan →</div>
-      </div>
-    </div>
+    </main>
   </div>
 </section>
 
@@ -1588,17 +1511,6 @@ html[data-baa-theme="duology"] .world-tile,html[data-baa-theme="duology"] .widge
   </div>
 </div>
 
-<!-- ============ WORLD: CHALLENGE ARENA (Module 51) ============ -->
-<div class="world-overlay theme-challenge" id="world-challenge">
-  <div class="world-close" role="button" tabindex="0" aria-label="Close" onclick="closeWorld('challenge')">✕</div>
-  <div class="world-inner">
-    <div class="world-eyebrow">Cross-grade • fair-play competition</div>
-    <h1 class="world-title">⚔️ Challenge <em>Arena</em></h1>
-    <p class="world-sub">A Class 5 student can challenge a Class 9 or Class 10 student. Each mode is designed so the competition measures effort and skill fairly rather than simply rewarding the older student.</p>
-    <div id="challengeArenaPanel"></div>
-  </div>
-</div>
-
 <!-- ============ WORLD: ACHIEVEMENTS ============ -->
 <div class="world-overlay theme-trophy" id="world-achievements">
   <div class="world-close" role="button" tabindex="0" aria-label="Close" onclick="closeWorld('achievements')">✕</div>
@@ -1732,7 +1644,7 @@ function enterHome(){
   warp.classList.add('fire');
   setTimeout(()=>{
     showScreen('screen-home');
-    document.getElementById('homeGreetTitle').textContent=`Ready when you are, ${studentName}.`;
+    document.getElementById('homeGreetTitle')?.textContent=`Ready when you are, ${studentName}.`; document.getElementById('dashboardName')?.textContent=studentName;
     document.getElementById('avatarInitial').textContent=studentName.charAt(0).toUpperCase();
     warp.classList.remove('fire');
     buildCode();
@@ -3239,25 +3151,6 @@ openWorld = function(name){
 };
 document.addEventListener('DOMContentLoaded', refreshLearningProfilePanels);
 
-/* ================= FINAL OS THEME + XP/CHALLENGE WIRING ================= */
-function refreshBAAHomeStats(){
-  try{
-    const s=window.BAARewards?.getState?.()||{xp:0};
-    const xp=Number(s.xp||0), level=Math.max(1,Math.floor(xp/500)+1), c=window.BAAChallenge?.counts?.()||{pending:0,active:0,completed:0}, p=window.BAAChallenge?.profile?.()||{wins:0};
-    [['homeXp',xp.toLocaleString()],['homeLevel',level],['homeChallengeCount',c.pending+c.active],['homeWins',p.wins],['homeLeaderboardXp',xp.toLocaleString()]].forEach(([id,v])=>{const e=document.getElementById(id);if(e)e.textContent=v});
-    const hx=document.querySelector('#headerXp .lbl');if(hx)hx.textContent=xp.toLocaleString()+' XP';const hl=document.querySelector('#headerLevel .lbl');if(hl)hl.textContent='Level '+level;const hc=document.querySelector('#headerChallenges .lbl');if(hc)hc.textContent=(c.pending+c.active)+' challenges';
-  }catch(_){ }
-}
-document.addEventListener('DOMContentLoaded',()=>setTimeout(refreshBAAHomeStats,50));
-const _baaOpenForChallenge=_origOpenWorld;
-/* Extend the existing openWorld wrapper without replacing its behavior. */
-const _baaCurrentOpenWorld=openWorld;
-openWorld=function(name){
-  _baaCurrentOpenWorld(name);
-  if(name==='challenge') setTimeout(()=>{BAAChallenge?.refresh?.();},40);
-  if(name==='profile'||name==='achievements') refreshBAAHomeStats();
-};
-
 /* ================= KEYBOARD ACTIVATION (F.1-A3) =================
    Existing interactive elements use onclick-driven divs for layout/
    styling reasons. This makes them keyboard-operable without changing
@@ -3303,8 +3196,7 @@ document.addEventListener('keydown', function(e){
   }
 });
 </script>
-<script src="js/baa-theme-engine.js"></script>
-<script src="js/baa-challenge.js"></script>
+<script src="js/baa-themes.js"></script>
 <script src="js/image.js"></script>
 <script src="js/question-bank.js"></script>
 <script src="js/baa-assessment.js"></script>
