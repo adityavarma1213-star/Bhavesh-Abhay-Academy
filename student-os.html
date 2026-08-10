@@ -795,6 +795,27 @@ async function sendMentorChat(overrideText){
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+
+<style id="baa-final-theme-overrides">
+:root{--void:var(--baa-bg,#0B0F2E);--cosmos:var(--baa-surface,#141B4D);--cosmos-2:var(--baa-surface2,#1B2460);--warmwhite:var(--baa-text,#FDF9F0);--dim:var(--baa-muted,rgba(253,249,240,.62));--faint:var(--baa-muted,rgba(253,249,240,.34));--violet:var(--baa-accent,#7C5CFC);--cyan:var(--baa-accent2,#4CD9E8);--gold:var(--baa-gold,#F5B942);}
+body{background:var(--void);color:var(--warmwhite);transition:background .35s ease,color .35s ease}
+.topbar{background:color-mix(in srgb,var(--baa-surface,#141B4D) 78%,transparent);border-color:var(--baa-border,rgba(255,255,255,.10))}
+.widget,.world-tile,.next-step-card,.hero-mission{border-color:var(--baa-border,rgba(255,255,255,.10))}
+.baa-theme-btn{border:1px solid var(--baa-border);background:var(--baa-surface2);color:var(--warmwhite);padding:9px 12px;border-radius:999px;font-weight:700;font-size:.78rem;display:flex;gap:7px;align-items:center}
+.baa-theme-btn:hover{transform:translateY(-1px);border-color:var(--baa-accent)}
+.baa-theme-picker{position:fixed;inset:0;z-index:500;display:none}.baa-theme-picker.open{display:block}.baa-theme-backdrop{position:absolute;inset:0;background:rgba(4,7,20,.58);backdrop-filter:blur(10px)}
+.baa-theme-panel{position:relative;width:min(820px,92vw);max-height:88vh;overflow:auto;margin:6vh auto;background:var(--baa-surface);color:var(--baa-text);border:1px solid var(--baa-border);border-radius:28px;padding:30px;box-shadow:0 30px 90px rgba(0,0,0,.35)}
+.baa-theme-close{position:absolute;right:18px;top:16px;border:0;background:transparent;color:inherit;font-size:28px}.baa-theme-eyebrow{font-size:.7rem;letter-spacing:.18em;text-transform:uppercase;color:var(--baa-accent2);margin-bottom:8px}.baa-theme-panel h2{font-family:var(--display);font-size:2rem;margin-bottom:8px}.baa-theme-panel>p{color:var(--baa-muted);margin-bottom:22px}
+.baa-theme-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.baa-theme-option{border:1px solid var(--baa-border);background:var(--baa-surface2);color:inherit;border-radius:18px;padding:16px;text-align:left;display:grid;grid-template-columns:36px 1fr;gap:2px 8px;transition:.25s}.baa-theme-option:hover{transform:translateY(-3px);border-color:var(--baa-accent)}.baa-theme-option>span{font-size:1.55rem;grid-row:span 2}.baa-theme-option small{color:var(--baa-muted);font-size:.72rem}.baa-mode-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:18px;padding-top:18px;border-top:1px solid var(--baa-border)}.baa-mode-row b{margin-right:auto}.baa-mode-row button{border:1px solid var(--baa-border);background:var(--baa-surface2);color:inherit;border-radius:999px;padding:9px 13px}
+.baa-xp-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:24px 0}.baa-stat{background:var(--baa-surface);border:1px solid var(--baa-border);border-radius:18px;padding:16px;box-shadow:0 12px 30px rgba(0,0,0,.08)}.baa-stat span{display:block;font-size:.72rem;color:var(--baa-muted);margin-bottom:5px}.baa-stat b{font-size:1.35rem}.baa-stat.xp b{color:var(--baa-gold)}.baa-stat.challenge b{color:var(--baa-accent)}
+.baa-arena-row{display:grid;grid-template-columns:1.35fr 1fr;gap:16px;margin-bottom:12px}.baa-home-card{background:linear-gradient(135deg,color-mix(in srgb,var(--baa-accent) 14%,var(--baa-surface)),var(--baa-surface));border:1px solid var(--baa-border);border-radius:22px;padding:20px}.baa-home-card h3{font-family:var(--display);font-size:1.25rem;margin-bottom:6px}.baa-home-card p{color:var(--baa-muted);font-size:.83rem;line-height:1.5;margin-bottom:14px}.baa-home-actions{display:flex;gap:8px;flex-wrap:wrap}.baa-mini-list{display:grid;gap:8px}.baa-mini-row{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--baa-border);font-size:.82rem}.baa-mini-row:last-child{border-bottom:0}.baa-mini-row small{color:var(--baa-muted)}
+.world-overlay.theme-challenge{background:var(--baa-bg);color:var(--baa-text)}.arena-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:24px 0}.arena-stats>div{background:var(--baa-surface);border:1px solid var(--baa-border);border-radius:18px;padding:16px}.arena-stats span{display:block;color:var(--baa-muted);font-size:.72rem;margin-bottom:6px}.arena-stats b{font-size:1.45rem}.arena-grid{display:grid;grid-template-columns:1.2fr 1fr;gap:16px}.arena-card{background:var(--baa-surface);border:1px solid var(--baa-border);border-radius:22px;padding:22px}.arena-card-head{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:10px}.arena-card-head h3{font-family:var(--display);font-size:1.3rem}.arena-card-head span{font-size:.7rem;color:var(--baa-accent2)}.arena-card p{color:var(--baa-muted);line-height:1.6;font-size:.88rem}.arena-form{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;margin-top:16px}.arena-form input,.arena-form select{background:var(--baa-surface2);border:1px solid var(--baa-border);color:var(--baa-text);border-radius:12px;padding:12px}.arena-note{display:block;color:var(--baa-muted);font-size:.7rem;margin-top:10px}.challenge-row{display:grid;grid-template-columns:1fr auto auto auto;gap:8px;align-items:center;padding:12px 0;border-bottom:1px solid var(--baa-border)}.challenge-row:last-child{border-bottom:0}.challenge-row small{display:block;color:var(--baa-muted);margin-top:3px}.challenge-row>strong{font-size:.7rem;text-transform:uppercase;color:var(--baa-accent2)}.challenge-row button{border:1px solid var(--baa-border);background:var(--baa-surface2);color:var(--baa-text);border-radius:9px;padding:7px 9px}.empty-arena{padding:20px 0;color:var(--baa-muted);font-size:.85rem}
+html[data-baa-theme="galaxy"] #stars,html[data-baa-theme="galaxy"] .aurora{display:block}html:not([data-baa-theme="galaxy"]) #stars{display:none}html:not([data-baa-theme="galaxy"]) .aurora{opacity:.45}
+html[data-baa-theme="duology"] .world-tile,html[data-baa-theme="duology"] .widget{border-radius:26px}html[data-baa-theme="duology"] .world-tile:hover{transform:translateY(-7px) rotate(-.25deg)}html[data-baa-theme="duology"] .hm-eyebrow{color:#ff6f91}
+@media(max-width:800px){.baa-theme-grid{grid-template-columns:repeat(2,1fr)}.baa-xp-strip,.arena-stats{grid-template-columns:repeat(2,1fr)}.baa-arena-row,.arena-grid{grid-template-columns:1fr}.arena-form{grid-template-columns:1fr}.tb-right .lbl{display:none}}
+@media(max-width:520px){.baa-theme-grid{grid-template-columns:1fr}.baa-theme-panel{padding:22px}.baa-xp-strip{grid-template-columns:1fr 1fr}.baa-stat{padding:12px}.challenge-row{grid-template-columns:1fr 1fr}.challenge-row>strong{grid-column:2}}
+</style>
+
 </head>
 <body>
 
@@ -875,10 +896,10 @@ async function sendMentorChat(overrideText){
       </div>
     </div>
     <div class="tb-right">
-      <div class="pill streak" title="Preview design — BAA does not track or reward login streaks as a measure of learning.">🔥 <span class="lbl">12 day streak</span><span class="preview-tag">preview</span></div>
-      <div class="pill xp" title="Preview design — this level is not derived from any real activity yet.">⚡ <span class="lbl">Level 7</span><span class="preview-tag">preview</span></div>
-      <div class="pill coin" title="Preview design — coin balance is not derived from any real activity yet.">🪙 <span class="lbl">1,240</span><span class="preview-tag">preview</span></div>
-      <div class="avatar-btn" id="avatarInitial">B</div>
+      <div class="pill xp" id="headerXp">⭐ <span class="lbl">0 XP</span></div>
+      <div class="pill xp" id="headerLevel">🏆 <span class="lbl">Level 1</span></div>
+      <div class="pill coin" id="headerChallenges">⚔️ <span class="lbl">0 challenges</span></div>
+      <button class="baa-theme-btn" onclick="BAATheme.openPicker()" aria-label="Choose BAA OS theme"><span data-baa-theme-label>⭐ Aurora</span> <span>⌄</span></button><div class="avatar-btn" id="avatarInitial">B</div>
     </div>
   </div>
 
@@ -892,6 +913,17 @@ async function sendMentorChat(overrideText){
         <button class="btn-primary-sm" onclick="openWorld('tutor')">Continue Learning →</button>
         <button class="btn-ghost-sm" onclick="openWorld('quiz')">Jump to Quiz Arena</button>
       </div>
+    </div>
+
+    <div class="baa-xp-strip" aria-label="Your BAA progress">
+      <div class="baa-stat xp"><span>⭐ XP Points</span><b id="homeXp">0</b></div>
+      <div class="baa-stat"><span>🏆 Level</span><b id="homeLevel">1</b></div>
+      <div class="baa-stat challenge"><span>⚔️ Challenges</span><b id="homeChallengeCount">0</b></div>
+      <div class="baa-stat"><span>🥇 Challenge Wins</span><b id="homeWins">0</b></div>
+    </div>
+    <div class="baa-arena-row">
+      <div class="baa-home-card"><h3>⚔️ Challenge Arena</h3><p>Challenge another student—even across grades. Quiz Battles use each student's own level and normalize results for a fair competition.</p><div class="baa-home-actions"><button class="btn-primary-sm" onclick="openWorld('challenge')">Open Arena →</button><button class="btn-ghost-sm" onclick="openWorld('challenge')">Challenge a Student</button></div></div>
+      <div class="baa-home-card"><h3>🏆 Leaderboard</h3><div class="baa-mini-list" id="homeLeaderboard"><div class="baa-mini-row"><span>Your current XP</span><b id="homeLeaderboardXp">0</b></div><div class="baa-mini-row"><span><small>Live ranking appears when the Challenge API is connected.</small></span></div></div></div>
     </div>
 
     <div class="section-label"><h2>Your Worlds</h2><span>Tap to step in</span></div>
@@ -921,6 +953,15 @@ async function sendMentorChat(overrideText){
           <h3>Quiz Arena</h3>
           <p>Live, loud, and a little theatrical.</p>
           <span class="t-arrow">Play →</span>
+        </div>
+      </div>
+      <div class="world-tile wt-trophy" role="button" tabindex="0" onclick="openWorld('challenge')">
+        <div class="t-bg"></div>
+        <div class="t-content">
+          <div class="t-icon">⚔️</div>
+          <h3>Challenge Arena</h3>
+          <p>Challenge any student, across grades, with fair normalized battles.</p>
+          <span class="t-arrow">Enter Arena →</span>
         </div>
       </div>
       <div class="world-tile wt-lab" role="button" tabindex="0" onclick="openWorld('lab')">
@@ -1544,6 +1585,17 @@ async function sendMentorChat(overrideText){
       </select>
       <div id="careerPlanDynamic" style="margin-top:14px;"></div>
     </div>
+  </div>
+</div>
+
+<!-- ============ WORLD: CHALLENGE ARENA (Module 51) ============ -->
+<div class="world-overlay theme-challenge" id="world-challenge">
+  <div class="world-close" role="button" tabindex="0" aria-label="Close" onclick="closeWorld('challenge')">✕</div>
+  <div class="world-inner">
+    <div class="world-eyebrow">Cross-grade • fair-play competition</div>
+    <h1 class="world-title">⚔️ Challenge <em>Arena</em></h1>
+    <p class="world-sub">A Class 5 student can challenge a Class 9 or Class 10 student. Each mode is designed so the competition measures effort and skill fairly rather than simply rewarding the older student.</p>
+    <div id="challengeArenaPanel"></div>
   </div>
 </div>
 
@@ -3187,6 +3239,25 @@ openWorld = function(name){
 };
 document.addEventListener('DOMContentLoaded', refreshLearningProfilePanels);
 
+/* ================= FINAL OS THEME + XP/CHALLENGE WIRING ================= */
+function refreshBAAHomeStats(){
+  try{
+    const s=window.BAARewards?.getState?.()||{xp:0};
+    const xp=Number(s.xp||0), level=Math.max(1,Math.floor(xp/500)+1), c=window.BAAChallenge?.counts?.()||{pending:0,active:0,completed:0}, p=window.BAAChallenge?.profile?.()||{wins:0};
+    [['homeXp',xp.toLocaleString()],['homeLevel',level],['homeChallengeCount',c.pending+c.active],['homeWins',p.wins],['homeLeaderboardXp',xp.toLocaleString()]].forEach(([id,v])=>{const e=document.getElementById(id);if(e)e.textContent=v});
+    const hx=document.querySelector('#headerXp .lbl');if(hx)hx.textContent=xp.toLocaleString()+' XP';const hl=document.querySelector('#headerLevel .lbl');if(hl)hl.textContent='Level '+level;const hc=document.querySelector('#headerChallenges .lbl');if(hc)hc.textContent=(c.pending+c.active)+' challenges';
+  }catch(_){ }
+}
+document.addEventListener('DOMContentLoaded',()=>setTimeout(refreshBAAHomeStats,50));
+const _baaOpenForChallenge=_origOpenWorld;
+/* Extend the existing openWorld wrapper without replacing its behavior. */
+const _baaCurrentOpenWorld=openWorld;
+openWorld=function(name){
+  _baaCurrentOpenWorld(name);
+  if(name==='challenge') setTimeout(()=>{BAAChallenge?.refresh?.();},40);
+  if(name==='profile'||name==='achievements') refreshBAAHomeStats();
+};
+
 /* ================= KEYBOARD ACTIVATION (F.1-A3) =================
    Existing interactive elements use onclick-driven divs for layout/
    styling reasons. This makes them keyboard-operable without changing
@@ -3232,6 +3303,8 @@ document.addEventListener('keydown', function(e){
   }
 });
 </script>
+<script src="js/baa-theme-engine.js"></script>
+<script src="js/baa-challenge.js"></script>
 <script src="js/image.js"></script>
 <script src="js/question-bank.js"></script>
 <script src="js/baa-assessment.js"></script>
