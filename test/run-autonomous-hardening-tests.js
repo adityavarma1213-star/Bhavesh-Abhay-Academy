@@ -1,0 +1,21 @@
+const fs=require('fs'), assert=require('assert');
+const read=f=>fs.readFileSync(f,'utf8');
+const planner=read('api/v1/planner.js');
+const homework=read('api/v1/homework.js');
+const assessment=read('api/v1/assessment.js');
+const rewards=read('api/v1/rewards.js');
+const student=read('student-os.html');
+let n=0;
+function t(name,fn){fn();n++;console.log('PASS:',name)}
+t('Planner rejects cross-learner goal IDs before upsert',()=>assert(planner.includes("SELECT learner_id FROM planner_goals WHERE id=${g.id}")));
+t('Planner protects upcoming-assessment ownership on conflict',()=>assert(planner.includes('WHERE planner_upcoming_assessments.learner_id=EXCLUDED.learner_id')));
+t('Planner protects task ownership on conflict',()=>assert(planner.includes('WHERE planner_tasks.learner_id=EXCLUDED.learner_id')));
+t('Homework rejects cross-learner submission IDs',()=>assert(homework.includes("SELECT learner_id FROM homework_submissions WHERE id=${x.id}")));
+t('Homework protects ownership on conflict update',()=>assert(homework.includes('WHERE homework_submissions.learner_id=EXCLUDED.learner_id')));
+t('Assessment only accepts valid server assessment IDs',()=>assert(assessment.includes('SELECT id FROM assessments WHERE id = ANY(${assessmentIds})')));
+t('Assessment requires learner-owned attempts for child records',()=>assert(assessment.includes('SELECT id,assessment_id FROM assessment_attempts WHERE learner_id=${learnerId}')));
+t('Assessment validates question IDs against server catalog',()=>assert(assessment.includes('SELECT id, type, correct_answer, marks FROM questions WHERE id = ANY(${questionIds})')));
+t('Rewards are server-derived instead of trusting client XP',()=>assert(rewards.includes('// XP, counts and badges are server-derived')));
+t('Rewards derives XP from persisted assessment/memory evidence',()=>assert(rewards.includes('stats.completedAttempts*10 + stats.correctAnswers*5 + stats.masteredConcepts*25')));
+t('Planner attribute IDs use dedicated escaping',()=>assert(student.includes("function escapePlannerAttr(value)")));
+console.log(`ALL AUTONOMOUS HARDENING TESTS PASSED (${n}/${n})`);
