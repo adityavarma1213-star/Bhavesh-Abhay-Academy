@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>BAA OS — Parent View (Section D)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --void:#0B0F2E; --cosmos:#141B4D; --cosmos-2:#1B2460;
+  --violet:#7C5CFC; --cyan:#4CD9E8; --gold:#F5B942;
+  --warmwhite:#FDF9F0; --dim:rgba(253,249,240,0.62); --faint:rgba(253,249,240,0.34);
+  --rose:#E8608F; --emerald:#34D399;
+  --display:'Fraunces',serif; --body:'Inter',sans-serif; --mono:'JetBrains Mono',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--void);color:var(--warmwhite);font-family:var(--body);min-height:100vh;}
+a{color:inherit;text-decoration:none;}
+button{font-family:inherit;cursor:pointer;}
+
+.topbar{position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:16px 5vw;background:rgba(11,15,46,.9);backdrop-filter:blur(16px);border-bottom:1px solid rgba(253,249,240,0.08);}
+.tb-logo{font-family:var(--display);font-weight:600;font-size:1.05rem;}
+.tb-back{font-size:.82rem;color:var(--dim);border:1px solid rgba(253,249,240,0.14);padding:7px 14px;border-radius:100px;}
+.tb-back:hover{color:var(--warmwhite);border-color:rgba(253,249,240,0.3);}
+
+.wrap{max-width:920px;margin:0 auto;padding:30px 5vw 90px;}
+.eyebrow{font-size:.7rem;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);margin-bottom:10px;}
+h1{font-family:var(--display);font-weight:500;font-size:clamp(1.5rem,4vw,2.1rem);margin-bottom:10px;}
+.sub{color:var(--dim);font-size:.9rem;line-height:1.6;max-width:70ch;margin-bottom:6px;}
+
+.scope-banner{display:flex;gap:12px;background:rgba(245,185,66,0.07);border:1px solid rgba(245,185,66,0.25);border-radius:14px;padding:13px 16px;margin:18px 0 26px;font-size:.8rem;color:var(--dim);line-height:1.55;}
+.scope-banner b{color:var(--warmwhite);}
+.single-student-tag{display:inline-flex;align-items:center;gap:6px;font-size:.68rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:rgba(124,92,252,0.14);color:#c9bdff;padding:5px 12px;border-radius:100px;margin-bottom:16px;}
+
+h2.section-h{font-family:var(--display);font-weight:500;font-size:1.2rem;margin:32px 0 14px;}
+.card{background:rgba(253,249,240,0.035);border:1px solid rgba(253,249,240,0.08);border-radius:18px;padding:22px 24px;margin-bottom:14px;}
+.empty-note{text-align:center;padding:40px 20px;color:var(--faint);font-size:.87rem;line-height:1.6;}
+
+.progress-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-bottom:8px;}
+.pstat{text-align:center;background:rgba(253,249,240,0.03);border-radius:14px;padding:14px 8px;}
+.pstat b{display:block;font-family:var(--display);font-size:1.5rem;font-weight:500;}
+.pstat span{font-size:.7rem;color:var(--faint);text-transform:uppercase;letter-spacing:.05em;}
+
+.concept-row{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;padding:14px 0;border-bottom:1px solid rgba(253,249,240,0.06);}
+.concept-row:last-child{border-bottom:none;}
+.concept-row .cr-icon{font-size:1.1rem;}
+.concept-row .cr-main{flex:1;}
+.concept-row h4{font-size:.92rem;font-weight:600;text-transform:capitalize;}
+.concept-row p{font-size:.8rem;color:var(--dim);margin-top:3px;line-height:1.5;}
+.trend-badge{font-size:.68rem;padding:3px 9px;border-radius:100px;white-space:nowrap;}
+.trend-improving{background:rgba(52,211,153,0.14);color:var(--emerald);}
+.trend-declining{background:rgba(232,96,143,0.14);color:var(--rose);}
+.trend-stable{background:rgba(253,249,240,0.08);color:var(--dim);}
+
+.suggestion-card{background:rgba(76,217,232,0.05);border:1px solid rgba(76,217,232,0.2);border-radius:16px;padding:16px 18px;margin-bottom:10px;}
+.suggestion-card .sc-try{font-family:var(--display);font-style:italic;color:var(--cyan);margin-top:6px;font-size:.9rem;}
+
+.attempt-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid rgba(253,249,240,0.06);font-size:.85rem;}
+.attempt-row:last-child{border-bottom:none;}
+.attempt-row .a-pct{font-family:var(--mono);font-weight:700;}
+
+.plan-mini{display:flex;justify-content:space-between;align-items:center;background:rgba(253,249,240,0.03);border-radius:14px;padding:14px 18px;}
+.plan-mini b{font-family:var(--display);font-size:1.3rem;font-weight:500;}
+</style>
+
+<style id="baa-gap-wiring-style">
+.baa-gap-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}.baa-gap-card{background:rgba(253,249,240,.025);border:1px solid rgba(253,249,240,.08);border-radius:16px;padding:16px}.baa-gap-card h3{font-size:.92rem;margin-bottom:8px}.baa-gap-card small{display:block;color:rgba(253,249,240,.45);line-height:1.45;margin-top:8px}.baa-gap-card .baa-ui-inline-field{display:block;margin:7px 0;font-size:.72rem;color:rgba(253,249,240,.62)}.baa-gap-card input,.baa-gap-card select,.baa-gap-card textarea{width:100%;margin-top:4px;background:rgba(253,249,240,.04);border:1px solid rgba(253,249,240,.12);border-radius:9px;padding:8px;color:inherit}.baa-gap-card textarea{resize:vertical}.baa-gap-card .baa-mini{margin:5px 5px 5px 0}.baa-ui-output{white-space:pre-wrap;overflow:auto;max-height:260px;margin-top:8px;padding:10px;background:rgba(0,0,0,.18);border-radius:9px;font:11px/1.45 var(--mono,monospace);color:rgba(253,249,240,.82)}#baa-ui-reachability{margin-top:28px}
+</style>
+<style>
+.gate-card,.forecast-card{background:rgba(253,249,240,.035);border:1px solid rgba(253,249,240,.1);border-radius:18px;padding:18px;margin:14px 0}.gate-card.gate-locked{border-color:rgba(232,96,143,.5);background:rgba(232,96,143,.06)}.gate-head,.forecast-head,.forecast-row{display:flex;justify-content:space-between;gap:12px;align-items:center}.gate-kicker{font-size:.64rem;letter-spacing:.15em;color:var(--faint);font-weight:700}.gate-head h3,.forecast-head h3{font-family:var(--display);margin-top:4px}.gate-copy,.gate-empty{font-size:.8rem;color:var(--dim);line-height:1.55}.gate-findings{display:grid;gap:7px;margin-top:10px}.gate-finding{display:flex;gap:8px;padding:9px;border-radius:11px}.gate-finding.red{background:rgba(232,96,143,.06);border:1px solid rgba(232,96,143,.25)}.gate-finding.green{background:rgba(52,211,153,.05);border:1px solid rgba(52,211,153,.22)}.gate-finding small{display:block;color:var(--faint);margin-top:2px}.gate-badge,.forecast-pill{font-size:.64rem;padding:4px 8px;border-radius:999px}.gate-badge.red,.forecast-pill.urgent{background:rgba(232,96,143,.14);color:#ffd5df}.gate-badge.green,.forecast-pill.good{background:rgba(52,211,153,.12);color:#b7f7db}.gate-badge.open,.forecast-pill.caution{background:rgba(245,185,66,.12);color:#ffe8a8}.forecast-row{padding:10px 0;border-top:1px solid rgba(253,249,240,.06)}.forecast-row small{display:block;color:var(--faint);margin-top:3px}.forecast-warning{font-size:.75rem;line-height:1.45;padding:8px 10px;border-radius:10px;margin:5px 0 8px}.forecast-warning.urgent{background:rgba(232,96,143,.07);color:#ffd5df}.forecast-warning.caution{background:rgba(245,185,66,.07);color:#ffe8a8}.bypass-form{display:grid;gap:9px;margin-top:12px}.bypass-form input,.bypass-form textarea,.bypass-form select{width:100%;background:rgba(253,249,240,.04);color:inherit;border:1px solid rgba(253,249,240,.14);border-radius:10px;padding:10px}.bypass-form textarea{min-height:85px;resize:vertical}.bypass-status{font-size:.76rem;color:var(--dim);min-height:18px}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="tb-logo">BAA OS <span style="color:var(--gold);">·</span> Parent View</div>
+  <a class="tb-back" href="student-os.html">← Student OS</a>
+</div>
+
+<div class="wrap">
+  <div class="eyebrow">Section D — Parent OS</div>
+  <div class="single-student-tag">🧪 Single-Student Private Testing</div>
+  <h1>How <span id="studentNameHeading">your child</span> is doing</h1>
+  <p class="sub">Everything here is read directly from real BAA Assessment, Learning Memory, Learning Intelligence, and Planner data on this device — nothing here is invented or estimated.</p>
+
+  <div class="scope-banner">
+    <span>🔒</span>
+    <div><b>What this is, honestly:</b> this is one student's real learning data on this browser, during private testing. There are no other students, no class averages, and no comparisons to anyone else — those don't exist in this build and never will be faked to look like they do.</div>
+  </div>
+
+  <div id="serverLearnerView" aria-live="polite"></div>
+
+  <div id="content">Loading…</div>
+</div>
+
+<script src="js/question-bank.js"></script>
+<script src="js/baa-assessment.js"></script>
+<script src="js/baa-intelligence.js"></script>
+<script src="js/baa-planner.js"></script>
+<script src="js/baa-guardian.js"></script>
+<script src="js/baa-prediction.js"></script>
+<script src="js/baa-parent-approval.js"></script>
+<script src="js/baa-server-learner-view.js"></script>
+<script src="js/baa-progression-gate.js"></script>
+<script>
+function esc(s){ const d=document.createElement('div'); d.textContent = String(s ?? ''); return d.innerHTML; }
+function fmtDate(iso){ try{ return new Date(iso).toLocaleDateString(undefined,{month:'short',day:'numeric'}); }catch{ return ''; } }
+const TREND_LABEL = { improving:'Improving', declining:'Needs attention', stable:'Steady', insufficient_evidence:'Too early to tell' };
+const TREND_CLASS = { improving:'trend-improving', declining:'trend-declining', stable:'trend-stable', insufficient_evidence:'trend-stable' };
+
+// A short, honest, plain-language "try asking" suggestion built from the SAME
+// real fields the Mistake Archeology / Learning Intelligence tabs use — this
+// is generated phrasing around real data, never a fabricated stat.
+function homeSupportSuggestion(weak){
+  const topic = weak.conceptLabel;
+  return `Try asking: "Can you show me how you solved one ${topic} question today?" Listening to them explain it out loud often reveals more than a right/wrong answer does.`;
+}
+
+function findPracticeLink(concept){
+  if (typeof BAAAssessmentCatalog === 'undefined') return null;
+  for (const a of BAAAssessmentCatalog){
+    if (a.questionIds.some(qid => { const q = BAAGetQuestion(qid); return q && q.concept === concept; })) {
+      return `assessment.html?start=${encodeURIComponent(a.id)}`;
+    }
+  }
+  return null;
+}
+
+function render(){
+  const name = BAAAssessment.getStudentName();
+  document.getElementById('studentNameHeading').textContent = name;
+
+  const summary = BAAIntelligence.getLearningSummary();
+  const attempts = BAAAssessment.getAttemptHistory().slice(0, 5);
+  const plan = BAAPlanner.getDailyPlan();
+  const c = document.getElementById('content');
+
+  if (!summary.hasAnyEvidence){
+    c.innerHTML = `<div class="card"><div class="empty-note">${esc(name)} hasn't completed any BAA assessments yet on this device — as soon as they do, real progress, strengths, and suggestions will appear here. Nothing is shown early or guessed at.</div></div>`;
+    return;
+  }
+
+  const total = summary.mastered.length + summary.strong.length + summary.learning.length
+    + summary.needsRevision.length + summary.struggling.length + summary.insufficientEvidence.length;
+
+  let html = '';
+
+  // ---- Progress overview ----
+  html += `<h2 class="section-h">📊 Progress overview</h2><div class="card"><div class="progress-strip">`
+    + `<div class="pstat"><b>${summary.mastered.length + summary.strong.length}</b><span>Strong</span></div>`
+    + `<div class="pstat"><b>${summary.learning.length}</b><span>Learning</span></div>`
+    + `<div class="pstat"><b>${summary.needsRevision.length + summary.struggling.length}</b><span>Needs Attention</span></div>`
+    + `<div class="pstat"><b>${total}</b><span>Concepts Tracked</span></div>`
+    + `</div></div>`;
+
+  // ---- Strengths ----
+  html += `<h2 class="section-h">🟢 Strengths</h2><div class="card">`;
+  const strengths = [...summary.mastered, ...summary.strong];
+  if (strengths.length === 0){
+    html += `<div class="empty-note">No concept has enough evidence to call a strength yet — this needs at least a few assessments on the same topic.</div>`;
+  } else {
+    for (const s of strengths){
+      html += `<div class="concept-row"><span class="cr-icon">${s.stateIcon}</span><div class="cr-main"><h4>${esc(s.conceptLabel)}</h4><p>${esc(s.why)}</p></div><span class="trend-badge ${TREND_CLASS[s.trend]}">${TREND_LABEL[s.trend]}</span></div>`;
+    }
+  }
+  html += `</div>`;
+
+  // ---- Areas needing attention + home-support suggestions ----
+  html += `<h2 class="section-h">🟠 Areas needing attention</h2>`;
+  const weak = [...summary.struggling, ...summary.needsRevision];
+  if (weak.length === 0){
+    html += `<div class="card"><div class="empty-note">Nothing flagged right now — that's a genuinely good sign, not a placeholder.</div></div>`;
+  } else {
+    for (const w of weak){
+      const link = findPracticeLink(w.concept);
+      html += `<div class="suggestion-card"><div class="concept-row" style="border:none;padding:0 0 8px;"><span class="cr-icon">${w.stateIcon}</span><div class="cr-main"><h4>${esc(w.conceptLabel)}</h4><p>${esc(w.why)}</p></div>`
+        + `<span class="trend-badge ${TREND_CLASS[w.trend]}">${TREND_LABEL[w.trend]}</span></div>`
+        + `<div class="sc-try">💬 ${esc(homeSupportSuggestion(w))}</div>`
+        + (link ? `<a href="${link}" style="font-size:.78rem;color:var(--cyan);display:inline-block;margin-top:8px;">Open a matching practice assessment →</a>` : '')
+        + `</div>`;
+    }
+  }
+
+  // ---- Recurring mistake patterns (Mistake Archeology, parent-friendly framing) ----
+  const mistakes = BAAIntelligence.getMistakeIntelligence().filter(m => m.status === 'possible_misconception');
+  if (mistakes.length){
+    html += `<h2 class="section-h">🧩 Patterns worth a closer look</h2><div class="card">`;
+    for (const m of mistakes){
+      html += `<div class="concept-row"><div class="cr-main"><h4>${esc(m.conceptLabel)}</h4><p>A "${esc(m.errorLabel)}" pattern has shown up ${m.occurrences.length} times in ${esc(m.conceptLabel)}. ${m.improving === 'improving' ? "It hasn't come up recently — looking better." : m.improving === 'not_improving' ? "It's still showing up in recent work." : ''}</p></div></div>`;
+    }
+    html += `</div>`;
+  }
+
+  // ---- Assessment results ----
+  html += `<h2 class="section-h">📝 Recent assessment results</h2><div class="card">`;
+  if (attempts.length === 0){
+    html += `<div class="empty-note">No completed assessments yet.</div>`;
+  } else {
+    for (const a of attempts){
+      const s = BAAAssessment.summarizeAttempt(a);
+      html += `<div class="attempt-row"><span>${esc(a.assessmentTitle || 'Assessment')} <span style="color:var(--faint);">· ${fmtDate(a.startTime)}</span></span><span class="a-pct">${s.percentage !== null ? s.percentage + '%' : '—'}</span></div>`;
+    }
+  }
+  html += `</div>`;
+
+  // ---- Parent Approval Mode ----
+  if(typeof BAAParentApproval!=='undefined'){
+    const policy=BAAParentApproval.getPolicy();
+    html += `<h2 class="section-h">🛡️ Parent Approval Mode</h2><div class="card">
+      <p class="subline">These controls govern AI access and planner limits on this private testing device.</p>
+      <label class="subline"><input id="paTutor" type="checkbox" ${policy.aiTutorEnabled?'checked':''}> Allow AI Tutor</label><br>
+      <label class="subline"><input id="paMentor" type="checkbox" ${policy.aiMentorEnabled?'checked':''}> Allow AI Mentor</label><br>
+      <label class="subline"><input id="paPlanner" type="checkbox" ${policy.plannerEnabled?'checked':''}> Allow AI Planner</label><br>
+      <label class="subline">Maximum daily study minutes <input id="paMinutes" type="number" min="15" max="180" value="${policy.maxDailyStudyMinutes}"></label>
+      <button id="paSave" class="task-btn primary" type="button" style="margin-top:10px;">Save parent controls</button>
+      <div id="paStatus" class="subline" aria-live="polite"></div>
+    </div>`;
+  }
+
+  // ---- Academic profile / forecast / Guardian ----
+  const profile = typeof BAAAssessment.getAcademicProfile === 'function' ? BAAAssessment.getAcademicProfile() : null;
+  if(profile){
+    html += `<h2 class="section-h">🧠 Academic profile</h2><div class="card">`;
+    html += `<p class="subline"><b>Strengths:</b> ${profile.strengths.length ? profile.strengths.slice(0,5).map(x=>esc(x.concept.replace(/-/g,' '))).join(', ') : 'Not enough evidence yet.'}</p>`;
+    html += `<p class="subline"><b>Areas to improve:</b> ${profile.weaknesses.length ? profile.weaknesses.slice(0,5).map(x=>esc(x.concept.replace(/-/g,' '))).join(', ') : 'None currently evidence-flagged.'}</p>`;
+    html += `<p class="subline"><b>Academic activity:</b> ${profile.habits.assessmentsCompleted || 0} assessments · ${profile.habits.activeLearningDays || 0} active learning days.</p>`;
+    html += `</div>`;
+  }
+
+  if(typeof BAAPrediction !== 'undefined'){
+    const forecast=BAAPrediction.getPredictionSummary();
+    html += `<h2 class="section-h">🔮 Academic forecast</h2><div class="card">`;
+    html += forecast.status==='forecast'
+      ? `<p class="subline"><b>Readiness estimate:</b> ${forecast.readiness}/100 · <b>trajectory:</b> ${esc(forecast.gradeTrajectory.direction)} · <b>confidence:</b> ${esc(forecast.confidence)}.</p><p class="subline">${esc(forecast.milestone)}</p>`
+      : `<div class="empty-note">${esc(forecast.message || 'More evidence is needed before a forecast can be shown.')}</div>`;
+    html += `</div>`;
+  }
+
+  if(typeof BAAGuardian !== 'undefined'){
+    const guardian=BAAGuardian.getSummary();
+    html += `<h2 class="section-h">🛡️ Academic support signals</h2><div class="card">`;
+    html += guardian.alertCount
+      ? guardian.alerts.map(a=>`<p class="subline"><b>${esc(a.severity.toUpperCase())}:</b> ${esc(a.title)} — ${esc(a.reason)}</p>`).join('')
+      : `<div class="empty-note">No defined academic support alert is currently active. This is not a guarantee that everything is perfect; it means no configured threshold is currently met.</div>`;
+    html += `<p class="subline" style="margin-top:10px;color:var(--faint);">BAA does not infer mental health, personality, or family conditions from this dashboard.</p>`;
+    html += `</div>`;
+  }
+
+  // ---- Planner summary ----
+  html += `<h2 class="section-h">🗓️ Today's plan</h2><div class="card">`;
+  if (!plan.hasAnyEvidence || plan.tasks.length === 0){
+    html += `<div class="empty-note">No plan generated yet — this fills in once there's assessment evidence to plan around.</div>`;
+  } else {
+    html += `<div class="plan-mini"><span>${plan.tasks.filter(t=>t.status==='pending').length} task(s) planned today</span><b>${plan.minutesPlanned} min</b></div>`;
+    html += `<div style="margin-top:10px;">`;
+    for (const t of plan.tasks.slice(0,5)){
+      html += `<div class="concept-row"><div class="cr-main"><h4 style="text-transform:none;">${esc(t.title)}</h4><p>${esc((t.reasons||[]).join(' '))}</p></div><span class="trend-badge trend-stable">${esc(t.status)}</span></div>`;
+    }
+    html += `</div>`;
+  }
+  html += `</div>`;
+
+  c.innerHTML = html;
+}
+
+render();
+if(typeof BAAServerLearnerView!=='undefined') BAAServerLearnerView.init({mountId:'serverLearnerView'});
+
+// Mastery Gate + Parent-authorized bypass + exam forecast. This is server-backed
+// for authenticated parent accounts and never substitutes local data.
+(async function initMasteryGateParent(){
+  const mount=document.getElementById('content'); if(!mount)return;
+  const section=document.createElement('section'); section.className='card'; section.innerHTML=`<h2 class="section-h" style="margin-top:0;">🛡️ Mastery Gate & Parent Bypass</h2><p class="subline">If a chapter is locked by unresolved red findings, a parent may authorize a specific chapter bypass by re-entering the parent password and recording the reason. The bypass is audited and the next assessment re-checks the chapter.</p><div class="bypass-form"><select id="gateLearnerSelect"><option value="">Select learner</option></select><select id="gateChapterSelect"><option value="">Select chapter</option></select><input id="gatePassword" type="password" autocomplete="current-password" placeholder="Parent account password"><textarea id="gateReason" maxlength="500" placeholder="Reason for bypass (minimum 10 characters)"></textarea><button id="gateBypassBtn" class="btn btn-gold" type="button">Authorize chapter bypass</button><div id="gateBypassStatus" class="bypass-status" aria-live="polite"></div></div><div id="parentForecastPanel" class="forecast-card"><div class="gate-empty">Loading exam forecast…</div></div>`;
+  mount.appendChild(section);
+  try{
+    const learners=await BAAServerLearnerView.getLearners(); const ls=document.getElementById('gateLearnerSelect');
+    learners.forEach(l=>{const o=document.createElement('option');o.value=l.id;o.textContent=l.display_name+' · '+l.relationship;ls.appendChild(o);});
+    const chapters=[...new Map((window.BAAAssessmentCatalog||[]).map(a=>[`${a.subject}::${a.chapter}`,a])).values()];
+    const cs=document.getElementById('gateChapterSelect'); chapters.forEach(a=>{const o=document.createElement('option');o.value=`${a.subject}||${a.chapter}`;o.textContent=`${a.subject} · ${a.chapter}`;cs.appendChild(o);});
+    async function refreshForecast(id){
+      if(!id){document.getElementById('parentForecastPanel').innerHTML='<div class="gate-empty">Select a learner to view the authenticated exam forecast.</div>';return;}
+      const r=await fetch(`/api/v1/academic-forecast?learnerId=${encodeURIComponent(id)}`,{credentials:'include'});const p=await r.json();
+      if(!r.ok){document.getElementById('parentForecastPanel').innerHTML='<div class="gate-empty">Forecast unavailable.</div>';return;}
+      document.getElementById('parentForecastPanel').innerHTML=`<div class="forecast-head"><div><div class="gate-kicker">ACADEMIC FORECAST</div><h3>🔮 Exam warnings</h3></div><b>${p.overallPercentage==null?'—':p.overallPercentage+'%'}</b></div>${p.exams?.length?p.exams.map(e=>{const f=e.forecast;const cls=f.warningLevel==='urgent'?'urgent':f.warningLevel?.includes('caution')?'caution':'good';return `<div class="forecast-row"><div><b>${esc(e.title)}</b><small>${esc(e.subject||'')} ${e.chapter?'· '+esc(e.chapter):''} · ${e.daysUntil} day${e.daysUntil===1?'':'s'} away</small></div><span class="forecast-pill ${cls}">${f.status==='forecast'?`${f.predictedPercentage}% (${f.range.low}–${f.range.high}%)`:'Need more evidence'}</span></div>`}).join(''):'<div class="gate-empty">No linked upcoming exams yet.</div>'}`;
+    }
+    ls.addEventListener('change',()=>refreshForecast(ls.value));
+    document.getElementById('gateBypassBtn').addEventListener('click',async()=>{
+      const [subject,chapter]=(document.getElementById('gateChapterSelect').value||'').split('||'); const learnerId=ls.value; const password=document.getElementById('gatePassword').value; const reason=document.getElementById('gateReason').value.trim(); const status=document.getElementById('gateBypassStatus');
+      if(!learnerId||!subject||!chapter){status.textContent='Select a learner and chapter first.';return;}
+      status.textContent='Verifying parent authorization…';
+      const r=await fetch(`/api/v1/progression-gate?learnerId=${encodeURIComponent(learnerId)}&subject=${encodeURIComponent(subject)}&chapter=${encodeURIComponent(chapter)}`,{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({password,reason,subject,chapter})});
+      const p=await r.json().catch(()=>({})); status.textContent=r.ok?'✅ Bypass authorized and recorded. The next chapter assessment will re-check the gate.':(p.error?.message||'Bypass could not be authorized.');
+      if(r.ok){document.getElementById('gatePassword').value='';document.getElementById('gateReason').value='';}
+    });
+    if(learners[0]){ls.value=learners[0].id;await refreshForecast(learners[0].id);}
+  }catch(e){document.getElementById('parentForecastPanel').innerHTML='<div class="gate-empty">Sign in with an authenticated parent account to use this control.</div>';}
+})();
+</script>
+<script src="js/baa-language.js"></script>
+<script src="js/baa-voice.js"></script>
+<script src="js/baa-school.js"></script>
+<script src="js/baa-community.js"></script>
+<script src="js/baa-insights.js"></script>
+<script src="js/baa-explainability.js"></script>
+<script src="js/baa-appeals.js"></script>
+<script src="js/baa-curriculum.js"></script>
+<script src="js/baa-pedagogy.js"></script>
+<script src="js/baa-mistakes.js"></script>
+<script src="js/baa-outcomes.js"></script>
+<script src="js/baa-cognitive-safety.js"></script>
+<script src="js/baa-fresh-start.js"></script>
+<script src="js/baa-adaptive-pacing.js"></script>
+<script src="js/baa-parent-conversation.js"></script>
+<script src="js/baa-teacher-diagnostic.js"></script>
+<script src="js/baa-governance.js"></script>
+<script src="js/baa-purpose-design.js"></script>
+<script src="js/baa-founder-lab.js"></script>
+<script src="js/baa-ai-council.js"></script>
+<script src="js/baa-low-bandwidth.js"></script>
+<script src="js/baa-anti-cheating.js"></script>
+<script src="js/baa-scholarships.js"></script>
+<script src="js/baa-career-prep.js"></script>
+<script src="js/baa-mentors.js"></script>
+<script src="js/baa-erp.js"></script>
+<script src="js/baa-institution.js"></script>
+<script src="js/baa-global-collab.js"></script>
+<script src="js/baa-olympiad.js"></script>
+<script src="js/baa-plugins.js"></script>
+<script src="js/baa-ui-wiring-final.js"></script>
+</body>
+</html>

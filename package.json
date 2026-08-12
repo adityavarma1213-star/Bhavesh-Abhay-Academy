@@ -1,0 +1,18 @@
+{
+  "name": "baa-os-ai-tutor-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "BAA OS production-ready backend boundary for authentication, authorization, PostgreSQL persistence, audit and compliance foundations.",
+  "scripts": {
+    "dev": "vercel dev",
+    "db:migrate": "node scripts/apply-migrations.mjs",
+    "db:export": "node scripts/export-backup.mjs",
+    "test:g4g5g6": "node test/g4g5g6/run-tests.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@vercel/postgres": "latest"
+  }
+}
