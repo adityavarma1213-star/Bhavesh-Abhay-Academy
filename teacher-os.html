@@ -85,6 +85,7 @@ h2.section-h a.mini-link{font-size:.75rem;font-weight:400;color:var(--cyan);}
 <style id="baa-gap-wiring-style">
 .baa-gap-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}.baa-gap-card{background:rgba(253,249,240,.025);border:1px solid rgba(253,249,240,.08);border-radius:16px;padding:16px}.baa-gap-card h3{font-size:.92rem;margin-bottom:8px}.baa-gap-card small{display:block;color:rgba(253,249,240,.45);line-height:1.45;margin-top:8px}.baa-gap-card .baa-ui-inline-field{display:block;margin:7px 0;font-size:.72rem;color:rgba(253,249,240,.62)}.baa-gap-card input,.baa-gap-card select,.baa-gap-card textarea{width:100%;margin-top:4px;background:rgba(253,249,240,.04);border:1px solid rgba(253,249,240,.12);border-radius:9px;padding:8px;color:inherit}.baa-gap-card textarea{resize:vertical}.baa-gap-card .baa-mini{margin:5px 5px 5px 0}.baa-ui-output{white-space:pre-wrap;overflow:auto;max-height:260px;margin-top:8px;padding:10px;background:rgba(0,0,0,.18);border-radius:9px;font:11px/1.45 var(--mono,monospace);color:rgba(253,249,240,.82)}#baa-ui-reachability{margin-top:28px}
 </style>
+<link rel="stylesheet" href="css/baa-themes.css">
 </head>
 <body>
 
@@ -115,6 +116,7 @@ h2.section-h a.mini-link{font-size:.75rem;font-weight:400;color:var(--cyan);}
 <script src="js/baa-teacher-analytics.js"></script>
 <script src="js/baa-notes-generator.js"></script>
 <script src="js/baa-intelligence.js"></script>
+<script src="js/baa-offline-sync.js"></script>
 <script src="js/baa-planner.js"></script>
 <script src="js/baa-server-learner-view.js"></script>
 <script>
@@ -200,16 +202,6 @@ function render(){
     }
   }
   html += `</div>`;
-
-  // ---- Teacher Analytics (Module 17) ----
-  if(typeof BAATeacherAnalytics!=='undefined'){
-    const analytics=BAATeacherAnalytics.getCurrentTeacherAnalytics();
-    html += `<h2 class="section-h">📊 Teacher analytics</h2><div class="card">`;
-    html += analytics.concepts.length
-      ? analytics.concepts.map(c=>`<div class="attempt-row"><span><b>${esc(c.concept.replace(/-/g,' '))}</b><br><small>${esc(c.subject||'Unknown')} · ${c.correct}/${c.total} correct</small></span><span class="a-pct">${c.accuracy===null?'—':c.accuracy+'%'}</span></div>`).join('')
-      : `<div class="empty-note">No concept-level evidence exists yet.</div>`;
-    html += `<div class="empty-note">Current scope: single-student private testing. Class-wide heatmaps require real multi-student records; none are fabricated here.</div></div>`;
-  }
 
   // ---- Teacher Recommendation System (Module 16) ----
   if(typeof BAATeacherRecommendation!=='undefined'){
@@ -340,5 +332,25 @@ if(generateBtn) generateBtn.addEventListener('click',generateNoteDraft);
 <script src="js/baa-olympiad.js"></script>
 <script src="js/baa-plugins.js"></script>
 <script src="js/baa-ui-wiring-final.js"></script>
+<script>
+// M17 production class-wide analytics: server is authoritative; local single-student
+// analytics remains available below as a private fallback when no class is configured.
+(async function initServerClassAnalytics(){
+  const mount=document.createElement('div'); mount.id='serverClassAnalytics'; mount.className='wrap'; mount.style.paddingTop='0';
+  mount.innerHTML='<h2 class="section-h">📊 Class-wide learning intelligence</h2><div class="card"><div class="empty-note">Loading authenticated class data…</div></div>';
+  const content=document.getElementById('content'); if(content&&content.parentNode) content.parentNode.insertBefore(mount,content.nextSibling); else document.body.appendChild(mount);
+  try{
+    const r=await fetch('/api/v1/class-analytics',{credentials:'include'}); if(!r.ok) throw new Error('AUTH'); const p=await r.json();
+    const classes=Array.isArray(p.classes)?p.classes:[];
+    if(!classes.length){mount.querySelector('.card').innerHTML='<div class="empty-note">No authenticated classes are configured yet. Create a class and add teacher-linked learners to unlock real multi-student analytics. Nothing is fabricated.</div>';return;}
+    const select=document.createElement('select'); select.id='baaClassAnalyticsSelect'; select.style.cssText='margin:0 0 12px;padding:8px 10px;border-radius:10px;background:rgba(253,249,240,.06);color:inherit;border:1px solid rgba(253,249,240,.16);';
+    select.innerHTML=classes.map(c=>`<option value="${String(c.id).replace(/"/g,'&quot;')}">${String(c.name).replace(/</g,'&lt;')}</option>`).join('');
+    mount.querySelector('.card').replaceChildren(select,document.createElement('div')); const panel=mount.querySelector('.card').lastElementChild;
+    async function loadClass(id){panel.innerHTML='<div class="empty-note">Loading class evidence…</div>';const rr=await fetch('/api/v1/class-analytics?classId='+encodeURIComponent(id),{credentials:'include'});const x=await rr.json();if(!rr.ok)throw new Error(x.error?.message||'Class analytics unavailable');const a=x.snapshot||{};const sum=a.summary||{};panel.innerHTML=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:14px;"><div class="pstat"><b>${sum.learners||0}</b><span>Learners</span></div><div class="pstat"><b>${sum.evidence||0}</b><span>Evidence rows</span></div><div class="pstat"><b>${sum.accuracy==null?'—':sum.accuracy+'%'}</b><span>Class accuracy</span></div></div>`+(a.concepts?.length?a.concepts.map(c=>`<div class="attempt-row"><span><b>${String(c.concept||'Unknown').replace(/</g,'&lt;')}</b><br><small>${String(c.subject||'')} · ${c.correct}/${c.total} correct · ${c.learners} learner(s)</small></span><span class="a-pct">${c.accuracy==null?'—':c.accuracy+'%'}</span></div>`).join(''):'<div class="empty-note">No server-backed assessment evidence exists for this class yet.</div>');}
+    select.addEventListener('change',()=>loadClass(select.value)); await loadClass(select.value);
+  }catch(e){mount.querySelector('.card').innerHTML='<div class="empty-note">Sign in as a teacher and configure a server-backed class to use M17 class-wide analytics. The page will not substitute browser-local data as class data.</div>';}
+})();
+</script>
+<script src="js/baa-themes.js"></script>
 </body>
 </html>

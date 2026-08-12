@@ -19,4 +19,4 @@ The BAA Student OS now exposes a Theme selector in the top-right of the home scr
 The selected theme and display mode are stored locally under `baa.theme.preferences.v1` so the preference survives reloads on the same browser/device.
 
 ## Safety
-The former always-on legacy visual shell has been removed from the final UI. Galaxy remains as a deliberate selectable theme, while all learning modules and shared application logic are preserved.
+The existing Galaxy/space starter experience is intentionally preserved as the entry experience. After entry, BAA OS Engine → Theme Engine exposes six selectable themes. Galaxy also remains Theme #02. Shared learning modules and application logic are preserved.
