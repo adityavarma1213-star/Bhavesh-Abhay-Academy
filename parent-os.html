@@ -70,6 +70,7 @@ h2.section-h{font-family:var(--display);font-weight:500;font-size:1.2rem;margin:
 <style>
 .gate-card,.forecast-card{background:rgba(253,249,240,.035);border:1px solid rgba(253,249,240,.1);border-radius:18px;padding:18px;margin:14px 0}.gate-card.gate-locked{border-color:rgba(232,96,143,.5);background:rgba(232,96,143,.06)}.gate-head,.forecast-head,.forecast-row{display:flex;justify-content:space-between;gap:12px;align-items:center}.gate-kicker{font-size:.64rem;letter-spacing:.15em;color:var(--faint);font-weight:700}.gate-head h3,.forecast-head h3{font-family:var(--display);margin-top:4px}.gate-copy,.gate-empty{font-size:.8rem;color:var(--dim);line-height:1.55}.gate-findings{display:grid;gap:7px;margin-top:10px}.gate-finding{display:flex;gap:8px;padding:9px;border-radius:11px}.gate-finding.red{background:rgba(232,96,143,.06);border:1px solid rgba(232,96,143,.25)}.gate-finding.green{background:rgba(52,211,153,.05);border:1px solid rgba(52,211,153,.22)}.gate-finding small{display:block;color:var(--faint);margin-top:2px}.gate-badge,.forecast-pill{font-size:.64rem;padding:4px 8px;border-radius:999px}.gate-badge.red,.forecast-pill.urgent{background:rgba(232,96,143,.14);color:#ffd5df}.gate-badge.green,.forecast-pill.good{background:rgba(52,211,153,.12);color:#b7f7db}.gate-badge.open,.forecast-pill.caution{background:rgba(245,185,66,.12);color:#ffe8a8}.forecast-row{padding:10px 0;border-top:1px solid rgba(253,249,240,.06)}.forecast-row small{display:block;color:var(--faint);margin-top:3px}.forecast-warning{font-size:.75rem;line-height:1.45;padding:8px 10px;border-radius:10px;margin:5px 0 8px}.forecast-warning.urgent{background:rgba(232,96,143,.07);color:#ffd5df}.forecast-warning.caution{background:rgba(245,185,66,.07);color:#ffe8a8}.bypass-form{display:grid;gap:9px;margin-top:12px}.bypass-form input,.bypass-form textarea,.bypass-form select{width:100%;background:rgba(253,249,240,.04);color:inherit;border:1px solid rgba(253,249,240,.14);border-radius:10px;padding:10px}.bypass-form textarea{min-height:85px;resize:vertical}.bypass-status{font-size:.76rem;color:var(--dim);min-height:18px}
 </style>
+<link rel="stylesheet" href="css/baa-themes.css">
 </head>
 <body>
 
@@ -97,6 +98,7 @@ h2.section-h{font-family:var(--display);font-weight:500;font-size:1.2rem;margin:
 <script src="js/question-bank.js"></script>
 <script src="js/baa-assessment.js"></script>
 <script src="js/baa-intelligence.js"></script>
+<script src="js/baa-offline-sync.js"></script>
 <script src="js/baa-planner.js"></script>
 <script src="js/baa-guardian.js"></script>
 <script src="js/baa-prediction.js"></script>
@@ -328,5 +330,6 @@ if(typeof BAAServerLearnerView!=='undefined') BAAServerLearnerView.init({mountId
 <script src="js/baa-olympiad.js"></script>
 <script src="js/baa-plugins.js"></script>
 <script src="js/baa-ui-wiring-final.js"></script>
+<script src="js/baa-themes.js"></script>
 </body>
 </html>

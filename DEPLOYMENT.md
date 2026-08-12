@@ -1,70 +1,64 @@
 # AI Tutor — Deployment Guide
 
-Architecture: **frontend on GitHub Pages, backend on Vercel.** The frontend never
-sees your Gemini API key — it only talks to your Vercel function, which
-holds the key as a server-side environment variable and streams the model's
-reply back down.
+**Architecture (updated): single Vercel deployment.** The HTML pages
+(`index.html`, `student-os.html`, `teacher-os.html`, `parent-os.html`,
+`assessment.html`, `homework-scanner.html`, etc.) and every function under
+`/api` deploy together from **one Vercel project**. There is no separate
+GitHub Pages step and no second domain to keep in sync — every `fetch()`
+call in the codebase, including the AI Tutor chat, uses a relative path
+like `/api/chat`, which only resolves correctly when the HTML and the API
+share an origin. That's why this changed from the earlier split
+GitHub-Pages-frontend / Vercel-backend design: the split left 29 of the
+30 `/api/*` calls in the codebase pointed at a path that didn't exist on
+GitHub Pages, so most server-backed features (auth, learner data, Mastery
+Gate, homework sync, billing, etc.) silently 404'd. A single deployment
+makes every one of those calls correct with no per-file URL to remember.
+
+The browser still never sees your Gemini API key — it only talks to the
+Vercel functions, which hold the key as a server-side environment variable.
 
 ```
-Browser (student-os.html on GitHub Pages)
+Browser (any page, e.g. student-os.html, served from your Vercel domain)
         |  fetch POST /api/chat  (conversation history, no key)
         v
-Vercel Edge Function (api/chat.js)
+Vercel Function (api/chat.js) — same domain as the page that called it
         |  GEMINI_API_KEY from env, added server-side
         v
 Gemini API (streamGenerateContent, alt=sse)
 ```
 
-## 1. Deploy the backend to Vercel
+## 1. Push the whole repo to GitHub
 
-1. Push this whole repo to GitHub (see step 3 — you'll do this once, both
-   Vercel and GitHub Pages can build from the same repo).
-2. Go to [vercel.com](https://vercel.com), **Add New → Project**, and import
-   the repo. Vercel auto-detects the `api/chat.js` Edge Function — no build
-   settings needed.
-3. Before the first deploy (or right after, then redeploy), go to
+```bash
+git add -A
+git commit -m "Deploy BAA OS"
+git push
+```
+
+## 2. Deploy the repo to Vercel
+
+1. Go to [vercel.com](https://vercel.com), **Add New → Project**, and import
+   the repo. Vercel auto-detects the static HTML pages *and* the `/api`
+   folder's serverless functions in one project — no build settings needed.
+2. Before the first deploy (or right after, then redeploy), go to
    **Project → Settings → Environment Variables** and add:
    | Key | Value |
    |---|---|
    | `GEMINI_API_KEY` | your free key from [aistudio.google.com/apikey](https://aistudio.google.com/apikey) |
-   | `ALLOWED_ORIGIN` | `https://yourusername.github.io` (tighten CORS once you know your Pages URL; `*` works while testing) |
-4. Deploy. Vercel gives you a URL like `https://baa-os-tutor.vercel.app`.
-5. Test the function directly (see **Testing** below) before wiring up the
-   frontend.
+   | `POSTGRES_URL` / `POSTGRES_URL_NON_POOLING` | your Postgres connection strings (see `db/schema.sql`) |
+   | `ALLOWED_ORIGIN` | your Vercel project's own domain, e.g. `https://baa-os.vercel.app` — since the frontend and API now share an origin, this mainly matters if you also embed pages elsewhere |
+3. Deploy. Vercel gives you one URL, e.g. `https://baa-os.vercel.app` — that
+   single URL serves both the pages and the `/api/*` functions.
+4. Open that URL directly (not a GitHub Pages URL) to use the site. No
+   `CHAT_API_URL`/`EVAL_API_URL`/etc. constants need editing per environment
+   — they're relative paths already.
 
-## 2. Point the frontend at your backend
-
-In `student-os.html`, find this line near the top of the AI Tutor chat script:
-
-```js
-const CHAT_API_URL = 'https://YOUR-VERCEL-PROJECT.vercel.app/api/chat';
-```
-
-Replace it with your real Vercel URL + `/api/chat`, e.g.:
-
-```js
-const CHAT_API_URL = 'https://baa-os-tutor.vercel.app/api/chat';
-```
-
-Commit that change.
-
-## 3. Deploy the frontend to GitHub Pages
-
-```bash
-git add -A
-git commit -m "Wire AI Tutor to production backend"
-git push
-```
-
-In the repo: **Settings → Pages → Source → Deploy from a branch → main → / (root)**.
-GitHub publishes at `https://<username>.github.io/<repo>/`.
-
-## 4. Testing
+## 3. Testing
 
 **Direct backend test (before touching the frontend):**
 
 ```bash
-curl -N -X POST https://baa-os-tutor.vercel.app/api/chat \
+curl -N -X POST https://baa-os.vercel.app/api/chat \
   -H "Content-Type: application/json" \
   -d '{
     "studentName": "Test Student",
@@ -80,16 +74,16 @@ reply.
 
 ```bash
 # Missing messages -> 400
-curl -i -X POST https://baa-os-tutor.vercel.app/api/chat -H "Content-Type: application/json" -d '{}'
+curl -i -X POST https://baa-os.vercel.app/api/chat -H "Content-Type: application/json" -d '{}'
 
 # Wrong method -> 405
-curl -i https://baa-os-tutor.vercel.app/api/chat
+curl -i https://baa-os.vercel.app/api/chat
 
 # Hammer it 25x quickly -> the 21st+ request should 429
-for i in $(seq 1 25); do curl -s -o /dev/null -w "%{http_code}\n" -X POST https://baa-os-tutor.vercel.app/api/chat -H "Content-Type: application/json" -d '{"messages":[{"role":"user","content":"hi"}]}'; done
+for i in $(seq 1 25); do curl -s -o /dev/null -w "%{http_code}\n" -X POST https://baa-os.vercel.app/api/chat -H "Content-Type: application/json" -d '{"messages":[{"role":"user","content":"hi"}]}'; done
 ```
 
-**End-to-end test:** open your GitHub Pages URL, go to AI Tutor, and:
+**End-to-end test:** open your deployed Vercel URL, go to AI Tutor, and:
 - Send a normal question — reply should stream in word by word.
 - Ask for something with a numbered list or a code snippet — check it renders
   as real markdown, not literal `**`/`` ``` ``.
@@ -165,7 +159,7 @@ and replace with your real Vercel URL, same pattern as `CHAT_API_URL`.
 
 **Direct backend test:**
 ```bash
-curl -i -X POST https://baa-os-tutor.vercel.app/api/evaluate \
+curl -i -X POST https://baa-os.vercel.app/api/evaluate \
   -H "Content-Type: application/json" \
   -d '{
     "question": {
@@ -189,7 +183,7 @@ limiter caveat as `api/chat.js`).
 
 No separate deploy step: it's a static page that reads/writes the same
 `localStorage` key as `assessment.html` (`baa_section_b_data_v1`), so it
-just needs to sit in the same folder and be pushed to GitHub Pages with
+just needs to sit in the same repo and deploy together with
 everything else. It does **not** call `api/evaluate.js` or any backend —
 review decisions are pure client-side data operations in
 `js/baa-assessment.js` (`getTeacherReviewQueue`, `submitTeacherReview`).
@@ -352,7 +346,7 @@ Deploy the Node-runtime auth endpoints under `api/auth/`. Configure `POSTGRES_UR
 
 ### G5 — Database
 1. Provision PostgreSQL.
-2. Set `POSTGRES_URL` (and optionally `POSTGRES_URL_NON_POOLING`).
+2. Set `POSTGRES_URL` (and optionally `POSTGRES_URL_NON_POOLING`) to a PostgreSQL connection string from your chosen provider. The code does not require Vercel Postgres.
 3. Run `npm install`.
 4. Run `npm run db:migrate`.
 5. Check `/api/health` until it reports `database: connected`.

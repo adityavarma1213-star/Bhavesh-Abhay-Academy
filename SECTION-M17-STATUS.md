@@ -11,11 +11,11 @@ Volume 1, Module 17: Class-wide learning intelligence and performance heatmaps f
 - Honest single-student testing boundary.
 
 ## Status
-M17 implementation: **partial candidate — class-wide source blocker remains**.
-Focused implementation is complete, but M17 is NOT promoted/frozen.
+M17 implementation: **server-backed class analytics implementation complete; deployment verification pending**.
+The class-wide API aggregates authenticated multi-student evidence from PostgreSQL. It is not promoted/frozen until exercised against a real configured class with multiple linked learners.
 
 ## Blocker
-The current BAA private-testing architecture stores one student's local browser data. A real class-wide heatmap requires multi-student authenticated/central data, which is not present and must not be fabricated.
+The production implementation now uses `classes`, `class_members`, `teacher_learner`, and server-backed `learning_evidence`. A real class-wide heatmap requires a configured teacher class with multiple linked learners; the UI remains honest when no class exists.
 
 ## Next
-Continue to Module 18 while preserving M17 as a partial candidate. Revisit M17 when the data/institution architecture exists.
+Next: configure a real class and run browser/integration verification against PostgreSQL. No localStorage data is used as class-wide evidence.

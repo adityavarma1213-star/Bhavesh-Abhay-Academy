@@ -115,6 +115,7 @@ label.field-label{display:block;font-size:.78rem;text-transform:uppercase;letter
   .hw-image-preview{flex-wrap:wrap;}
 }
 </style>
+<link rel="stylesheet" href="css/baa-themes.css">
 </head>
 <body>
 
@@ -136,7 +137,7 @@ label.field-label{display:block;font-size:.78rem;text-transform:uppercase;letter
       <ul>
         <li>✅ Typed or pasted homework <b>text</b> — saved to your submission history, right here in this browser.</li>
         <li>✅ Optional <b>photo attachment</b> — select, preview, remove/replace, and it's compressed and prepared right here in your browser. Not evaluated yet, and not stored beyond this submission (see privacy note below the form).</li>
-        <li>✅ <b>Automatic AI evaluation</b> — text evaluation is available through the M8-B1/B2 endpoint. Image pixels are still not evaluated in this checkpoint.</li>
+        <li>✅ <b>Automatic AI evaluation</b> — text and attached image content are evaluated through the M8-B1/B2 server vision path. Unreadable or low-confidence images are sent to human review.</li>
         <li>✅ <b>PDF support</b> — M8-C extracts selectable text from PDFs in your browser and sends only the extracted text through the existing evaluation path. The original PDF bytes are not persisted.</li>
         <li>⚠️ <b>Scanned/image-only PDFs</b> — if no selectable text can be extracted, the PDF is rejected honestly rather than pretending OCR/evaluation occurred.</li>
       </ul>
@@ -216,7 +217,7 @@ let pendingPdf = null;
 // M8-B1: same pattern as EVAL_API_URL in assessment.html / CHAT_API_URL in
 // student-os.html — a single edit point per deployment, kept out of
 // js/baa-homework.js so that file stays fetch-URL-free and easily testable.
-const EVAL_HOMEWORK_API_URL = 'https://bhavesh-abhay-academy.vercel.app/api/evaluate-homework';
+const EVAL_HOMEWORK_API_URL = '/api/evaluate-homework';
 
 // Called by js/baa-homework-image.js whenever the pending image changes
 // (selected, replaced, or removed) so the submit button / form note can
@@ -264,7 +265,7 @@ async function onPdfSelected(){
       PDF_TOO_MANY_PAGES: `This PDF has ${result.pages || 'too many'} pages. Maximum supported pages is 40.`,
       PDF_ENGINE_UNAVAILABLE: 'PDF support could not load. Check your connection and try again.',
       PDF_EMPTY: 'The PDF contains no readable pages.',
-      PDF_NO_EXTRACTABLE_TEXT: 'This PDF has no selectable text. Scanned/image-only PDFs are not supported yet.',
+      PDF_NO_EXTRACTABLE_TEXT: 'This scanned PDF could not be rendered for image evaluation. Please try a clearer PDF or upload photos of the pages.',
       PDF_PARSE_FAILED: 'The PDF could not be read. Please try another PDF.',
     };
     setPdfStatus(messages[result.error] || 'The PDF could not be processed.');
@@ -282,7 +283,7 @@ async function onPdfSelected(){
     info.innerHTML = `<b>📄 ${escapeHtml(result.attachment.fileName || 'Homework PDF')}</b> · ${result.pages} page${result.pages === 1 ? '' : 's'} · ${result.extractedChars} characters extracted`;
     info.classList.add('show');
   }
-  setPdfStatus('PDF text extracted successfully. You can review or edit it before submitting.');
+  setPdfStatus(result.scannedImageDataUrls?.length ? 'Scanned PDF pages rendered for image evaluation. You can review or edit the extracted text before submitting.' : 'PDF text extracted successfully. You can review or edit it before submitting.');
 }
 
 function onHwTextInput(){
@@ -329,6 +330,7 @@ function submitHomework(){
     fileName: pendingImage.fileName,
   } : null;
 
+  const pdfImageDataUrls = pendingPdf?.scannedImageDataUrls || [];
   const pdfMeta = pendingPdf ? {
     mimeType: pendingPdf.attachment.mimeType,
     originalSizeBytes: pendingPdf.attachment.originalSizeBytes,
@@ -343,6 +345,7 @@ function submitHomework(){
     image: imageMeta,
     imageDataUrl: pendingImage ? pendingImage.dataUrl : null,
     pdf: pdfMeta,
+    pdfImageDataUrls,
   });
 
   const note = document.getElementById('hwFormNote');
@@ -494,5 +497,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   renderSubmissions();
 });
 </script>
+<script src="js/baa-themes.js"></script>
 </body>
 </html>

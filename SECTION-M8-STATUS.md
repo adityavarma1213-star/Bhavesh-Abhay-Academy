@@ -17,8 +17,8 @@
 ## M8-C component status
 
 - **Text:** ✅ real submission/evaluation path.
-- **Image:** ✅ attachment/preview/compression and metadata handling; ❌ image pixels are not evaluated by the current text-only evaluator.
-- **PDF:** ✅ selectable-text extraction; ❌ OCR/scanned-image evaluation is not implemented or claimed.
+- **Image:** ✅ attachment/preview/compression plus server-side Gemini vision evaluation of the supplied image bytes; low-confidence/unreadable images are routed to human review.
+- **PDF:** ✅ selectable-text extraction; scanned/image-only PDFs now render the first few pages to transient JPEGs and send them to the same vision evaluator; original PDF bytes are never persisted.
 - **Evaluation:** ✅ server-side endpoint with structured result validation and human-review flags.
 - **Privacy:** ✅ raw image/PDF bytes are not persisted by the Homework Scanner; PDF extracted text becomes the submission text under the existing browser-local testing store.
 - **Server validation:** ✅ extracted text is re-checked for maximum length and basic content sanity before the Gemini request.
@@ -57,7 +57,7 @@
 
 ## Explicit non-claims
 
-This document does **not** claim that Module 8 is fully complete. Image-content evaluation/OCR remains outside the current implementation, and the production backend/database/authentication gates remain separate from the local testing architecture.
+This document does not claim external production infrastructure. Image-content evaluation is implemented through the server vision path; scanned-PDF page rendering is transient and limited to the first three pages for privacy/size control. Production backend/database/authentication gates remain deployment requirements.
 
 ## Promotion
 M8 formally verified and promoted/frozen. Next: Module 9 — AI Learning Memory.

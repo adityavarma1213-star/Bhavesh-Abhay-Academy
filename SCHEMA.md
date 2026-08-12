@@ -1,4 +1,4 @@
-# BAA OS — Database Schema (Section G1)
+# BAA OS — Canonical Database Schema (historical Section G1 foundation)
 
 Status: **design/foundation only**. No live database is connected to
 this project. This document describes `db/schema.sql`, a relational
@@ -160,13 +160,15 @@ requires them (requirement 19), not on every column:
 
 ## 12. Database provider (requirement 20)
 
-No provider is connected. `db/schema.sql` targets PostgreSQL because
+No production provider is committed to the repository. `db/schema.sql` targets standard PostgreSQL and the runtime adapter is provider-neutral.
 it is available as a managed, HTTP/serverless-reachable service (e.g.
 Neon, Supabase, Vercel Postgres) compatible with this project's
 existing Vercel **Edge Function** architecture (`api/chat.js`,
 `api/evaluate.js`, `api/speak.js` all run on `export const config =
 { runtime: 'edge' }`, which cannot open raw TCP connections — a
-standard `pg` driver will not work there). G1 does not choose a
+standard `pg` driver will not work there). The current runtime chooses a provider-neutral PostgreSQL driver rather than locking the schema to one host. Historical G1 notes below are retained for audit history; they do not describe the current runtime.
+
+G1 originally deferred the driver choice; that historical note remains below for traceability. a
 specific provider or driver; that decision, plus the actual connected
 `DatabaseAdapter` implementation, belongs to G4.
 

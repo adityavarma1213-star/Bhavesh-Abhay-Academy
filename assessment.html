@@ -148,6 +148,7 @@ h1.title{font-family:var(--display);font-weight:500;font-size:clamp(1.6rem,4.4vw
   .q-text{font-size:1.05rem;}
 }
 </style>
+<link rel="stylesheet" href="css/baa-themes.css">
 </head>
 <body>
 
@@ -239,7 +240,7 @@ h1.title{font-family:var(--display);font-weight:500;font-size:clamp(1.6rem,4.4vw
 /* Point this at your deployed Vercel backend, same pattern as CHAT_API_URL
    in student-os.html. Left relative ('/api/evaluate') works out of the box
    if you host the frontend on Vercel too. */
-const EVAL_API_URL = 'https://bhavesh-abhay-academy.vercel.app/api/evaluate';
+const EVAL_API_URL = '/api/evaluate';
 
 let currentAssessment = null;
 let currentAttempt = null;
@@ -594,5 +595,6 @@ window.BAA_READY = initGateLearner();
   }
 })();
 </script>
+<script src="js/baa-themes.js"></script>
 </body>
 </html>

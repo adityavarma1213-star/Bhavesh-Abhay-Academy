@@ -29,6 +29,6 @@ Do not upload this build until it has been visually inspected in the browser. Th
 
 
 ## Legacy Theme Cleanup
-- Removed the former always-on space/galaxy visual shell from the default interface.
+- Preserved the existing space/galaxy shell as the intentional starter experience; the six-theme engine takes over after entry.
 - Galaxy remains available only as an explicit selectable theme.
 - Shared learning modules and application logic were preserved.

@@ -5,7 +5,7 @@
 
 ## Implemented
 - PostgreSQL schema remains the canonical data model.
-- Production DB adapter via `@vercel/postgres`.
+- Production DB adapter via `provider-neutral `postgres` PostgreSQL driver`.
 - Initial hardening migration in `db/migrations/001_initial.sql`.
 - Schema/migration application script.
 - LocalStorage export migration utility.
