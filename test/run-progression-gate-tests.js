@@ -1,0 +1,34 @@
+const fs=require('fs'),path=require('path');
+const ROOT=path.join(__dirname,'..'); let failures=0;
+function assert(c,m){if(!c){console.error('FAIL:',m);failures++;}else console.log('PASS:',m)}
+const api=fs.readFileSync(path.join(ROOT,'api/v1/progression-gate.js'),'utf8');
+const forecast=fs.readFileSync(path.join(ROOT,'api/v1/academic-forecast.js'),'utf8');
+const assessmentApi=fs.readFileSync(path.join(ROOT,'api/v1/assessment.js'),'utf8');
+const migration=fs.readFileSync(path.join(ROOT,'db/migrations/007_mastery_gates_and_forecast.sql'),'utf8');
+const schema=fs.readFileSync(path.join(ROOT,'db/schema.sql'),'utf8');
+const client=fs.readFileSync(path.join(ROOT,'js/baa-progression-gate.js'),'utf8');
+const assessment=fs.readFileSync(path.join(ROOT,'assessment.html'),'utf8');
+const student=fs.readFileSync(path.join(ROOT,'student-os.html'),'utf8');
+const parent=fs.readFileSync(path.join(ROOT,'parent-os.html'),'utf8');
+const planner=fs.readFileSync(path.join(ROOT,'js/baa-planner.js'),'utf8');
+assert(migration.includes('learning_progression_gates')&&migration.includes('learning_gate_findings')&&migration.includes('learning_gate_bypasses'),'new progression tables exist');
+assert(migration.includes('finding_details'),'assessment results preserve finding details');
+assert(schema.includes('learning_progression_gates')&&schema.includes('learning_gate_findings'),'canonical schema includes mastery gate tables');
+assert(api.includes('requireAuth')&&api.includes('requireLearnerAccess'),'gate API authenticates and authorizes learner access');
+assert(api.includes('hasRole(session,\'parent\')')&&api.includes('verifyPassword'),'parent bypass requires parent role and password re-authentication');
+assert(api.includes('reason.length<10'),'bypass requires a reason');
+assert(api.includes('parent_learner'),'bypass verifies parent-learner relationship');
+assert(api.includes('learning_gate_bypasses'),'bypass is persisted');
+assert(api.includes("previous.status==='cleared'")||api.includes("previous.status==='bypassed'"),'next chapter entry is blocked until previous gate is cleared or bypassed');
+assert(assessmentApi.includes('learning_gate_findings')&&assessmentApi.includes('finding_details'),'assessment sync updates real gate findings');
+assert(assessmentApi.includes("SET status='green'")&&assessmentApi.includes("status='red'"),'assessment sync turns findings green when cleared and red when reintroduced');
+assert(forecast.includes('planner_upcoming_assessments')&&forecast.includes('learning_evidence'),'forecast uses upcoming exams plus real learning evidence');
+assert(forecast.includes('predictedPercentage')&&forecast.includes('warningLevel'),'forecast returns bounded percentage and warning level');
+assert(client.includes('/api/v1/progression-gate')&&client.includes('/api/v1/academic-forecast'),'client uses authenticated gate and forecast APIs');
+assert(assessment.includes('baa-progression-gate.js')&&assessment.includes('BAAProgressionGate.canEnter'),'assessment page enforces progression gate before starting');
+assert(assessment.includes('Chapter locked')&&assessment.includes('Parent bypass'),'student sees honest lock state and parent route');
+assert(student.includes('Mastery Gate')&&student.includes('Exam Forecast'),'Student OS exposes gate and forecast');
+assert(parent.includes('Mastery Gate & Parent Bypass')&&parent.includes('gatePassword')&&parent.includes('gateReason'),'Parent OS exposes password + reason bypass controls');
+assert(planner.includes('assessmentId: assessmentId || null')||planner.includes('assessmentId: assessmentId||null'),'Planner preserves linked assessment IDs for exam forecasting');
+if(failures){console.error(`${failures} TEST(S) FAILED`);process.exit(1)}
+console.log('ALL PROGRESSION GATE TESTS PASSED');

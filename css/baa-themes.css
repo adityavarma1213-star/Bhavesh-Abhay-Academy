@@ -1,0 +1,172 @@
+/* ============================================================
+   css/baa-themes.css
+   BAA OS — shared Theme Engine styling (single source of truth).
+
+   This is the ONE place the six theme palettes (Aurora, Galaxy,
+   Academic, NeoGlass, Calm, Duology) and the three display modes
+   (Light / Dark / System) are defined. Every BAA OS page links this
+   file so switching a theme on one page looks and behaves the same
+   everywhere, instead of each page carrying its own copy.
+
+   Fallback variables: pages that don't already define the warm/dim
+   BAA color tokens (most non-dashboard pages) get sane defaults here
+   so text stays readable even before any page-specific styling loads.
+   These only apply where a page hasn't already defined the same
+   variable name, so nothing here overrides existing page styling.
+   ============================================================ */
+:root{
+  --warmwhite:#fdf9f0;
+  --dim:rgba(253,249,240,.68);
+  --faint:rgba(253,249,240,.45);
+  --gold:#f5b942;
+  --cyan:#4cd9e8;
+  --violet:#7c5cfc;
+  --void:#090d1f;
+  --cosmos:#111936;
+  --cosmos-2:#172044;
+  --theme-accent:#7c5cfc;
+  --theme-bg:#0b0f2e;
+  --theme-panel:rgba(20,27,77,.86);
+}
+/* Minimal fallback so the button/panel/body respond to theme+mode even
+   on pages that don't define their own --body/--display font stack. */
+:root{ --body:Inter,system-ui,sans-serif; --display:Inter,system-ui,sans-serif; }
+.baa-theme-wrap-floating{position:fixed;top:14px;right:14px;z-index:9999;}
+
+/* ================= BAA THEME ENGINE ================= */
+.baa-theme-wrap{position:relative;z-index:100;}
+.baa-theme-button{display:flex;align-items:center;gap:6px;background:rgba(253,249,240,.06);border:1px solid rgba(253,249,240,.12);color:var(--warmwhite);padding:8px 11px;border-radius:100px;font:600 .78rem var(--body);cursor:pointer;transition:.2s ease;}
+.baa-theme-button:hover{background:rgba(253,249,240,.11);transform:translateY(-1px)}
+.baa-theme-button-label{opacity:.62;font-weight:500}.baa-theme-chevron{opacity:.5;font-size:.9rem}
+.baa-theme-panel{position:absolute;right:0;top:calc(100% + 10px);width:min(390px,calc(100vw - 24px));padding:16px;border:1px solid rgba(253,249,240,.14);border-radius:20px;background:rgba(11,15,46,.97);backdrop-filter:blur(24px);box-shadow:0 24px 70px rgba(0,0,0,.45);opacity:0;transform:translateY(-8px) scale(.98);pointer-events:none;transition:.2s ease;}
+.baa-theme-panel.open{opacity:1;transform:none;pointer-events:auto}.baa-theme-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px}.baa-theme-head strong{font-size:1rem}.baa-theme-head small{display:block;color:var(--dim);font-size:.68rem;margin-top:3px}.baa-theme-close{border:0;background:transparent;color:var(--dim);font-size:1.35rem;cursor:pointer}
+.baa-theme-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.baa-theme-option{position:relative;display:flex;align-items:center;gap:9px;text-align:left;min-height:64px;padding:10px;border-radius:14px;border:1px solid rgba(253,249,240,.09);background:rgba(253,249,240,.035);color:var(--warmwhite);cursor:pointer}.baa-theme-option:hover,.baa-mode-option:hover{background:rgba(253,249,240,.08)}.baa-theme-option.selected{border-color:var(--theme-accent,#7c5cfc);box-shadow:0 0 0 1px var(--theme-accent,#7c5cfc) inset}.baa-theme-icon{font-size:1.35rem}.baa-theme-option b{display:block;font-size:.78rem}.baa-theme-option small{display:block;color:var(--dim);font-size:.6rem;line-height:1.25;margin-top:2px}.baa-theme-check{margin-left:auto;opacity:0;color:var(--theme-accent,#7c5cfc);font-weight:800}.baa-theme-option.selected .baa-theme-check{opacity:1}.baa-mode-title{font-size:.67rem;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin:14px 0 7px}.baa-mode-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.baa-mode-option{border:1px solid rgba(253,249,240,.09);border-radius:11px;background:rgba(253,249,240,.035);color:var(--warmwhite);padding:9px 6px;font:600 .68rem var(--body);cursor:pointer}.baa-mode-option.selected{border-color:var(--theme-accent,#7c5cfc);background:color-mix(in srgb,var(--theme-accent,#7c5cfc) 13%,transparent)}.baa-theme-note{font-size:.6rem;color:var(--faint);line-height:1.35;margin-top:10px}
+/* Theme palettes */
+html[data-baa-theme="aurora"]{--theme-accent:#7c5cfc;--theme-bg:#0b0f2e;--theme-panel:rgba(20,27,77,.86)}
+html[data-baa-theme="galaxy"]{--theme-accent:#4cd9e8;--theme-bg:#070a20;--theme-panel:rgba(14,18,61,.88)}
+html[data-baa-theme="academic"]{--theme-accent:#2563eb;--theme-bg:#f5f7fb;--theme-panel:rgba(255,255,255,.94)}
+html[data-baa-theme="neoglass"]{--theme-accent:#a78bfa;--theme-bg:#111827;--theme-panel:rgba(31,41,55,.72)}
+html[data-baa-theme="calm"]{--theme-accent:#10b981;--theme-bg:#0d1b17;--theme-panel:rgba(19,48,40,.84)}
+html[data-baa-theme="duology"]{--theme-accent:#f97316;--theme-bg:#fff8ef;--theme-panel:rgba(255,255,255,.96)}
+html[data-baa-theme="academic"][data-baa-mode="light"] body,html[data-baa-theme="duology"][data-baa-mode="light"] body{background:var(--theme-bg);color:#182033}
+html[data-baa-theme="academic"][data-baa-mode="light"] .topbar,html[data-baa-theme="duology"][data-baa-mode="light"] .topbar{background:rgba(255,255,255,.82);border-bottom-color:rgba(15,23,42,.1)}
+html[data-baa-theme="academic"][data-baa-mode="light"] .baa-theme-panel,html[data-baa-theme="duology"][data-baa-mode="light"] .baa-theme-panel{background:var(--theme-panel);color:#182033;border-color:rgba(15,23,42,.1)}
+html[data-baa-theme="academic"][data-baa-mode="light"] .baa-theme-option,html[data-baa-theme="duology"][data-baa-mode="light"] .baa-theme-option,html[data-baa-theme="academic"][data-baa-mode="light"] .baa-mode-option,html[data-baa-theme="duology"][data-baa-mode="light"] .baa-mode-option{color:#182033;background:rgba(15,23,42,.035);border-color:rgba(15,23,42,.09)}
+html[data-baa-theme="academic"][data-baa-mode="light"] .baa-theme-head small,html[data-baa-theme="duology"][data-baa-mode="light"] .baa-theme-head small{color:#64748b}
+html[data-baa-theme="academic"][data-baa-mode="light"] .baa-theme-note,html[data-baa-theme="duology"][data-baa-mode="light"] .baa-theme-note{color:#64748b}
+/* Explicit dark mode keeps all themes dark, with distinct accents. */
+html[data-baa-mode="dark"] body{background:var(--theme-bg);}
+html[data-baa-mode="dark"] .topbar{background:color-mix(in srgb,var(--theme-bg) 82%,transparent);}
+/* System mode: academic/duology become light when device is light; all other themes remain their dark visual identity. */
+@media (prefers-color-scheme:light){
+ html[data-baa-mode="system"][data-baa-theme="academic"] body,html[data-baa-mode="system"][data-baa-theme="duology"] body{background:#f5f7fb;color:#182033}
+ html[data-baa-mode="system"][data-baa-theme="academic"] .topbar,html[data-baa-mode="system"][data-baa-theme="duology"] .topbar{background:rgba(255,255,255,.82);border-bottom-color:rgba(15,23,42,.1)}
+}
+/* Duology: gentle child-friendly motion, disabled for reduced-motion users. */
+html[data-baa-theme="duology"] .world-tile,html[data-baa-theme="duology"] .hero-mission{border-radius:24px}
+html[data-baa-theme="duology"] .world-tile:hover{transform:translateY(-5px) rotate(-.4deg)}
+@keyframes baaDuologyFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+html[data-baa-theme="duology"] .world-tile:nth-child(odd) .t-icon{animation:baaDuologyFloat 2.8s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){html[data-baa-theme="duology"] *{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}}
+@media(max-width:650px){.baa-theme-button-label{display:none}.baa-theme-grid{grid-template-columns:1fr}.baa-theme-panel{right:-6px}}
+
+
+
+/* Light treatment for the dashboard themes */
+html[data-baa-mode="light"][data-baa-theme="academic"] .baa-sidebar,html[data-baa-mode="light"][data-baa-theme="duology"] .baa-sidebar{background:rgba(255,255,255,.82);border-right-color:rgba(15,23,42,.09)}
+html[data-baa-mode="light"][data-baa-theme="academic"] .baa-card,html[data-baa-mode="light"][data-baa-theme="duology"] .baa-card{background:rgba(255,255,255,.9);border-color:rgba(15,23,42,.09);box-shadow:0 12px 35px rgba(15,23,42,.06)}
+html[data-baa-mode="light"][data-baa-theme="academic"] .baa-stat,html[data-baa-mode="light"][data-baa-theme="duology"] .baa-stat,html[data-baa-mode="light"][data-baa-theme="academic"] .baa-feature,html[data-baa-mode="light"][data-baa-theme="duology"] .baa-feature{background:rgba(255,255,255,.8);border-color:rgba(15,23,42,.09);color:#182033}
+html[data-baa-mode="light"][data-baa-theme="academic"] .baa-title,html[data-baa-mode="light"][data-baa-theme="duology"] .baa-title,html[data-baa-mode="light"][data-baa-theme="academic"] .baa-card h2,html[data-baa-mode="light"][data-baa-theme="duology"] .baa-card h2{color:#182033}
+
+
+/* ===== Final multi-theme mode contract =====
+   All six themes support Light, Dark and System. System follows the browser/device.
+   Theme-specific accents remain distinct while shared surfaces switch readability. */
+html[data-baa-mode="light"],html[data-baa-mode="system"]{--void:#f6f8fc;--cosmos:#ffffff;--cosmos-2:#eef2ff;--warmwhite:#182033;--dim:rgba(24,32,51,.68);--faint:rgba(24,32,51,.45);--gold:#b77900;--cyan:#087f91;--violet:#5b3fd1;}
+html[data-baa-mode="light"] body{background:var(--void);color:var(--warmwhite);overflow:auto;}
+html[data-baa-mode="light"] .grain{opacity:0;}
+html[data-baa-mode="light"] .aurora{opacity:.35;animation:none;}
+html[data-baa-mode="light"] .topbar{background:rgba(255,255,255,.86);border-bottom-color:rgba(15,23,42,.10);}
+html[data-baa-mode="light"] .pill,html[data-baa-mode="light"] .baa-nav,html[data-baa-mode="light"] .baa-stat,html[data-baa-mode="light"] .baa-card,html[data-baa-mode="light"] .baa-feature,html[data-baa-mode="light"] .baa-module,html[data-baa-mode="light"] .widget{background:rgba(255,255,255,.82);border-color:rgba(15,23,42,.10);color:#182033;}
+html[data-baa-mode="light"] .baa-sidebar{background:rgba(255,255,255,.82);border-right-color:rgba(15,23,42,.09);}
+html[data-baa-mode="light"] .baa-nav:hover,html[data-baa-mode="light"] .baa-nav.active{background:rgba(91,63,209,.10);}
+html[data-baa-mode="light"] .hero-mission{background:linear-gradient(135deg,#ffffff,#eef2ff);border-color:rgba(15,23,42,.10);}
+html[data-baa-mode="light"] .hero-mission::before{opacity:.35;}
+html[data-baa-mode="light"] .baa-challenge-banner{background:linear-gradient(135deg,#f4efff,#ecfbff);border-color:rgba(91,63,209,.18);}
+html[data-baa-mode="light"] .baa-theme-panel{background:rgba(255,255,255,.97);color:#182033;border-color:rgba(15,23,42,.10);}
+html[data-baa-mode="light"] .baa-theme-option,html[data-baa-mode="light"] .baa-mode-option{color:#182033;background:rgba(15,23,42,.035);border-color:rgba(15,23,42,.09);}
+html[data-baa-mode="light"] .baa-theme-head small,html[data-baa-mode="light"] .baa-theme-note{color:#64748b;}
+@media (prefers-color-scheme:light){
+  html[data-baa-mode="system"]{--void:#f6f8fc;--cosmos:#ffffff;--cosmos-2:#eef2ff;--warmwhite:#182033;--dim:rgba(24,32,51,.68);--faint:rgba(24,32,51,.45);--gold:#b77900;--cyan:#087f91;--violet:#5b3fd1;}
+  html[data-baa-mode="system"] body{background:var(--void);color:var(--warmwhite);overflow:auto;}
+  html[data-baa-mode="system"] .grain{opacity:0;}
+  html[data-baa-mode="system"] .aurora{opacity:.35;animation:none;}
+  html[data-baa-mode="system"] .topbar{background:rgba(255,255,255,.86);border-bottom-color:rgba(15,23,42,.10);}
+  html[data-baa-mode="system"] .pill,html[data-baa-mode="system"] .baa-nav,html[data-baa-mode="system"] .baa-stat,html[data-baa-mode="system"] .baa-card,html[data-baa-mode="system"] .baa-feature,html[data-baa-mode="system"] .baa-module,html[data-baa-mode="system"] .widget{background:rgba(255,255,255,.82);border-color:rgba(15,23,42,.10);color:#182033;}
+  html[data-baa-mode="system"] .baa-sidebar{background:rgba(255,255,255,.82);border-right-color:rgba(15,23,42,.09);}
+  html[data-baa-mode="system"] .hero-mission{background:linear-gradient(135deg,#ffffff,#eef2ff);border-color:rgba(15,23,42,.10);}
+  html[data-baa-mode="system"] .baa-theme-panel{background:rgba(255,255,255,.97);color:#182033;border-color:rgba(15,23,42,.10);}
+  html[data-baa-mode="system"] .baa-theme-option,html[data-baa-mode="system"] .baa-mode-option{color:#182033;background:rgba(15,23,42,.035);border-color:rgba(15,23,42,.09);}
+}
+/* Theme-specific Light mode surfaces — all six themes remain visually distinct. */
+html[data-baa-mode="light"][data-baa-theme="aurora"] body{background:linear-gradient(145deg,#f7f4ff,#eef2ff 55%,#f4f9ff);}
+html[data-baa-mode="light"][data-baa-theme="galaxy"] body{background:radial-gradient(circle at 50% 0%,#eef8ff 0%,#f4f7ff 55%,#f7fbff 100%);}
+html[data-baa-mode="light"][data-baa-theme="academic"] body{background:#f5f7fb;}
+html[data-baa-mode="light"][data-baa-theme="neoglass"] body{background:linear-gradient(145deg,#f5f7fb,#eef1f6,#f8fafc);}
+html[data-baa-mode="light"][data-baa-theme="calm"] body{background:linear-gradient(145deg,#effaf6,#f3faf8,#f7fcfa);}
+html[data-baa-mode="light"][data-baa-theme="duology"] body{background:linear-gradient(145deg,#fff8ef,#fff3df,#fffaf4);}
+html[data-baa-mode="light"][data-baa-theme="aurora"] .topbar{background:rgba(247,244,255,.88);}
+html[data-baa-mode="light"][data-baa-theme="galaxy"] .topbar{background:rgba(238,248,255,.88);}
+html[data-baa-mode="light"][data-baa-theme="academic"] .topbar{background:rgba(255,255,255,.88);}
+html[data-baa-mode="light"][data-baa-theme="neoglass"] .topbar{background:rgba(245,247,251,.82);}
+html[data-baa-mode="light"][data-baa-theme="calm"] .topbar{background:rgba(239,250,246,.88);}
+html[data-baa-mode="light"][data-baa-theme="duology"] .topbar{background:rgba(255,248,239,.9);}
+
+/* System mode: follow the device while preserving the selected theme. */
+@media (prefers-color-scheme:dark){
+  html[data-baa-mode="system"]{--void:#090d1f;--cosmos:#111936;--cosmos-2:#172044;--warmwhite:#fdf9f0;--dim:rgba(253,249,240,.68);--faint:rgba(253,249,240,.45);--gold:#f5b942;--cyan:#4cd9e8;--violet:#7c5cfc;}
+  html[data-baa-mode="system"] body{background:var(--theme-bg);color:var(--warmwhite);overflow:auto;}
+  html[data-baa-mode="system"] .grain{opacity:.35;}
+  html[data-baa-mode="system"] .aurora{opacity:.55;animation:none;}
+  html[data-baa-mode="system"] .topbar{background:color-mix(in srgb,var(--theme-bg) 82%,transparent);border-bottom-color:rgba(253,249,240,.08);}
+  html[data-baa-mode="system"] .pill,html[data-baa-mode="system"] .baa-nav,html[data-baa-mode="system"] .baa-stat,html[data-baa-mode="system"] .baa-card,html[data-baa-mode="system"] .baa-feature,html[data-baa-mode="system"] .baa-module,html[data-baa-mode="system"] .widget{background:rgba(253,249,240,.035);border-color:rgba(253,249,240,.08);color:var(--warmwhite);}
+  html[data-baa-mode="system"] .baa-sidebar{background:rgba(9,13,39,.72);border-right-color:rgba(253,249,240,.08);}
+  html[data-baa-mode="system"] .hero-mission{border-color:rgba(253,249,240,.1);}
+  html[data-baa-mode="system"] .baa-theme-panel{background:rgba(11,15,46,.97);color:var(--warmwhite);border-color:rgba(253,249,240,.14);}
+  html[data-baa-mode="system"] .baa-theme-option,html[data-baa-mode="system"] .baa-mode-option{color:var(--warmwhite);background:rgba(253,249,240,.035);border-color:rgba(253,249,240,.09);}
+}
+
+html[data-baa-theme="duology"] .baa-title,html[data-baa-theme="duology"] .baa-card h2,html[data-baa-theme="duology"] .baa-feature h3{font-family:var(--display);}
+html[data-baa-theme="duology"] .baa-feature:hover{transform:translateY(-5px) rotate(-.3deg);}
+/* ===== FINAL UI CLEANUP: legacy visual shell removed =====
+   The existing galaxy/space shell is intentionally preserved as the starter experience; the Theme Engine activates after the starter enters the main OS.
+   Galaxy remains available only as an intentional selectable theme.
+*/
+/* Legacy fixed galaxy/starfield layer removed. Galaxy is now a selectable theme surface only. */
+.aurora{opacity:.55;}
+html[data-baa-theme="galaxy"] .aurora{opacity:.35;}
+html[data-baa-theme="academic"] .aurora,
+html[data-baa-theme="calm"] .aurora{opacity:.18;}
+html[data-baa-theme="duology"] .aurora{opacity:.10;}
+html[data-baa-theme="neoglass"] .aurora{opacity:.35;}
+
+/* New theme surfaces replace the former fixed dark-space shell. */
+html[data-baa-theme="aurora"][data-baa-mode="dark"] body{background:linear-gradient(145deg,#090d27,#141342 55%,#0a1730);}
+html[data-baa-theme="galaxy"][data-baa-mode="dark"] body{background:radial-gradient(circle at 50% 0%,#11184a 0%,#070a20 55%,#040615 100%);}
+html[data-baa-theme="academic"][data-baa-mode="dark"] body{background:#111827;}
+html[data-baa-theme="neoglass"][data-baa-mode="dark"] body{background:linear-gradient(145deg,#0b1220,#172033,#101827);}
+html[data-baa-theme="calm"][data-baa-mode="dark"] body{background:linear-gradient(145deg,#071814,#0d2922,#0a1b17);}
+html[data-baa-theme="duology"][data-baa-mode="dark"] body{background:linear-gradient(145deg,#21150d,#2d1c10,#151018);}
+
+html[data-baa-theme="aurora"][data-baa-mode="dark"] .topbar{background:rgba(9,13,39,.82);}
+html[data-baa-theme="galaxy"][data-baa-mode="dark"] .topbar{background:rgba(7,10,32,.84);}
+html[data-baa-theme="academic"][data-baa-mode="dark"] .topbar{background:rgba(17,24,39,.88);}
+html[data-baa-theme="neoglass"][data-baa-mode="dark"] .topbar{background:rgba(17,24,39,.72);}
+html[data-baa-theme="calm"][data-baa-mode="dark"] .topbar{background:rgba(7,24,20,.82);}
+html[data-baa-theme="duology"][data-baa-mode="dark"] .topbar{background:rgba(33,21,13,.84);}
+
+html[data-baa-theme="aurora"] .baa-feature:hover{border-color:rgba(124,92,252,.5);}
+html[data-baa-theme="academic"] .baa-feature:hover{border-color:rgba(37,99,235,.45);}
+html[data-baa-theme="neoglass"] .baa-card,html[data-baa-theme="neoglass"] .baa-stat,html[data-baa-theme="neoglass"] .baa-feature{backdrop-filter:blur(18px);}
+html[data-baa-theme="calm"] .baa-card,html[data-baa-theme="calm"] .baa-stat{border-radius:20px;}
+html[data-baa-theme="duology"] .baa-feature,html[data-baa-theme="duology"] .baa-stat{border-radius:18px;}

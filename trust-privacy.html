@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>BAA OS — Trust &amp; Privacy Center (Section E)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --void:#0B0F2E; --cosmos:#141B4D; --cosmos-2:#1B2460;
+  --violet:#7C5CFC; --cyan:#4CD9E8; --gold:#F5B942;
+  --warmwhite:#FDF9F0; --dim:rgba(253,249,240,0.62); --faint:rgba(253,249,240,0.34);
+  --rose:#E8608F; --emerald:#34D399;
+  --display:'Fraunces',serif; --body:'Inter',sans-serif; --mono:'JetBrains Mono',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--void);color:var(--warmwhite);font-family:var(--body);min-height:100vh;}
+a{color:inherit;text-decoration:none;}
+button{font-family:inherit;cursor:pointer;}
+
+.topbar{position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:16px 5vw;background:rgba(11,15,46,.9);backdrop-filter:blur(16px);border-bottom:1px solid rgba(253,249,240,0.08);}
+.tb-logo{font-family:var(--display);font-weight:600;font-size:1.05rem;}
+.tb-back{font-size:.82rem;color:var(--dim);border:1px solid rgba(253,249,240,0.14);padding:7px 14px;border-radius:100px;}
+.tb-back:hover{color:var(--warmwhite);border-color:rgba(253,249,240,0.3);}
+
+.wrap{max-width:880px;margin:0 auto;padding:30px 5vw 90px;}
+.eyebrow{font-size:.7rem;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);margin-bottom:10px;}
+h1{font-family:var(--display);font-weight:500;font-size:clamp(1.5rem,4vw,2.1rem);margin-bottom:10px;}
+.sub{color:var(--dim);font-size:.9rem;line-height:1.6;max-width:70ch;margin-bottom:6px;}
+
+.scope-banner{display:flex;gap:12px;background:rgba(245,185,66,0.07);border:1px solid rgba(245,185,66,0.25);border-radius:14px;padding:13px 16px;margin:18px 0 26px;font-size:.8rem;color:var(--dim);line-height:1.55;}
+.scope-banner b{color:var(--warmwhite);}
+
+h2.section-h{font-family:var(--display);font-weight:500;font-size:1.2rem;margin:32px 0 14px;}
+h3.sub-h{font-size:.85rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--faint);margin:18px 0 8px;}
+.card{background:rgba(253,249,240,0.035);border:1px solid rgba(253,249,240,0.08);border-radius:18px;padding:22px 24px;margin-bottom:14px;}
+.muted{color:var(--dim);font-size:.85rem;line-height:1.6;}
+
+.inv-row{padding:12px 0;border-bottom:1px solid rgba(253,249,240,0.06);font-size:.83rem;}
+.inv-row:last-child{border-bottom:none;}
+.inv-row .k{font-weight:700;margin-bottom:3px;}
+.inv-row .meta{color:var(--faint);font-size:.75rem;margin-top:4px;}
+
+.btn{display:inline-flex;align-items:center;gap:6px;background:rgba(124,92,252,0.16);border:1px solid rgba(124,92,252,0.4);color:#d9cfff;padding:9px 16px;border-radius:100px;font-size:.82rem;font-weight:600;}
+.btn:hover{background:rgba(124,92,252,0.26);}
+.btn.danger{background:rgba(232,96,143,0.14);border-color:rgba(232,96,143,0.4);color:#f6c2d3;}
+.btn.danger:hover{background:rgba(232,96,143,0.24);}
+.btn.ghost{background:transparent;border-color:rgba(253,249,240,0.16);color:var(--dim);}
+.row-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;}
+
+.toggle-row{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:6px 0;}
+.status-pill{font-size:.7rem;font-weight:700;letter-spacing:.03em;padding:4px 10px;border-radius:100px;}
+.status-pill.on{background:rgba(52,211,153,0.16);color:var(--emerald);}
+.status-pill.off{background:rgba(253,249,240,0.08);color:var(--faint);}
+
+.log-row{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid rgba(253,249,240,0.05);font-size:.78rem;}
+.log-row:last-child{border-bottom:none;}
+.log-row .act{color:var(--warmwhite);font-weight:600;}
+.log-row .at{color:var(--faint);font-family:var(--mono);white-space:nowrap;}
+
+textarea, select{width:100%;background:rgba(253,249,240,0.04);border:1px solid rgba(253,249,240,0.14);color:var(--warmwhite);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:.85rem;margin-top:6px;}
+label{font-size:.78rem;color:var(--faint);}
+
+.gap-note{background:rgba(76,217,232,0.06);border:1px solid rgba(76,217,232,0.2);border-radius:12px;padding:12px 14px;font-size:.78rem;color:var(--dim);line-height:1.55;margin-top:10px;}
+.confirm-box{background:rgba(232,96,143,0.08);border:1px solid rgba(232,96,143,0.3);border-radius:12px;padding:14px 16px;margin-top:12px;}
+</style>
+<link rel="stylesheet" href="css/baa-themes.css">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="tb-logo">BAA OS <span style="color:var(--gold);">·</span> Trust &amp; Privacy Center</div>
+  <a class="tb-back" href="student-os.html">← Student OS</a>
+</div>
+
+<div class="wrap">
+  <div class="eyebrow">Section E — Module 37 · AI Trust, Privacy &amp; Compliance Center</div>
+  <h1>What BAA knows, and what you can do about it</h1>
+  <p class="sub">This page describes, in plain language, exactly what this build actually collects, why, who can reach it, and gives you real controls over it. Nothing here is a generic privacy-policy template — every line below is read from or acts on the real data this app stores on this device.</p>
+
+  <div class="scope-banner">
+    <span>🔒</span>
+    <div><b>Honest security notice:</b> this build now has a PostgreSQL-backed authentication and learner-data layer for selected modules, while some legacy and preference data remains browser-local. Browser-local data is inspectable by anyone with devtools access to this device, so local storage must not be treated as a production security boundary. This is <b>not</b> a claim of "production secure," "fully encrypted," or compliance with any specific law (COPPA/GDPR/FERPA/etc.) — a real compliance posture needs real backend infrastructure this build does not have.</div>
+  </div>
+
+  <h2 class="section-h">What is collected, and why</h2>
+  <div class="card"><div id="inventoryList">Loading…</div></div>
+
+  <h2 class="section-h">How long it's kept</h2>
+  <div class="card"><p class="muted" id="retentionText"></p></div>
+
+  <h2 class="section-h">Consent acknowledgement</h2>
+  <div class="card">
+    <p class="muted">This is a <b>local acknowledgement only</b> — this build has no verified account/parent-identity system, so this cannot be a legally-binding, tamper-proof consent record. A real, verified parental-consent flow is a Section G4+ dependency.</p>
+    <div class="toggle-row" style="margin-top:14px;">
+      <div>
+        <div style="font-weight:600;font-size:.88rem;" id="consentSummary">Loading…</div>
+      </div>
+      <span class="status-pill off" id="consentPill">—</span>
+    </div>
+    <div class="row-actions">
+      <button class="btn" id="consentParentBtn">I'm a parent/guardian — I've read this</button>
+      <button class="btn ghost" id="consentStudentBtn">I'm the student — I've read this</button>
+      <button class="btn ghost" id="consentRevokeBtn">Revoke acknowledgement</button>
+    </div>
+  </div>
+
+  <h2 class="section-h">Human oversight &amp; explainability</h2>
+  <div class="card">
+    <p class="muted"><b>Module 38/59 — how this actually works today:</b> AI evaluation scores, Learning Intelligence states, and Planner tasks each carry a real, evidence-based explanation (see the "Why?" text already shown in your Learning Profile and Planner) — built from your actual assessment evidence, never a placeholder like "AI recommends this." Where there isn't enough evidence, BAA says "not enough evidence yet" instead of guessing.</p>
+    <p class="muted" style="margin-top:10px;"><b>A human always has the final say.</b> Any AI evaluation flagged low-confidence goes to a teacher review queue before it's final, and you can request re-evaluation of <i>any</i> graded question below — a teacher's decision always overrides the AI's, and the AI's original evaluation is never deleted, only kept alongside the human decision.</p>
+    <div class="gap-note">Not yet built in this codebase (so not claimed here): AI-driven career recommendations and "AI Guardian" alerts don't exist yet as features — there is nothing to explain until those are actually implemented in a later section.</div>
+  </div>
+
+  <h2 class="section-h">Request re-evaluation of a graded answer</h2>
+  <div class="card">
+    <p class="muted">If something on a recent assessment looks wrong, you can ask for a real human teacher to look at it — this reuses the same review system Section B already built, it does not create a second one.</p>
+    <div style="margin-top:12px;">
+      <label>Which attempt?</label>
+      <select id="attemptSelect"><option>Loading…</option></select>
+      <label style="margin-top:10px;display:block;">Which question in that attempt?</label>
+      <select id="questionSelect"><option>Select an attempt first</option></select>
+      <label style="margin-top:10px;display:block;">Requested by</label>
+      <select id="requestedBySelect"><option value="student">Student</option><option value="parent">Parent</option></select>
+      <label style="margin-top:10px;display:block;">Why? (optional, shown to the reviewing teacher)</label>
+      <textarea id="appealReason" rows="2" placeholder="e.g. I think this was marked wrong but I explained my reasoning in the answer."></textarea>
+      <div class="row-actions"><button class="btn" id="submitAppealBtn">Request re-evaluation</button></div>
+      <div id="appealResult" class="gap-note" style="display:none;"></div>
+    </div>
+  </div>
+
+  <h2 class="section-h">Healthy learning pace</h2>
+  <div class="card">
+    <p class="muted">BAA optimizes for healthy learning, not maximum time-on-app. A gentle, dismissible break suggestion can appear during long sessions — never a lockout, never guilt-worded, never comparing you to anyone else.</p>
+    <div class="toggle-row" style="margin-top:14px;">
+      <div style="font-weight:600;font-size:.88rem;">Break reminders</div>
+      <span class="status-pill" id="wellbeingPill">—</span>
+    </div>
+    <div class="row-actions">
+      <button class="btn" id="wellbeingOnBtn">Turn on (every 25 min)</button>
+      <button class="btn ghost" id="wellbeingOffBtn">Turn off</button>
+    </div>
+  </div>
+
+  <h2 class="section-h">Activity log</h2>
+  <div class="card"><div id="activityLog">Loading…</div></div>
+
+  <h2 class="section-h">Your data, your control</h2>
+  <div class="card">
+    <h3 class="sub-h">See everything</h3>
+    <p class="muted">Download a copy of everything this build has stored about this student, exactly as it's really stored — nothing summarized or hidden.</p>
+    <div class="row-actions"><button class="btn ghost" id="exportBtn">Export my data (JSON)</button></div>
+
+    <h3 class="sub-h">Fresh start</h3>
+    <p class="muted">Archives, then clears, your active assessments/evidence/plan — a clean slate. <b>Human review &amp; appeal decisions are kept</b>, not erased, since those are the record Module 39 protects.</p>
+    <div class="row-actions"><button class="btn ghost" id="freshStartBtn">Start fresh</button></div>
+    <div id="freshStartResult" class="gap-note" style="display:none;"></div>
+
+    <h3 class="sub-h">Delete my data</h3>
+    <p class="muted">In this local-only build, a deletion request is fulfilled immediately on this device (there's no server copy to separately purge). Choose what to delete:</p>
+    <div class="row-actions">
+      <button class="btn ghost" id="deleteAppBtn">Delete learning data only (keep my account)</button>
+      <button class="btn danger" id="deleteAllBtn">Delete everything on this device</button>
+    </div>
+    <div id="deleteConfirmBox" class="confirm-box" style="display:none;"></div>
+  </div>
+
+  <div class="gap-note" style="margin-top:20px;">
+    <b>Future dependency (G4/G5/G6):</b> production-grade encryption at rest, server-enforced access control, a real backup/retention policy, and legally-verified parental consent all require a live backend and database that do not exist in this build. Everything above is the honest, working foundation this architecture supports today.
+  </div>
+</div>
+
+<script src="js/question-bank.js"></script>
+<script src="js/baa-assessment.js"></script>
+<script src="js/baa-trust.js"></script>
+<script src="js/baa-wellbeing.js"></script>
+<script>
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function renderInventory(){
+  const rows = BAATrust.getDataInventory().map(d => `
+    <div class="inv-row">
+      <div class="k">${esc(d.category)}</div>
+      <div class="muted">${esc(d.why)}</div>
+      <div class="meta">Who can access: ${esc(d.whoCanAccess)}</div>
+      <div class="meta">Retention: ${esc(d.retention)}</div>
+    </div>`).join('');
+  $('inventoryList').innerHTML = rows;
+  $('retentionText').textContent = BAATrust.getRetentionPolicyText();
+}
+
+function renderConsent(){
+  const c = BAATrust.getConsentStatus();
+  $('consentPill').textContent = c.parentalAcknowledgementGiven ? 'Acknowledged' : 'Not yet acknowledged';
+  $('consentPill').className = 'status-pill ' + (c.parentalAcknowledgementGiven ? 'on' : 'off');
+  $('consentSummary').textContent = c.parentalAcknowledgementGiven
+    ? `Acknowledged by ${c.acknowledgedRole} on ${new Date(c.acknowledgedAt).toLocaleString()}`
+    : 'No one has acknowledged reading this page yet on this device.';
+}
+
+function renderWellbeing(){
+  const p = BAAWellbeing.getPrefs();
+  $('wellbeingPill').textContent = p.remindersEnabled ? `On · every ${p.intervalMinutes} min` : 'Off';
+  $('wellbeingPill').className = 'status-pill ' + (p.remindersEnabled ? 'on' : 'off');
+}
+
+function renderLog(){
+  const log = BAATrust.getActivityLog(25);
+  if (!log.length) { $('activityLog').innerHTML = '<p class="muted">No trust/privacy activity recorded on this device yet.</p>'; return; }
+  $('activityLog').innerHTML = log.map(e => `
+    <div class="log-row"><span class="act">${esc(e.action.replace(/_/g,' '))}</span><span class="at">${new Date(e.at).toLocaleString()}</span></div>
+  `).join('');
+}
+
+function renderAttempts(){
+  const store = BAAAssessment._load();
+  const sel = $('attemptSelect');
+  if (!store.attempts.length) { sel.innerHTML = '<option>No graded attempts yet</option>'; $('questionSelect').innerHTML = '<option>—</option>'; return; }
+  sel.innerHTML = store.attempts
+    .filter(a => a.status !== 'in_progress')
+    .map(a => `<option value="${a.id}">${esc(a.assessmentTitle || a.assessmentId)} — ${new Date(a.startedAt || a.completedAt || Date.now()).toLocaleDateString()}</option>`)
+    .join('');
+  sel.addEventListener('change', () => renderQuestionsFor(sel.value));
+  if (sel.value) renderQuestionsFor(sel.value);
+}
+function renderQuestionsFor(attemptId){
+  const store = BAAAssessment._load();
+  const attempt = store.attempts.find(a => a.id === attemptId);
+  const qsel = $('questionSelect');
+  if (!attempt) { qsel.innerHTML = '<option>—</option>'; return; }
+  qsel.innerHTML = attempt.questionResults.map(r => {
+    const q = (typeof BAAGetQuestion === 'function') ? BAAGetQuestion(r.questionId) : null;
+    const label = q ? q.text.slice(0, 60) : r.questionId;
+    return `<option value="${r.questionId}">${esc(label)} (scored ${r.score}/${r.maxScore})</option>`;
+  }).join('');
+}
+
+function wireButtons(){
+  $('consentParentBtn').addEventListener('click', () => { BAATrust.recordConsentAcknowledgement('parent'); renderConsent(); renderLog(); });
+  $('consentStudentBtn').addEventListener('click', () => { BAATrust.recordConsentAcknowledgement('student'); renderConsent(); renderLog(); });
+  $('consentRevokeBtn').addEventListener('click', () => { BAATrust.revokeConsentAcknowledgement(); renderConsent(); renderLog(); });
+
+  $('wellbeingOnBtn').addEventListener('click', () => { BAAWellbeing.setReminderPreference(true, 25); renderWellbeing(); });
+  $('wellbeingOffBtn').addEventListener('click', () => { BAAWellbeing.setReminderPreference(false); renderWellbeing(); });
+
+  $('submitAppealBtn').addEventListener('click', () => {
+    const attemptId = $('attemptSelect').value;
+    const questionId = $('questionSelect').value;
+    const requestedBy = $('requestedBySelect').value;
+    const reason = $('appealReason').value;
+    if (!attemptId || !questionId) return;
+    const res = BAAAssessment.requestReevaluation(attemptId, questionId, { requestedBy, reason });
+    const box = $('appealResult');
+    box.style.display = 'block';
+    box.textContent = res.error
+      ? ('Could not submit: ' + res.error)
+      : 'Sent for human re-evaluation — it now appears in the teacher review queue. The AI\'s original evaluation is preserved either way.';
+  });
+
+  $('exportBtn').addEventListener('click', () => {
+    const dump = BAATrust.exportAllData();
+    const blob = new Blob([JSON.stringify(dump, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'baa-data-export.json'; a.click();
+    URL.revokeObjectURL(url);
+    renderLog();
+  });
+
+  $('freshStartBtn').addEventListener('click', () => {
+    if (!confirm('This archives, then clears, your active assessments/plan on this device. Review/appeal decisions are kept. Continue?')) return;
+    const res = BAATrust.freshStart({ requestedBy: 'student' });
+    const box = $('freshStartResult');
+    box.style.display = 'block';
+    box.textContent = res.error ? ('Could not complete: ' + res.error)
+      : `Done — ${res.preservedReviewCount} human review/appeal decision(s) were preserved, not erased.`;
+    renderLog(); renderAttempts();
+  });
+
+  function doDeletion(scope, label){
+    const box = $('deleteConfirmBox');
+    box.style.display = 'block';
+    box.innerHTML = `<p class="muted">Type-to-confirm: this will really delete ${esc(label)} on this device and cannot be undone here (no server backup exists to recover from).</p>
+      <div class="row-actions" style="margin-top:8px;">
+        <button class="btn danger" id="confirmDelBtn">Yes, delete ${esc(label)}</button>
+        <button class="btn ghost" id="cancelDelBtn">Cancel</button>
+      </div>`;
+    $('confirmDelBtn').addEventListener('click', () => {
+      const req = BAATrust.requestDeletion({ scope, requestedBy: 'student' });
+      const result = BAATrust.fulfillDeletion(req.request.id);
+      box.innerHTML = `<p class="muted">${result.error ? 'Could not complete: ' + esc(result.error) : 'Deletion complete.' + (result.note ? ' ' + esc(result.note) : '')}</p>`;
+      if (scope !== 'everything') { renderLog(); renderInventory(); renderAttempts(); }
+    });
+    $('cancelDelBtn').addEventListener('click', () => { box.style.display = 'none'; });
+  }
+  $('deleteAppBtn').addEventListener('click', () => doDeletion('this_app_only', 'learning data (keep my account)'));
+  $('deleteAllBtn').addEventListener('click', () => doDeletion('everything', 'everything on this device'));
+}
+
+renderInventory();
+renderConsent();
+renderWellbeing();
+renderLog();
+renderAttempts();
+wireButtons();
+
+// Deep-link support: assessment.html's "Request re-evaluation" links here
+// with ?attempt=<id>&question=<id> so the form is preselected instead of
+// making the student re-find the right attempt/question by hand.
+(function preselectFromQuery(){
+  const params = new URLSearchParams(window.location.search);
+  const attemptId = params.get('attempt');
+  const questionId = params.get('question');
+  if (!attemptId) return;
+  const sel = $('attemptSelect');
+  const tryPreselect = () => {
+    if ([...sel.options].some(o => o.value === attemptId)) {
+      sel.value = attemptId;
+      renderQuestionsFor(attemptId);
+      if (questionId) {
+        setTimeout(() => {
+          const qsel = $('questionSelect');
+          if ([...qsel.options].some(o => o.value === questionId)) qsel.value = questionId;
+        }, 0);
+      }
+      document.querySelector('h2.section-h + .card').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  };
+  tryPreselect();
+})();
+</script>
+<script src="js/baa-themes.js"></script>
+</body>
+</html>
