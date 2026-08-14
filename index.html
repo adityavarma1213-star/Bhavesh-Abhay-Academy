@@ -441,6 +441,16 @@
   .modal-overlay.open{ opacity:1; pointer-events:auto; }
 
   .modal{
+    /* Locked, theme-independent text tokens: this modal's background never
+       changes with theme/mode, so its foreground colors must not either.
+       These are deliberately NOT named --warmwhite/--dim/--faint so that
+       no current or future theme/mode rule (which overrides those names
+       at the html[data-baa-mode] level) can ever repaint this modal's
+       text to a dark color again. */
+    --modal-fg: #FDF9F0;
+    --modal-fg-dim: rgba(253,249,240,0.72);
+    --modal-fg-faint: rgba(253,249,240,0.52);
+    color: var(--modal-fg);
     width: min(400px, 88vw);
     background: linear-gradient(160deg, #171d54, #0e123a);
     border: 1px solid rgba(253,249,240,0.12);
@@ -462,43 +472,46 @@
     display:flex; align-items:center; justify-content:center;
     font-size:1.6rem;
   }
-  .modal h3{ font-family: var(--display); font-size: 1.5rem; font-weight:500; margin-bottom:10px; }
-  .modal p{ color: var(--dim); font-size: 0.9rem; margin-bottom: 28px; }
+  .modal h3{ color: var(--modal-fg); font-family: var(--display); font-size: 1.5rem; font-weight:500; margin-bottom:10px; }
+  .modal p{ color: var(--modal-fg-dim); font-size: 0.9rem; margin-bottom: 28px; }
   .modal input{
     width:100%;
     background: rgba(253,249,240,0.06);
     border: 1px solid rgba(253,249,240,0.14);
     border-radius: 12px;
     padding: 14px 16px;
-    color: var(--warmwhite);
+    color: var(--modal-fg);
     font-family: var(--body);
     font-size: 0.92rem;
     margin-bottom: 14px;
     outline:none;
     transition: border-color .3s ease;
   }
+  .modal input::placeholder{ color: var(--modal-fg-dim); opacity: 1; }
   .modal input:focus{ border-color: var(--gold); }
   .modal .btn-primary{ width:100%; margin-top:6px; }
   .auth-tabs{ display:flex; gap:8px; margin-bottom:20px; }
   .auth-tab{
     flex:1; padding:10px 0; border-radius:10px; border:1px solid rgba(253,249,240,0.14);
-    background:transparent; color:var(--dim); font-family:var(--body); font-size:0.85rem;
+    background:transparent; color:var(--modal-fg-dim); font-family:var(--body); font-size:0.85rem;
     font-weight:600; cursor:pointer; transition: all .25s ease;
   }
-  .auth-tab.active{ background: rgba(124,92,252,0.18); border-color: var(--violet); color: var(--warmwhite); }
+  .auth-tab.active{ background: rgba(124,92,252,0.18); border-color: var(--violet); color: var(--modal-fg); }
   .auth-error{
     display:block; color:#FF9E9E; background: rgba(255,80,80,0.1);
     border:1px solid rgba(255,80,80,0.25); border-radius:10px;
     padding:10px 14px; font-size:0.82rem; margin-bottom:14px;
   }
   .auth-error[hidden]{ display:none; }
-  .auth-note{ color: var(--faint); font-size:0.72rem; margin-top:16px; margin-bottom:0; line-height:1.5; }
+  .auth-note{ color: var(--modal-fg-faint); font-size:0.72rem; margin-top:16px; margin-bottom:0; line-height:1.5; }
+  .auth-note a{ color: var(--modal-fg-dim); text-decoration: underline; }
+  .auth-note a:hover{ color: var(--modal-fg); }
   .modal .close-x{
     position:absolute; top:18px; right:18px;
     width:32px;height:32px;
     border-radius:50%;
     background: rgba(253,249,240,0.06);
-    border:none; color: var(--warmwhite);
+    border:none; color: var(--modal-fg);
     cursor:pointer;
     font-size: 1rem;
     display:flex; align-items:center; justify-content:center;
@@ -677,11 +690,26 @@
       <input type="text" placeholder="Full name" id="signupName" autocomplete="name">
       <input type="email" placeholder="Email address" id="authEmail" autocomplete="email" required>
       <input type="password" placeholder="Password (min. 8 characters)" id="authPassword" autocomplete="current-password" required>
+      <button type="button" id="forgotPasswordLink" onclick="showForgotPassword()" style="display:none;background:none;border:none;padding:0;margin:-6px 0 14px;font:600 0.78rem var(--body);color:var(--modal-fg-dim);cursor:pointer;text-decoration:underline;">Forgot password?</button>
       <button type="submit" class="btn-primary" id="authSubmitBtn"><span>Create My Account</span></button>
     </form>
 
-    <p class="auth-note">🧪 Local testing account — stored only in this browser. Not a
-      production-secure login (see project docs).</p>
+    <form id="forgotForm" style="display:none" onsubmit="return handleForgotSubmit(event)">
+      <input type="email" placeholder="Email address" id="forgotEmail" autocomplete="email" required>
+      <button type="submit" class="btn-primary" id="forgotSubmitBtn"><span>Send Reset Link</span></button>
+      <button type="button" onclick="hideForgotPassword()" style="background:none;border:none;padding:0;margin-top:12px;font:600 0.78rem var(--body);color:var(--modal-fg-dim);cursor:pointer;text-decoration:underline;">Back to Log In</button>
+    </form>
+
+    <form id="resetForm" style="display:none" onsubmit="return handleResetSubmit(event)">
+      <input type="password" placeholder="New password (min. 8 characters)" id="resetPassword" autocomplete="new-password" required>
+      <button type="submit" class="btn-primary" id="resetSubmitBtn"><span>Set New Password</span></button>
+    </form>
+
+    <p class="auth-note" id="authNote">Your account is created on BAA's server and secured with a hashed
+      password — it is not stored in your browser.</p>
+    <p class="auth-note" id="forgotNote" style="display:none">Enter the email you signed up with. If an account
+      exists, we'll email a link to reset your password.</p>
+    <p class="auth-note" id="resetNote" style="display:none">Choose a new password for your account.</p>
   </div>
 </div>
 
@@ -700,15 +728,9 @@
   });
 
   // ---------- Section G2: signup / login modal ----------
-  // Client-side/local-testing only — see
-  // js/data-access/repositories/accountRepository.js for the full
-  // honesty notes on what this account system is and is not.
+  // Wired to the real server-backed auth API (api/auth/[...action].js),
+  // which persists accounts in Postgres and issues a real session cookie.
   let authMode = 'signup';
-
-  function getAccountRepo(){
-    const adapter = window.BAADataAccess.getActiveAdapter();
-    return window.BAAAccountRepository.getRepo(adapter);
-  }
 
   function setAuthMode(mode){
     authMode = mode;
@@ -723,6 +745,13 @@
       : 'Log back in to pick up where you left off.';
     document.getElementById('authSubmitBtn').querySelector('span').textContent = isSignup ? 'Create My Account' : 'Log In';
     document.getElementById('authPassword').autocomplete = isSignup ? 'new-password' : 'current-password';
+    document.getElementById('forgotPasswordLink').style.display = isSignup ? 'none' : 'block';
+    document.getElementById('authForm').style.display = '';
+    document.getElementById('forgotForm').style.display = 'none';
+    document.getElementById('resetForm').style.display = 'none';
+    document.getElementById('authNote').style.display = '';
+    document.getElementById('forgotNote').style.display = 'none';
+    document.getElementById('resetNote').style.display = 'none';
     hideAuthError();
   }
 
@@ -735,31 +764,114 @@
     document.getElementById('authError').hidden = true;
   }
 
+  async function callAuthApi(action, body){
+    const res = await fetch('/api/auth/' + action, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    let data = {};
+    try { data = await res.json(); } catch {}
+    if (!res.ok) {
+      const message = (data && data.error && data.error.message) || 'Something went wrong. Please try again.';
+      return { ok: false, errors: [message] };
+    }
+    return { ok: true, ...data };
+  }
+
   function handleAuthSubmit(event){
     event.preventDefault();
     hideAuthError();
     const email = document.getElementById('authEmail').value.trim();
     const password = document.getElementById('authPassword').value;
-    const repo = getAccountRepo();
     const submitBtn = document.getElementById('authSubmitBtn');
     submitBtn.disabled = true;
 
-    const finish = (result) => {
+    const finish = (result, fallbackName) => {
       submitBtn.disabled = false;
       if (!result.ok) {
         showAuthError((result.errors && result.errors[0]) || 'Something went wrong. Please try again.');
         return;
       }
-      const name = result.user.display_name || '';
+      const name = (result.user && result.user.name) || fallbackName || '';
       window.location.href = 'student-os.html' + (name ? ('?name=' + encodeURIComponent(name)) : '');
     };
 
     if (authMode === 'signup') {
       const name = document.getElementById('signupName').value.trim();
-      repo.signUp({ name, email, password }).then(finish).catch(() => finish({ ok: false, errors: ['Something went wrong. Please try again.'] }));
+      callAuthApi('signup', { name, email, password, role: 'student' }).then((signupResult) => {
+        if (!signupResult.ok) { finish(signupResult); return; }
+        // signup creates the account but does not itself start a session —
+        // immediately log in with the same credentials to get a real cookie.
+        callAuthApi('login', { email, password }).then((loginResult) => finish(loginResult, name));
+      });
     } else {
-      repo.logIn({ email, password }).then(finish).catch(() => finish({ ok: false, errors: ['Something went wrong. Please try again.'] }));
+      callAuthApi('login', { email, password }).then((result) => finish(result));
     }
+    return false;
+  }
+
+  function showForgotPassword(){
+    document.getElementById('authForm').style.display = 'none';
+    document.getElementById('forgotForm').style.display = '';
+    document.getElementById('authNote').style.display = 'none';
+    document.getElementById('forgotNote').style.display = '';
+    document.getElementById('authModalTitle').textContent = 'Reset your password';
+    document.getElementById('authModalSubtitle').textContent = 'We\'ll email you a link to set a new one.';
+    hideAuthError();
+  }
+  function hideForgotPassword(){ setAuthMode('login'); }
+
+  function handleForgotSubmit(event){
+    event.preventDefault();
+    hideAuthError();
+    const email = document.getElementById('forgotEmail').value.trim();
+    const submitBtn = document.getElementById('forgotSubmitBtn');
+    submitBtn.disabled = true;
+    callAuthApi('request-password-reset', { email }).then((result) => {
+      submitBtn.disabled = false;
+      if (!result.ok) { showAuthError((result.errors && result.errors[0]) || 'Something went wrong.'); return; }
+      const note = document.getElementById('forgotNote');
+      if (result.emailSent) {
+        note.textContent = 'Check your email for a reset link.';
+      } else {
+        // Honest state: the request was processed, but no email provider
+        // is configured yet, so nothing was actually delivered.
+        note.textContent = 'Password reset requests aren\u2019t connected to email yet. Please contact your teacher or site admin for help resetting your password.';
+      }
+    });
+    return false;
+  }
+
+  function showResetForm(){
+    document.getElementById('authForm').style.display = 'none';
+    document.getElementById('forgotForm').style.display = 'none';
+    document.getElementById('resetForm').style.display = '';
+    document.getElementById('authNote').style.display = 'none';
+    document.getElementById('resetNote').style.display = '';
+    document.getElementById('authTabSignup').style.display = 'none';
+    document.getElementById('authTabLogin').style.display = 'none';
+    document.getElementById('authModalTitle').textContent = 'Set a new password';
+    document.getElementById('authModalSubtitle').textContent = '';
+  }
+
+  function handleResetSubmit(event){
+    event.preventDefault();
+    hideAuthError();
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('reset');
+    const newPassword = document.getElementById('resetPassword').value;
+    const submitBtn = document.getElementById('resetSubmitBtn');
+    submitBtn.disabled = true;
+    callAuthApi('reset-password', { token, newPassword }).then((result) => {
+      submitBtn.disabled = false;
+      if (!result.ok) { showAuthError((result.errors && result.errors[0]) || 'This reset link may be invalid or expired.'); return; }
+      document.getElementById('resetNote').textContent = 'Password updated. You can log in now.';
+      document.getElementById('authTabSignup').style.display = '';
+      document.getElementById('authTabLogin').style.display = '';
+      setAuthMode('login');
+    });
     return false;
   }
 
@@ -768,6 +880,12 @@
     openModal();
   }
   function openModal(){
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('reset')) {
+      document.getElementById('modalOverlay').classList.add('open');
+      showResetForm();
+      return;
+    }
     setAuthMode('signup');
     document.getElementById('modalOverlay').classList.add('open');
   }
@@ -775,6 +893,12 @@
   document.getElementById('modalOverlay').addEventListener('click', (e) => {
     if(e.target.id === 'modalOverlay') closeModal();
   });
+
+  // If this page was opened from a password-reset email link, open
+  // straight into the "set new password" form.
+  if (new URLSearchParams(window.location.search).get('reset')) {
+    openModal();
+  }
 
 </script>
 
