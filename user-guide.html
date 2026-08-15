@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BAA OS — User Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;1,9..144,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/baa-themes.css">
+<style>
+  :root{ --violet:#7C5CFC; --gold:#F5B942; --warmwhite:#FDF9F0; --dim:rgba(253,249,240,0.68); --display:'Fraunces',serif; --body:'Inter',sans-serif; }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:linear-gradient(160deg,#0b0f2e,#141342 60%,#0a1730);color:var(--warmwhite);font-family:var(--body);min-height:100vh;padding:32px 20px 80px;}
+  .wrap{max-width:820px;margin:0 auto;}
+  a.back{color:var(--dim);text-decoration:none;font-size:0.85rem;}
+  h1{font-family:var(--display);font-size:2rem;font-weight:500;margin:18px 0 6px;}
+  .sub{color:var(--dim);margin-bottom:36px;font-size:0.95rem;}
+  h2{font-family:var(--display);font-size:1.3rem;font-weight:500;margin:38px 0 14px;color:var(--gold);}
+  .card{background:rgba(253,249,240,0.04);border:1px solid rgba(253,249,240,0.1);border-radius:16px;padding:18px 20px;margin-bottom:12px;}
+  .card b{display:block;margin-bottom:5px;}
+  .card p{color:var(--dim);font-size:0.88rem;line-height:1.6;}
+  .theme-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media(max-width:600px){.theme-grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">&larr; Back to BAA OS</a>
+  <h1>BAA OS — User Guide</h1>
+  <p class="sub">How to use every major part of BAA OS.</p>
+
+  <h2>Getting started</h2>
+  <div class="card"><b>Account / Login</b>
+    <p>Use "Sign Up" to create an account (name, email, password) or "Log In" if you already have one. Your account
+    is stored on BAA's server, not just in your browser. Forgot your password? Use the "Forgot password?" link on
+    the Log In tab.</p></div>
+
+  <h2>Student sections</h2>
+  <div class="card"><b>Home</b><p>Your daily starting point — today's AI-picked mission, streak, level, and XP, with
+    quick access to every other section.</p></div>
+  <div class="card"><b>Learn / Knowledge Universe</b><p>Every subject as its own world, showing where you stand on
+    each topic based on real evidence from your attempts.</p></div>
+  <div class="card"><b>AI Tutor</b><p>Ask questions in plain language. Choose your explanation style ("Normal Tutor,"
+    "A Story," etc.) and language from the dropdowns above the chat box.</p></div>
+  <div class="card"><b>Assessments</b><p>Take quizzes and tests. Auto-graded questions are marked instantly;
+    open-ended answers are AI-evaluated and can be reviewed by your teacher.</p></div>
+  <div class="card"><b>Challenge Arena</b><p>Fast-paced competitive practice for when you want energy over a quiet
+    study session.</p></div>
+  <div class="card"><b>XP & Rewards</b><p>Earn XP and badges for attempts, mastered concepts, and completed homework.
+    Track your streak and see how you rank on the leaderboard.</p></div>
+  <div class="card"><b>Planner</b><p>A daily task list generated from your actual learning evidence — practice,
+    revision, or reassessment — not a generic checklist.</p></div>
+  <div class="card"><b>Progress</b><p>See your standing per subject/chapter, including anything currently blocking
+    you from moving to the next chapter (a "mastery gate") until it's cleared.</p></div>
+  <div class="card"><b>Virtual Labs</b><p>Run safe, deterministic simulations — projectile motion, Ohm's Law, and
+    quadratic exploration — to see concepts in action.</p></div>
+  <div class="card"><b>Coding Lab & Career</b><p>Explore programming and career-path content beyond the core
+    syllabus.</p></div>
+
+  <h2>Parent & Teacher</h2>
+  <div class="card"><b>Parent OS</b><p>See your child's real learning progress and evidence — not just scores — and
+    stay informed on what they're working through.</p></div>
+  <div class="card"><b>Teacher OS</b><p>Class-wide analytics, the ability to review and override AI-graded work, and
+    a space to leave notes on individual students.</p></div>
+
+  <h2>Themes</h2>
+  <p class="sub" style="margin-bottom:16px;">Open the theme button (top corner of any page) to switch between six
+    visual identities, each in Light, Dark, or System mode.</p>
+  <div class="theme-grid">
+    <div class="card"><b>⭐ Aurora</b><p>The flagship BAA identity — premium, atmospheric, cyan/violet/gold accents.</p></div>
+    <div class="card"><b>🌌 Galaxy</b><p>A more playful, exploration-driven feel for student adventure.</p></div>
+    <div class="card"><b>📚 Academic</b><p>Clean, structured, and professional — built for parents, teachers, and schools.</p></div>
+    <div class="card"><b>💎 NeoGlass</b><p>Premium glassmorphism — translucent, layered surfaces.</p></div>
+    <div class="card"><b>🌿 Calm</b><p>Soft, low-intensity, focus-friendly surfaces for wellbeing.</p></div>
+    <div class="card"><b>🧸 Duology</b><p>Bright, rounded, and friendly — built for a younger audience, with gentle
+      motion that respects reduced-motion settings.</p></div>
+  </div>
+</div>
+</body>
+</html>
