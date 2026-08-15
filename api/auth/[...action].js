@@ -142,7 +142,18 @@ const handler_reset_password=__build_reset_password();
 
 export default async function handler(req,res){
   try{
-    const seg=req.query.action,route=Array.isArray(seg)?seg[0]:seg;
+    const seg=req.query&&req.query.action;
+    let route=Array.isArray(seg)?seg[0]:seg;
+    // Fall back to parsing the path directly when the platform does not
+    // populate req.query with the matched dynamic segment for this
+    // catch-all route -- avoids depending on framework-specific query
+    // population behavior that has proven unreliable in this deployment.
+    if(!route){
+      const pathname=String(req.url||'').split('?')[0];
+      const parts=pathname.split('/').filter(Boolean);
+      const authIdx=parts.indexOf('auth');
+      route=authIdx>=0 && parts.length>authIdx+1 ? decodeURIComponent(parts[authIdx+1]) : undefined;
+    }
     if(route==='login')return handler_login(req,res);
     if(route==='logout')return handler_logout(req,res);
     if(route==='me')return handler_me(req,res);
