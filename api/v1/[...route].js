@@ -1,16 +1,8 @@
 import { beginOfflineOperation, completeOfflineOperation, rejectOfflineOperation } from '../_lib/offline-sync.js';
-import { gradeDeterministic, verifyAssessmentVerdict } from '../_lib/assessment-verdict.js';
-import { json } from '../_lib/security.js';
-import { json, id, writeAudit } from '../_lib/security.js';
-import { json, id, writeAudit, clientIp } from '../_lib/security.js';
-import { json, writeAudit } from '../_lib/security.js';
-import { requireAuth } from '../_lib/auth.js';
-import { requireAuth, hasRole } from '../_lib/auth.js';
-import { requireAuth, requireLearnerAccess } from '../_lib/auth.js';
-import { requireAuth, requireLearnerAccess, hasRole } from '../_lib/auth.js';
+import { gradeDeterministic, verifyAssessmentVerdict, verifyHomeworkVerdict, hashHomeworkText } from '../_lib/assessment-verdict.js';
+import { json, id, writeAudit, clientIp, verifyPassword } from '../_lib/security.js';
+import { requireAuth, hasRole, requireLearnerAccess } from '../_lib/auth.js';
 import { sql } from '../_lib/db.js';
-import { verifyHomeworkVerdict, hashHomeworkText } from '../_lib/assessment-verdict.js';
-import { verifyPassword } from '../_lib/security.js';
 
 export const config={runtime:'nodejs'};
 
@@ -375,7 +367,7 @@ async function handler(req,res){let offlineOp=null;try{const s=await requireAuth
     status='pending_review'; lastEvaluationError='Evaluation verdict rejected: VERDICT_MISSING';
   }
 
-  await sql`INSERT INTO homework_submissions(id,learner_id,submitted_at,input_type,text,subject_hint,attachments,status,evaluation,last_evaluation_error,learning_integration,review,updated_at) VALUES(${x.id},${learnerId},${x.submittedAt||new Date().toISOString()},${x.inputType||'text'},${text},${x.subjectHint||null},${JSON.stringify(x.attachments||[])},${status},${evaluation?JSON.stringify(evaluation):null},${lastEvaluationError},${learningIntegration},${x.review?JSON.stringify(x.review):null},${new Date().toISOString()}) ON CONFLICT(id) DO UPDATE SET status=EXCLUDED.status,evaluation=EXCLUDED.evaluation,last_evaluation_error=EXCLUDED.last_evaluation_error,learning_integration=EXCLUDED.learning_integration,review=EXCLUDED.review,updated_at=EXCLUDED.updated_at WHERE homework_submissions.learner_id=EXCLUDED.learner_id;
+  await sql`INSERT INTO homework_submissions(id,learner_id,submitted_at,input_type,text,subject_hint,attachments,status,evaluation,last_evaluation_error,learning_integration,review,updated_at) VALUES(${x.id},${learnerId},${x.submittedAt||new Date().toISOString()},${x.inputType||'text'},${text},${x.subjectHint||null},${JSON.stringify(x.attachments||[])},${status},${evaluation?JSON.stringify(evaluation):null},${lastEvaluationError},${learningIntegration},${x.review?JSON.stringify(x.review):null},${new Date().toISOString()}) ON CONFLICT(id) DO UPDATE SET status=EXCLUDED.status,evaluation=EXCLUDED.evaluation,last_evaluation_error=EXCLUDED.last_evaluation_error,learning_integration=EXCLUDED.learning_integration,review=EXCLUDED.review,updated_at=EXCLUDED.updated_at WHERE homework_submissions.learner_id=EXCLUDED.learner_id`;
 }const response={ok:true,submissions:await snapshot(learnerId)};await completeOfflineOperation(offlineOp,response);await writeAudit({actorUserId:s.user_id,action:'homework.sync',entityType:'learner',entityId:learnerId,metadata:{submissions:rows.length,offlineOperation:Boolean(offlineOp?.enabled)}});return json(res,200,response);}catch(e){if(offlineOp?.enabled&&!offlineOp?.duplicate)await rejectOfflineOperation(offlineOp,e.code||'HOMEWORK_SYNC_FAILED').catch(()=>{});return json(res,e.status||500,{error:{code:e.code||'HOMEWORK_SYNC_FAILED',message:e.status?e.message:'Homework sync failed.'}});}}
   return handler;
 }
@@ -750,7 +742,7 @@ async function handler(req,res){
         const owner=await sql`SELECT learner_id FROM planner_goals WHERE id=${g.id} LIMIT 1`;
         if (owner.rows.length && owner.rows[0].learner_id!==learnerId) continue;
         await sql`INSERT INTO planner_goals(id,learner_id,text,created_at) VALUES(${g.id},${learnerId},${String(g.text).slice(0,500)},${g.createdAt||now})
-                   ON CONFLICT(id) DO UPDATE SET text=EXCLUDED.text WHERE planner_goals.learner_id=EXCLUDED.learner_id;
+                   ON CONFLICT(id) DO UPDATE SET text=EXCLUDED.text WHERE planner_goals.learner_id=EXCLUDED.learner_id`;
       }
 
       // Upcoming assessments: same replace-set semantics.
@@ -766,7 +758,7 @@ async function handler(req,res){
         if (owner.rows.length && owner.rows[0].learner_id!==learnerId) continue;
         await sql`INSERT INTO planner_upcoming_assessments(id,learner_id,title,subject,date,assessment_id,created_at)
                    VALUES(${u.id},${learnerId},${String(u.title).slice(0,300)},${u.subject||null},${u.date},${u.assessmentId||null},${now})
-                   ON CONFLICT(id) DO UPDATE SET title=EXCLUDED.title,subject=EXCLUDED.subject,date=EXCLUDED.date,assessment_id=EXCLUDED.assessment_id WHERE planner_upcoming_assessments.learner_id=EXCLUDED.learner_id;
+                   ON CONFLICT(id) DO UPDATE SET title=EXCLUDED.title,subject=EXCLUDED.subject,date=EXCLUDED.date,assessment_id=EXCLUDED.assessment_id WHERE planner_upcoming_assessments.learner_id=EXCLUDED.learner_id`;
       }
 
       // Tasks: never deleted (matches client's own "full task history"
@@ -784,7 +776,7 @@ async function handler(req,res){
                      VALUES(${t.id},${learnerId},${t.type},${String(t.title).slice(0,300)},${t.concept||null},${t.subject||null},
                             ${t.estimatedMinutes||0},${t.priority||'medium'},${JSON.stringify(t.reasons||[])},${t.action?JSON.stringify(t.action):null},
                             ${status},${t.scheduledDate},${t.createdAt||now},${t.completedAt||null})
-                     ON CONFLICT(id) DO UPDATE SET status=EXCLUDED.status,completed_at=EXCLUDED.completed_at,scheduled_date=EXCLUDED.scheduled_date WHERE planner_tasks.learner_id=EXCLUDED.learner_id;
+                     ON CONFLICT(id) DO UPDATE SET status=EXCLUDED.status,completed_at=EXCLUDED.completed_at,scheduled_date=EXCLUDED.scheduled_date WHERE planner_tasks.learner_id=EXCLUDED.learner_id`;
           const was=prevStatus.get(t.id);
           if (was!==undefined && was!==status) {
             await sql`INSERT INTO planner_task_events(id,task_id,event,note,occurred_at) VALUES(${id('evt')},${t.id},${status},${'synced from client'},${now})`;
