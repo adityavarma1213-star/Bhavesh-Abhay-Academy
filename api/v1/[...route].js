@@ -970,8 +970,18 @@ const handler_teacher_notes = __build_teacher_notes();
 
 export default async function handler(req,res){
   try{
-    const seg = req.query.route;
-    const route = Array.isArray(seg) ? seg[0] : seg;
+    const seg = req.query && req.query.route;
+    let route = Array.isArray(seg) ? seg[0] : seg;
+    // Same fallback as api/auth/[...action].js: this platform does not
+    // reliably populate req.query with the matched dynamic segment for
+    // catch-all routes, confirmed via production logs (GET /api/v1/my-learners
+    // returning 404 Unknown route with an authenticated, valid request).
+    if(!route){
+      const pathname=String(req.url||'').split('?')[0];
+      const parts=pathname.split('/').filter(Boolean);
+      const v1Idx=parts.indexOf('v1');
+      route=v1Idx>=0 && parts.length>v1Idx+1 ? decodeURIComponent(parts[v1Idx+1]) : undefined;
+    }
     if(route==='academic-forecast') return handler_academic_forecast(req,res);
     if(route==='assessment') return handler_assessment(req,res);
     if(route==='audit') return handler_audit(req,res);
