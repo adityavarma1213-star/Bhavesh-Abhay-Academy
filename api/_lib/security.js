@@ -44,7 +44,9 @@ export function securityHeaders(extra={}) {
 }
 
 export function json(res, status, body, extra={}) {
-  return res.status(status).set(securityHeaders(extra)).json(body);
+  const headers = securityHeaders(extra);
+  for (const key in headers) res.setHeader(key, headers[key]);
+  return res.status(status).json(body);
 }
 
 export function cookie(name, value, options={}) {
