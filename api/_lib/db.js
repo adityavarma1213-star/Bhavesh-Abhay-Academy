@@ -33,7 +33,21 @@ export function requireDatabase() {
 
 // Keep the existing tagged-template call sites stable while removing the
 // Vercel-specific SDK dependency.
-export function sql(strings, ...values) {
-  return getClient()(strings, ...values);
+//
+// The `postgres` driver returns query results as a plain array (with extra
+// non-enumerable properties like .count), NOT wrapped in a `{ rows: [...] }`
+// object the way node-postgres (`pg`) does. Every call site throughout this
+// codebase (auth routes, api/v1 routes, rate limiting, offline sync -- ~90
+// call sites) was written against the `{ rows }` shape, so every single
+// query was throwing "Cannot read properties of undefined (reading
+// 'length'/'0')" the moment its result was touched. Wrapping the result
+// here, once, at the source, restores that expected shape for every
+// existing call site without having to touch any of them individually.
+export async function sql(strings, ...values) {
+  const rows = await getClient()(strings, ...values);
+  return { rows };
 }
-sql.query = (text, values = []) => getClient().unsafe(text, values);
+sql.query = async (text, values = []) => {
+  const rows = await getClient().unsafe(text, values);
+  return { rows };
+};
