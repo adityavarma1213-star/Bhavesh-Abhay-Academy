@@ -15,6 +15,9 @@ async function handler(req,res){
   try{
     const {email,password}=req.body||{};
     const clean=String(email||'').trim().toLowerCase();
+    if(!/^\S+@\S+\.\S+$/.test(clean)) return json(res,400,{error:{code:'INVALID_EMAIL',message:'A valid email is required.'}});
+    const loginRate = await consumeAiRateLimit('auth-login', `${clientIp(req)}:${clean}`, { windowSeconds: 900, maxRequests: 10 });
+    if (loginRate.limited) return json(res,429,{error:{code:'TOO_MANY_LOGIN_ATTEMPTS',message:'Too many failed login attempts for this account. Please wait 15 minutes and try again.'}});
     const r=await sql`SELECT u.id,u.display_name,u.email,c.password_hash FROM users u JOIN credentials c ON c.user_id=u.id WHERE lower(u.email)=${clean} AND u.deactivated_at IS NULL LIMIT 1`;
     if(!r.rows.length || !verifyPassword(String(password||''),r.rows[0].password_hash)) return json(res,401,{error:{code:'INVALID_CREDENTIALS',message:'Incorrect email or password.'}});
     const raw=randomToken(), tokenHash=hashToken(raw), sessionId=id('session');
