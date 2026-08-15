@@ -33,7 +33,7 @@ async function handler(req,res){
     await safeAudit({actorUserId:r.rows[0].id,action:'auth.login',entityType:'auth_session',entityId:sessionId,metadata:{ip:clientIp(req)}});
     res.setHeader('Set-Cookie',sessionCookie(raw));
     return json(res,200,{ok:true,user:{id:r.rows[0].id,name:r.rows[0].display_name,email:r.rows[0].email},expiresInDays:SESSION_DAYS});
-  }catch(e){return json(res,500,{error:{code:e.code||'LOGIN_FAILED',message:'Unable to complete login.'}});}
+  }catch(e){console.error('LOGIN_FAILED',e);return json(res,500,{error:{code:e.code||'LOGIN_FAILED',message:'Unable to complete login.'}});}
 }
 return handler;}
 const handler_login=__build_login();
@@ -47,7 +47,7 @@ async function handler(req,res){
     const raw=h.startsWith('Bearer ')?h.slice(7).trim():(m?decodeURIComponent(m[1]):null);
     if(raw){const tokenHash=hashToken(raw);const r=await sql`UPDATE auth_sessions SET revoked_at=NOW() WHERE token_hash=${tokenHash} AND revoked_at IS NULL RETURNING id,user_id`;if(r.rows.length)await safeAudit({actorUserId:r.rows[0].user_id,action:'auth.logout',entityType:'auth_session',entityId:r.rows[0].id});}
     res.setHeader('Set-Cookie',cookie('baa_session','',{maxAge:0}));return json(res,200,{ok:true});
-  }catch(e){return json(res,500,{error:{code:e.code||'LOGOUT_FAILED',message:'Unable to complete logout.'}});}
+  }catch(e){console.error('LOGOUT_FAILED',e);return json(res,500,{error:{code:e.code||'LOGOUT_FAILED',message:'Unable to complete logout.'}});}
 }
 return handler;}
 const handler_logout=__build_logout();
@@ -57,7 +57,7 @@ function __build_me(){
 async function handler(req,res){
   if(req.method!=='GET')return json(res,405,{error:{code:'METHOD_NOT_ALLOWED',message:'GET required.'}},{Allow:'GET'});
   try{const s=await requireAuth(req);return json(res,200,{ok:true,user:{id:s.user_id,name:s.display_name,email:s.email,roles:s.roles},expiresAt:s.expires_at});}
-  catch(e){return json(res,e.status||500,{error:{code:e.code||'SESSION_LOOKUP_FAILED',message:e.status?e.message:'Unable to resolve session.'}});}
+  catch(e){if(!e.status)console.error('SESSION_LOOKUP_FAILED',e);return json(res,e.status||500,{error:{code:e.code||'SESSION_LOOKUP_FAILED',message:e.status?e.message:'Unable to resolve session.'}});}
 }
 return handler;}
 const handler_me=__build_me();
@@ -94,7 +94,7 @@ async function handler(req,res){
     await safeAudit({actorUserId:userId,action:'auth.signup_login',entityType:'auth_session',entityId:sessionId,metadata:{role}});
     res.setHeader('Set-Cookie',sessionCookie(raw));
     return json(res,201,{ok:true,user:{id:userId,name:displayName,email:cleanEmail,role},learnerId,expiresInDays:7});
-  }catch(e){return json(res,500,{error:{code:e.code||'SIGNUP_FAILED',message:'Unable to create account right now. Please try again.'}});}
+  }catch(e){console.error('SIGNUP_FAILED',e);return json(res,500,{error:{code:e.code||'SIGNUP_FAILED',message:'Unable to create account right now. Please try again.'}});}
 }
 return handler;}
 const handler_signup=__build_signup();
@@ -112,7 +112,7 @@ async function handler(req,res){
     let emailSent=false,emailReason=null;
     if(r.rows.length){const userId=r.rows[0].id,raw=randomToken(),tokenHash=hashToken(raw),tokenId=id('reset');await sql`INSERT INTO password_reset_tokens(id,user_id,token_hash,expires_at,requested_ip) VALUES(${tokenId},${userId},${tokenHash},NOW()+INTERVAL '1 hour',${clientIp(req)})`;const origin=req.headers.origin||`https://${req.headers.host}`,resetUrl=`${origin}/index.html?reset=${encodeURIComponent(raw)}`;const result=await sendPasswordResetEmail({to:cleanEmail,resetUrl});emailSent=result.sent;emailReason=result.sent?null:result.reason;await safeAudit({actorUserId:userId,action:'auth.password_reset_requested',entityType:'user',entityId:userId,metadata:{emailSent}});}
     return json(res,200,{ok:true,emailSent,emailReason});
-  }catch(e){return json(res,500,{error:{code:e.code||'RESET_REQUEST_FAILED',message:'Unable to process reset request.'}});}
+  }catch(e){console.error('RESET_REQUEST_FAILED',e);return json(res,500,{error:{code:e.code||'RESET_REQUEST_FAILED',message:'Unable to process reset request.'}});}
 }
 return handler;}
 const handler_request_password_reset=__build_request_password_reset();
@@ -135,7 +135,7 @@ async function handler(req,res){
     await sql`UPDATE auth_sessions SET revoked_at=NOW() WHERE user_id=${row.user_id} AND revoked_at IS NULL`;
     await safeAudit({actorUserId:row.user_id,action:'auth.password_reset_completed',entityType:'user',entityId:row.user_id,metadata:{}});
     return json(res,200,{ok:true});
-  }catch(e){return json(res,500,{error:{code:e.code||'RESET_FAILED',message:'Unable to reset password.'}});}
+  }catch(e){console.error('RESET_FAILED',e);return json(res,500,{error:{code:e.code||'RESET_FAILED',message:'Unable to reset password.'}});}
 }
 return handler;}
 const handler_reset_password=__build_reset_password();
@@ -161,5 +161,5 @@ export default async function handler(req,res){
     if(route==='request-password-reset')return handler_request_password_reset(req,res);
     if(route==='reset-password')return handler_reset_password(req,res);
     return json(res,404,{error:{code:'NOT_FOUND',message:'Unknown route.'}});
-  }catch(e){return json(res,500,{error:{code:e.code||'INTERNAL_ERROR',message:'Unexpected server error.'}});}
+  }catch(e){console.error('INTERNAL_ERROR',e);return json(res,500,{error:{code:e.code||'INTERNAL_ERROR',message:'Unexpected server error.'}});}
 }
