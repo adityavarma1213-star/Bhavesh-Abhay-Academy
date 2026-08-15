@@ -1,9 +1,8 @@
-import { hashPassword, id, json, writeAudit } from '../_lib/security.js';
-import { hashToken, json, cookie, writeAudit } from '../_lib/security.js';
-import { json } from '../_lib/security.js';
+import { hashPassword, verifyPassword, randomToken, hashToken, id, json, cookie, writeAudit, clientIp } from '../_lib/security.js';
 import { requireAuth } from '../_lib/auth.js';
 import { sql } from '../_lib/db.js';
-import { verifyPassword, randomToken, hashToken, id, json, cookie, writeAudit, clientIp } from '../_lib/security.js';
+import { sendPasswordResetEmail } from '../_lib/email.js';
+import { consumeAiRateLimit } from '../_lib/ai-rate-limit.js';
 
 export const config={runtime:'nodejs'};
 
@@ -69,7 +68,7 @@ async function handler(req,res){
   try{
     const {name,email,password,role='student'}=req.body||{};
     const cleanEmail=String(email||'').trim().toLowerCase();
-    if(!String(name||'').trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail) || String(password||'').length<8)
+    if(!String(name||'').trim() || !/^\S+@\S+\.\S+$/.test(cleanEmail) || String(password||'').length<8)
       return json(res,400,{error:{code:'INVALID_SIGNUP',message:'Name, valid email and password of at least 8 characters are required.'}});
     if(!['student','parent','teacher'].includes(role)) return json(res,400,{error:{code:'INVALID_ROLE',message:'Public signup supports student, parent or teacher.'}});
     const existing=await sql`SELECT id FROM users WHERE lower(email)=${cleanEmail} AND deactivated_at IS NULL LIMIT 1`;
@@ -78,9 +77,6 @@ async function handler(req,res){
     await sql`INSERT INTO users(id,display_name,email,created_at,updated_at) VALUES(${userId},${String(name).trim()},${cleanEmail},${now},${now})`;
     await sql`INSERT INTO credentials(user_id,password_hash,algorithm,created_at,updated_at) VALUES(${userId},${hashPassword(password)},'pbkdf2-sha256-310000',${now},${now})`;
     await sql`INSERT INTO user_roles(user_id,role,granted_at) VALUES(${userId},${role},${now})`;
-    // A 'student' account needs a learners row to hold any per-student data
-    // (planner, homework, assessments, etc.) — without this there is no
-    // valid learnerId for the rest of the app to write to. See G7 audit.
     let learnerId=null;
     if (role==='student') {
       learnerId=id('learner');
@@ -96,33 +92,22 @@ async function handler(req,res){
 const handler_signup = __build_signup();
 
 /* ================ request-password-reset ================ */
-import { sendPasswordResetEmail } from '../_lib/email.js';
-import { consumeAiRateLimit } from '../_lib/ai-rate-limit.js';
-
 function __build_request_password_reset(){
 async function handler(req,res){
   if(req.method!=='POST') return json(res,405,{error:{code:'METHOD_NOT_ALLOWED',message:'POST required.'}},{Allow:'POST'});
   try{
     const {email}=req.body||{};
     const cleanEmail=String(email||'').trim().toLowerCase();
-    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) return json(res,400,{error:{code:'INVALID_EMAIL',message:'A valid email is required.'}});
-
-    // Rate-limit by IP so this endpoint can't be used to spam an inbox
-    // or brute-force-probe which emails exist.
+    if(!/^\S+@\S+\.\S+$/.test(cleanEmail)) return json(res,400,{error:{code:'INVALID_EMAIL',message:'A valid email is required.'}});
     const rate = await consumeAiRateLimit('password-reset-request', clientIp(req), { windowSeconds: 900, maxRequests: 5 });
     if (rate.limited) return json(res,429,{error:{code:'TOO_MANY_REQUESTS',message:'Too many reset requests — please wait and try again.'}});
-
     const r=await sql`SELECT id FROM users WHERE lower(email)=${cleanEmail} AND deactivated_at IS NULL LIMIT 1`;
-
-    // Anti-enumeration: identical response whether or not the account
-    // exists. Only proceed to create/send a token if it does.
     let emailSent = false, emailReason = null;
     if (r.rows.length) {
       const userId = r.rows[0].id;
       const raw = randomToken(), tokenHash = hashToken(raw);
       const tokenId = id('reset');
-      await sql`INSERT INTO password_reset_tokens(id,user_id,token_hash,expires_at,requested_ip)
-                 VALUES(${tokenId},${userId},${tokenHash},NOW()+INTERVAL '1 hour',${clientIp(req)})`;
+      await sql`INSERT INTO password_reset_tokens(id,user_id,token_hash,expires_at,requested_ip) VALUES(${tokenId},${userId},${tokenHash},NOW()+INTERVAL '1 hour',${clientIp(req)})`;
       const origin = req.headers.origin || `https://${req.headers.host}`;
       const resetUrl = `${origin}/index.html?reset=${encodeURIComponent(raw)}`;
       const result = await sendPasswordResetEmail({ to: cleanEmail, resetUrl });
@@ -151,12 +136,9 @@ async function handler(req,res){
     const row=r.rows[0];
     if(row.used_at) return json(res,400,{error:{code:'TOKEN_ALREADY_USED',message:'This reset link has already been used.'}});
     if(new Date(row.expires_at) <= new Date()) return json(res,400,{error:{code:'TOKEN_EXPIRED',message:'This reset link has expired. Please request a new one.'}});
-
     const now=new Date().toISOString();
     await sql`UPDATE credentials SET password_hash=${hashPassword(newPassword)}, updated_at=${now} WHERE user_id=${row.user_id}`;
     await sql`UPDATE password_reset_tokens SET used_at=NOW() WHERE id=${row.id}`;
-    // Revoke every existing session — a password reset should log out
-    // any other device/browser using the old password.
     await sql`UPDATE auth_sessions SET revoked_at=NOW() WHERE user_id=${row.user_id} AND revoked_at IS NULL`;
     await writeAudit({actorUserId:row.user_id,action:'auth.password_reset_completed',entityType:'user',entityId:row.user_id,metadata:{}});
     return json(res,200,{ok:true});
