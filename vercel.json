@@ -1,3 +1,7 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json"
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    { "source": "/api/chat", "destination": "/api/chat-guest" },
+    { "source": "/api/speak", "destination": "/api/speak-guest" }
+  ]
 }

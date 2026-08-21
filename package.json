@@ -7,6 +7,7 @@
     "dev": "vercel dev",
     "db:migrate": "node scripts/apply-migrations.mjs",
     "db:export": "node scripts/export-backup.mjs",
+    "test": "node scripts/syntax-check.mjs",
     "test:g4g5g6": "node test/g4g5g6/run-tests.js"
   },
   "engines": {
