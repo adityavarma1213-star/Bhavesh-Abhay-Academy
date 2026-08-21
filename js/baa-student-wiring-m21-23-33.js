@@ -101,8 +101,111 @@
     return true;
   }
 
+  function initLiveDashboard(){
+    const root=location.pathname.endsWith('student-os.html') || document.querySelector('.baa-dashboard');
+    if(!root) return;
+
+    const setAll=(selector,value)=>document.querySelectorAll(selector).forEach(n=>{ n.textContent=String(value); });
+    const setNote=(statIndex,value)=>{ const stat=document.querySelectorAll('.baa-stat')[statIndex]; const note=stat?.querySelector('.s-note'); if(note) note.textContent=value; };
+    const setStat=(index,value,note,progress)=>{
+      const stat=document.querySelectorAll('.baa-stat')[index]; if(!stat) return;
+      const v=stat.querySelector('.s-value'); if(v) v.textContent=String(value);
+      const n=stat.querySelector('.s-note'); if(n && note!=null) n.textContent=String(note);
+      const p=stat.querySelector('.baa-progress span'); if(p && progress!=null) p.style.width=`${Math.max(0,Math.min(100,progress))}%`;
+    };
+
+    async function getJson(url){
+      const r=await fetch(url,{credentials:'same-origin',cache:'no-store'});
+      if(!r.ok) throw new Error(`HTTP_${r.status}`);
+      return r.json();
+    }
+
+    async function hydrate(){
+      try{
+        const me=await getJson('/api/v1/my-learners');
+        const learner=Array.isArray(me.learners)?me.learners[0]:null;
+        if(!learner?.id) return;
+        const [overview,planner,rewards]=await Promise.all([
+          getJson(`/api/v1/learner-overview?learnerId=${encodeURIComponent(learner.id)}`),
+          getJson(`/api/v1/planner?learnerId=${encodeURIComponent(learner.id)}`),
+          getJson(`/api/v1/rewards?learnerId=${encodeURIComponent(learner.id)}`)
+        ]);
+        const snap=overview.snapshot||{};
+        const r=snap.rewards||rewards.rewards||{};
+        const attempts=snap.assessments||{};
+        const xp=Number(r.xp||0);
+        const maxScore=Number(attempts.max_score||0);
+        const score=Number(attempts.score||0);
+        const learning=maxScore>0 ? Math.round(score/maxScore*100) : null;
+        const name=snap.learner?.display_name || learner.display_name || 'Student';
+        text(el('dashboardName'),name);
+        text(el('avatarInitial'),name.charAt(0).toUpperCase());
+        setAll('.tb-right .pill.xp .lbl',`${xp.toLocaleString()} XP`);
+        setStat(0,xp.toLocaleString(),'Server-derived from recorded BAA activity',Math.min(100,(xp%500)/5));
+        setStat(1,'—','Level is not stored server-side yet',null);
+        setStat(2,'—','Streak tracking is not enabled server-side yet',null);
+        setStat(3,'—','Ranking service is not enabled yet',null);
+        setStat(4,learning==null?'—':`${learning}%`,learning==null?'Complete an assessment to build evidence.':'Based on submitted assessment scores',learning==null?0:learning);
+
+        const plan=planner.snapshot||{};
+        const tasks=Array.isArray(plan.tasks)?plan.tasks:[];
+        const pending=tasks.filter(t=>t.status==='pending'||t.status==='missed');
+        const planHead=document.querySelector('.baa-learning h3');
+        const planDesc=document.querySelector('.baa-learning p');
+        const planScore=document.querySelector('.baa-score');
+        const planProgress=document.querySelector('.baa-learning .baa-progress span');
+        const planRemaining=document.querySelector('.baa-card .baa-card-head span');
+        if(planRemaining) planRemaining.textContent=`${pending.length} task${pending.length===1?'':'s'} remaining`;
+        if(pending[0]){
+          if(planHead) planHead.textContent=pending[0].title||'Next learning task';
+          if(planDesc) planDesc.textContent=`${pending[0].subject||'Learning'}${pending[0].concept?' · '+pending[0].concept:''} · evidence-based planner task`;
+        }else if(planHead){
+          planHead.textContent='No pending learning task';
+          if(planDesc) planDesc.textContent='Complete an assessment or add a goal/upcoming assessment in Planner to generate work.';
+        }
+        if(planScore) planScore.textContent=learning==null?'—':`${learning}%`;
+        if(planProgress) planProgress.style.width=`${learning==null?0:learning}%`;
+
+        // Remove misleading hard-coded leaderboard/challenge claims when no live service exists.
+        const rankRows=document.querySelectorAll('.baa-side-card .baa-rank-row');
+        rankRows.forEach(row=>{ row.innerHTML='<span class="baa-rank-num">—</span><strong>Live ranking unavailable</strong><span class="baa-rank-xp">Not configured</span>'; });
+        const challenge=document.querySelector('.baa-challenge-banner');
+        if(challenge){ const small=challenge.querySelector('small'); const strong=challenge.querySelector('strong'); if(strong) strong.textContent='Assessment-based challenge'; if(small) small.textContent='Challenge battles are not enabled until a live challenge service is configured.'; }
+        const ai=document.querySelectorAll('.baa-side-card');
+        const rec=ai[2]?.querySelector('p');
+        if(rec) rec.textContent=pending[0]?`Next evidence-based task: ${pending[0].title}. Open Planner to start it.`:'No recommendation yet — complete an assessment to give BAA real learning evidence.';
+      }catch(_){
+        // Do not invent values when authentication/database is unavailable.
+        setStat(0,'—','Live data unavailable',0); setStat(1,'—','Live data unavailable',0); setStat(2,'—','Live data unavailable',0); setStat(3,'—','Live data unavailable',0); setStat(4,'—','Live data unavailable',0);
+      }
+    }
+
+    // Make prototype-only worlds point to the real capabilities that already exist.
+    const originalOpen=global.openWorld;
+    if(typeof originalOpen==='function' && !originalOpen.__baaLiveWrapped){
+      const wrapped=function(name){
+        if(name==='quiz'){
+          global.location.href='assessment.html';
+          return;
+        }
+        if(name==='lab'){
+          const tools=el('virtualLabsToolsSection');
+          if(tools){ tools.scrollIntoView({behavior:'smooth',block:'start'}); return; }
+        }
+        originalOpen(name);
+      };
+      wrapped.__baaLiveWrapped=true;
+      global.openWorld=wrapped;
+    }
+
+    hydrate();
+    setInterval(hydrate,60000);
+  }
+
   function init(){
     return {m21:initPractice(),m22m23:initEvidence(),m33:initLabs()};
   }
   global.BAAStudentWiringM21M23M33={init};
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',initLiveDashboard,{once:true});
+  else setTimeout(initLiveDashboard,0);
 })(window);
