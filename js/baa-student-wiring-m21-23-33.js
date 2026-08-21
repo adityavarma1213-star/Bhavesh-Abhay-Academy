@@ -101,12 +101,40 @@
     return true;
   }
 
+  function initCodingLab(){
+    const overlay=document.getElementById('world-code');
+    const body=overlay?.querySelector('#codeBody');
+    if(!overlay||!body||body.dataset.liveCodingReady==='1') return;
+    body.dataset.liveCodingReady='1';
+    clear(body);
+    const note=document.createElement('div');
+    note.style.cssText='color:#8b949e;font:12px/1.5 Inter,Arial,sans-serif;margin-bottom:10px;';
+    note.textContent='Live browser JavaScript playground. Code runs inside a sandboxed frame; it cannot access the BAA app or your account data.';
+    const editor=document.createElement('textarea');
+    editor.value='const a = 12;\nconst b = 30;\nconsole.log(`Sum = ${a + b}`);';
+    editor.style.cssText='display:block;width:100%;min-height:170px;resize:vertical;background:#0d1117;color:#c9d1d9;border:1px solid rgba(92,255,176,.18);border-radius:10px;padding:14px;font:14px/1.6 JetBrains Mono,Consolas,monospace;outline:none;';
+    const run=document.createElement('button');
+    run.type='button'; run.textContent='▶ Run Code';
+    run.style.cssText='margin-top:10px;padding:10px 16px;border:1px solid rgba(92,255,176,.35);border-radius:999px;background:rgba(92,255,176,.08);color:#5CFFB0;font-weight:700;cursor:pointer;';
+    const output=document.createElement('pre');
+    output.style.cssText='white-space:pre-wrap;min-height:60px;margin-top:10px;background:#0b0f14;border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:12px;color:#c9d1d9;font:12px/1.5 JetBrains Mono,Consolas,monospace;';
+    const frame=document.createElement('iframe');
+    frame.sandbox='allow-scripts'; frame.style.cssText='display:none;';
+    run.addEventListener('click',function(){
+      output.textContent='Running…';
+      const payload=editor.value.replace(/<\/script/gi,'<\\/script');
+      const src=`<!doctype html><html><body><script>const out=[];console.log=(...a)=>out.push(a.map(x=>typeof x==='object'?JSON.stringify(x):String(x)).join(' '));try{${payload}}catch(e){out.push('Error: '+e.message)}parent.postMessage({type:'baa-code-output',output:out.join('\\n')},'*');<\/script></body></html>`;
+      frame.srcdoc=src;
+    });
+    window.addEventListener('message',function(e){ if(e.source!==frame.contentWindow || e.data?.type!=='baa-code-output') return; output.textContent=e.data.output||'(No console output)'; });
+    body.append(note,editor,run,output,frame);
+  }
+
   function initLiveDashboard(){
     const root=location.pathname.endsWith('student-os.html') || document.querySelector('.baa-dashboard');
     if(!root) return;
 
     const setAll=(selector,value)=>document.querySelectorAll(selector).forEach(n=>{ n.textContent=String(value); });
-    const setNote=(statIndex,value)=>{ const stat=document.querySelectorAll('.baa-stat')[statIndex]; const note=stat?.querySelector('.s-note'); if(note) note.textContent=value; };
     const setStat=(index,value,note,progress)=>{
       const stat=document.querySelectorAll('.baa-stat')[index]; if(!stat) return;
       const v=stat.querySelector('.s-value'); if(v) v.textContent=String(value);
@@ -166,33 +194,34 @@
         if(planScore) planScore.textContent=learning==null?'—':`${learning}%`;
         if(planProgress) planProgress.style.width=`${learning==null?0:learning}%`;
 
-        // Remove misleading hard-coded leaderboard/challenge claims when no live service exists.
         const rankRows=document.querySelectorAll('.baa-side-card .baa-rank-row');
         rankRows.forEach(row=>{ row.innerHTML='<span class="baa-rank-num">—</span><strong>Live ranking unavailable</strong><span class="baa-rank-xp">Not configured</span>'; });
         const challenge=document.querySelector('.baa-challenge-banner');
         if(challenge){ const small=challenge.querySelector('small'); const strong=challenge.querySelector('strong'); if(strong) strong.textContent='Assessment-based challenge'; if(small) small.textContent='Challenge battles are not enabled until a live challenge service is configured.'; }
-        const ai=document.querySelectorAll('.baa-side-card');
-        const rec=ai[2]?.querySelector('p');
+        const sideCards=document.querySelectorAll('.baa-side-card');
+        const rec=sideCards[2]?.querySelector('p');
         if(rec) rec.textContent=pending[0]?`Next evidence-based task: ${pending[0].title}. Open Planner to start it.`:'No recommendation yet — complete an assessment to give BAA real learning evidence.';
       }catch(_){
-        // Do not invent values when authentication/database is unavailable.
         setStat(0,'—','Live data unavailable',0); setStat(1,'—','Live data unavailable',0); setStat(2,'—','Live data unavailable',0); setStat(3,'—','Live data unavailable',0); setStat(4,'—','Live data unavailable',0);
       }
     }
 
-    // Make prototype-only worlds point to the real capabilities that already exist.
     const originalOpen=global.openWorld;
     if(typeof originalOpen==='function' && !originalOpen.__baaLiveWrapped){
       const wrapped=function(name){
-        if(name==='quiz'){
-          global.location.href='assessment.html';
-          return;
-        }
+        if(name==='quiz'){ global.location.href='assessment.html'; return; }
         if(name==='lab'){
           const tools=el('virtualLabsToolsSection');
           if(tools){ tools.scrollIntoView({behavior:'smooth',block:'start'}); return; }
         }
+        if(name==='achievements'){
+          originalOpen('profile');
+          setTimeout(()=>el('rewardsPanel')?.scrollIntoView({behavior:'smooth',block:'start'}),80);
+          return;
+        }
+        if(name==='community'){ global.location.href='feature-map.html'; return; }
         originalOpen(name);
+        if(name==='code') setTimeout(initCodingLab,0);
       };
       wrapped.__baaLiveWrapped=true;
       global.openWorld=wrapped;
@@ -202,10 +231,8 @@
     setInterval(hydrate,60000);
   }
 
-  function init(){
-    return {m21:initPractice(),m22m23:initEvidence(),m33:initLabs()};
-  }
+  function init(){ return {m21:initPractice(),m22m23:initEvidence(),m33:initLabs()}; }
   global.BAAStudentWiringM21M23M33={init};
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',initLiveDashboard,{once:true});
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',function(){ initLiveDashboard(); });
   else setTimeout(initLiveDashboard,0);
 })(window);
