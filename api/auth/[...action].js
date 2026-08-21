@@ -20,11 +20,11 @@ async function handler(req,res){
     if(loginRate.limited)return json(res,429,{error:{code:'TOO_MANY_LOGIN_ATTEMPTS',message:'Too many login attempts. Please wait 15 minutes and try again.'}});
     const r=await sql`SELECT u.id,u.display_name,u.email,c.password_hash FROM users u JOIN credentials c ON c.user_id=u.id WHERE lower(u.email)=${clean} AND u.deactivated_at IS NULL LIMIT 1`;
     if(!r.rows.length||!verifyPassword(String(password||''),r.rows[0].password_hash))return json(res,401,{error:{code:'INVALID_CREDENTIALS',message:'Incorrect email or password.'}});
-    const raw=randomToken(),tokenHash=hashToken(raw),sessionId=id('session');
-    await sql`INSERT INTO auth_sessions(id,user_id,token_hash,created_at,expires_at) VALUES(${sessionId},${r.rows[0].id},${tokenHash},NOW(),NOW()+INTERVAL '7 days')`;
+    const raw=randomToken(),tokenHash=hashToken(raw),sessionId=id('session'),sessionDays=remember?REMEMBER_DAYS:SESSION_DAYS;
+    await sql`INSERT INTO auth_sessions(id,user_id,token_hash,created_at,expires_at) VALUES(${sessionId},${r.rows[0].id},${tokenHash},NOW(),NOW()+(${sessionDays} * INTERVAL '1 day'))`;
     await safeAudit({actorUserId:r.rows[0].id,action:'auth.login',entityType:'auth_session',entityId:sessionId,metadata:{ip:clientIp(req),remember:!!remember}});
     res.setHeader('Set-Cookie',sessionCookie(raw,remember?REMEMBER_DAYS*86400:null));
-    return json(res,200,{ok:true,user:{id:r.rows[0].id,name:r.rows[0].display_name,email:r.rows[0].email},expiresInDays:remember?REMEMBER_DAYS:0,remembered:!!remember});
+    return json(res,200,{ok:true,user:{id:r.rows[0].id,name:r.rows[0].display_name,email:r.rows[0].email},expiresInDays:sessionDays,remembered:!!remember});
   }catch(e){console.error('LOGIN_FAILED',e);return json(res,500,{error:{code:e.code||'LOGIN_FAILED',message:'Unable to complete login.'}});}
 }return handler;}
 const handler_login=__build_login();
