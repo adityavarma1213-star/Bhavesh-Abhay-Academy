@@ -127,35 +127,20 @@
 
 /* ============================================================
    Accessible password visibility control
-   ------------------------------------------------------------
-   This is UI-only and does not change authentication/storage.
-   It adds an explicit Show/Hide control to every password input
-   present in the auth modal, including reset-password fields.
    ============================================================ */
 (function addPasswordVisibilityControls() {
   function install() {
     document.querySelectorAll('input[type="password"]').forEach((input) => {
       if (input.dataset.baaPasswordToggle === '1') return;
       input.dataset.baaPasswordToggle = '1';
-
       const wrapper = document.createElement('span');
       wrapper.style.cssText = 'position:relative;display:block;width:100%;';
       input.parentNode.insertBefore(wrapper, input);
       wrapper.appendChild(input);
-
       input.style.paddingRight = '78px';
-
       const button = document.createElement('button');
-      button.type = 'button';
-      button.textContent = 'Show';
-      button.setAttribute('aria-label', 'Show password');
-      button.style.cssText = [
-        'position:absolute', 'right:10px', 'top:50%', 'transform:translateY(-50%)',
-        'border:0', 'background:transparent', 'color:var(--modal-fg-dim,#c8c9e8)',
-        'font:600 0.75rem var(--body,Inter,sans-serif)', 'cursor:pointer',
-        'padding:6px 8px', 'border-radius:6px'
-      ].join(';');
-
+      button.type = 'button'; button.textContent = 'Show'; button.setAttribute('aria-label', 'Show password');
+      button.style.cssText = ['position:absolute','right:10px','top:50%','transform:translateY(-50%)','border:0','background:transparent','color:var(--modal-fg-dim,#c8c9e8)','font:600 0.75rem var(--body,Inter,sans-serif)','cursor:pointer','padding:6px 8px','border-radius:6px'].join(';');
       button.addEventListener('click', () => {
         const showing = input.type === 'text';
         input.type = showing ? 'password' : 'text';
@@ -165,7 +150,58 @@
       wrapper.appendChild(button);
     });
   }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', install, { once:true });
+  else install();
+})();
 
+/* ============================================================
+   Production login UI: Keep Me Signed In
+   ------------------------------------------------------------
+   index.html already loads this repository before its DOM-ready phase.
+   We therefore add the missing control here without duplicating the
+   large inline index.html file. The wrapper calls the existing production
+   auth function and only changes the login payload by adding `remember`.
+   The server already supports this field and issues a 30-day cookie when
+   it is true.
+   ============================================================ */
+(function installProductionRememberMe() {
+  function install() {
+    const form = document.getElementById('authForm');
+    const password = document.getElementById('authPassword');
+    const submit = document.getElementById('authSubmitBtn');
+    if (!form || !password || !submit || document.getElementById('baaRememberMe')) return;
+
+    const row = document.createElement('label');
+    row.id = 'baaRememberMeRow';
+    row.style.cssText = 'display:flex;align-items:center;gap:8px;margin:-2px 0 14px;color:var(--modal-fg-dim,#c8c9e8);font:500 .78rem var(--body,Inter,sans-serif);text-align:left;cursor:pointer;';
+    row.innerHTML = '<input id="baaRememberMe" type="checkbox" style="width:16px;height:16px;accent-color:var(--violet);cursor:pointer;"><span>Keep me signed in</span>';
+    password.parentNode.insertBefore(row, submit);
+
+    // The existing index handler is kept intact for signup. For login, replace
+    // only the submit handler so the server receives the explicit remember flag.
+    form.addEventListener('submit', function(event) {
+      if (typeof globalThis.authMode === 'undefined' || globalThis.authMode !== 'login') return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      if (typeof globalThis.hideAuthError === 'function') globalThis.hideAuthError();
+      const email = document.getElementById('authEmail').value.trim();
+      const pass = password.value;
+      submit.disabled = true;
+      Promise.resolve(globalThis.callAuthApi('login', { email, password: pass, remember: document.getElementById('baaRememberMe').checked }))
+        .then(result => {
+          if (!result.ok) {
+            if (typeof globalThis.showAuthError === 'function') globalThis.showAuthError((result.errors && result.errors[0]) || 'Something went wrong. Please try again.');
+            return;
+          }
+          const name = (result.user && result.user.name) || '';
+          window.location.href = 'student-os.html' + (name ? ('?name=' + encodeURIComponent(name)) : '');
+        })
+        .catch(() => {
+          if (typeof globalThis.showAuthError === 'function') globalThis.showAuthError('Unable to complete login. Please try again.');
+        })
+        .finally(() => { submit.disabled = false; });
+    }, true);
+  }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', install, { once:true });
   else install();
 })();
