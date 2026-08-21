@@ -45,4 +45,16 @@
   }
   function installAuthUx(){installPasswordToggle('authPassword');installPasswordToggle('resetPassword');const style=document.createElement('style');style.textContent='.modal input:focus-visible,.modal button:focus-visible{outline:2px solid #F5B942;outline-offset:2px}.modal .auth-tab,.modal .btn-primary{min-height:44px}#keepSignedInWrap input{margin:0}';document.head.appendChild(style);installKeepSignedIn();}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installAuthUx);else installAuthUx();
+
+  function installLandingLinks(){
+    const path=window.location.pathname;
+    if(!(path==='/' || path.endsWith('/index.html'))) return;
+    if(document.getElementById('baaLandingTools')) return;
+    const wrap=document.createElement('div');
+    wrap.id='baaLandingTools';
+    wrap.style.cssText='position:fixed;right:18px;bottom:18px;z-index:9998;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;';
+    wrap.innerHTML='<a href="demo.html" style="display:inline-flex;align-items:center;gap:7px;padding:11px 15px;border-radius:999px;background:#7C5CFC;color:#fff;text-decoration:none;font:700 13px Inter,Arial,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.25)">▶ Demo</a><a href="user-guide.html" style="display:inline-flex;align-items:center;gap:7px;padding:11px 15px;border-radius:999px;background:#173b73;color:#fff;text-decoration:none;font:700 13px Inter,Arial,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.25)">📖 User Guide</a>';
+    document.body.appendChild(wrap);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installLandingLinks);else installLandingLinks();
 })();
