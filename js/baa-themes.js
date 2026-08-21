@@ -22,6 +22,27 @@
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',activate);else activate();
   if(window.matchMedia)window.matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change',function(){if(prefs.mode==='system')apply();});
   function installPasswordToggle(inputId){const input=document.getElementById(inputId);if(!input||input.dataset.visibilityReady==='1')return;input.dataset.visibilityReady='1';const parent=input.parentElement;if(!parent)return;const wrap=document.createElement('div');wrap.style.cssText='position:relative;width:100%;';parent.insertBefore(wrap,input);wrap.appendChild(input);input.style.paddingRight='68px';const button=document.createElement('button');button.type='button';button.textContent='Show';button.setAttribute('aria-label','Show password');button.style.cssText='position:absolute;right:10px;top:50%;transform:translateY(-50%);border:0;background:rgba(124,92,252,.18);color:#FDF9F0;padding:7px 10px;border-radius:8px;font:600 .76rem Inter,Arial,sans-serif;cursor:pointer;z-index:3;';button.addEventListener('click',function(){const visible=input.type==='text';input.type=visible?'password':'text';button.textContent=visible?'Show':'Hide';button.setAttribute('aria-label',visible?'Show password':'Hide password');});wrap.appendChild(button);}
-  function installAuthUx(){installPasswordToggle('authPassword');installPasswordToggle('resetPassword');const style=document.createElement('style');style.textContent='.modal input:focus-visible,.modal button:focus-visible{outline:2px solid #F5B942;outline-offset:2px}.modal .auth-tab,.modal .btn-primary{min-height:44px}';document.head.appendChild(style);}
+  function installKeepSignedIn(){
+    const password=document.getElementById('authPassword');
+    if(!password || document.getElementById('keepSignedInWrap')) return;
+    const wrap=document.createElement('label');
+    wrap.id='keepSignedInWrap';
+    wrap.style.cssText='display:none;align-items:center;gap:9px;margin:-2px 0 12px;color:var(--modal-fg-dim);font:500 .8rem Inter,Arial,sans-serif;cursor:pointer;user-select:none;';
+    wrap.innerHTML='<input id="keepSignedIn" type="checkbox" style="width:16px;height:16px;accent-color:#7C5CFC;cursor:pointer"><span>Keep me signed in</span>';
+    password.parentElement.insertAdjacentElement('afterend',wrap);
+    const sync=function(){const loginMode=document.getElementById('authTabLogin')?.classList.contains('active');wrap.style.display=loginMode?'flex':'none';};
+    sync();
+    document.getElementById('authTabLogin')?.addEventListener('click',sync);
+    document.getElementById('authTabSignup')?.addEventListener('click',sync);
+    const original=window.callAuthApi;
+    if(typeof original==='function' && !window.__baaRememberPatch){
+      window.__baaRememberPatch=true;
+      window.callAuthApi=function(action,body){
+        if(action==='login') body=Object.assign({},body,{remember:!!document.getElementById('keepSignedIn')?.checked});
+        return original(action,body);
+      };
+    }
+  }
+  function installAuthUx(){installPasswordToggle('authPassword');installPasswordToggle('resetPassword');const style=document.createElement('style');style.textContent='.modal input:focus-visible,.modal button:focus-visible{outline:2px solid #F5B942;outline-offset:2px}.modal .auth-tab,.modal .btn-primary{min-height:44px}#keepSignedInWrap input{margin:0}';document.head.appendChild(style);installKeepSignedIn();}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installAuthUx);else installAuthUx();
 })();
