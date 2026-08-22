@@ -10,8 +10,9 @@ const API='/api/auth';const $=id=>document.getElementById(id);function msg(t){$(
 $('loginTab').onclick=()=>{ $('loginTab').classList.add('active');$('signupTab').classList.remove('active');$('login').hidden=false;$('signup').hidden=true;};
 $('signupTab').onclick=()=>{ $('signupTab').classList.add('active');$('loginTab').classList.remove('active');$('login').hidden=true;$('signup').hidden=false;};
 async function call(path,body){const r=await fetch(API+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j?.error?.message||'Request failed');return j;}
+async function currentSession(){const r=await fetch(API+'/me',{credentials:'same-origin',cache:'no-store'});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j?.error?.message||'Unable to resolve account role');return j;}
 function roleTarget(payload){const roles=payload?.roles||payload?.user?.roles||payload?.user?.role||[];const list=Array.isArray(roles)?roles:[roles];if(list.includes('teacher'))return 'teacher-portal.html';if(list.includes('parent'))return 'parent-os.html';return 'student-os.html';}
-$('loginBtn').onclick=async()=>{try{const result=await call('/login',{email:$('loginEmail').value,password:$('loginPassword').value});msg('Login successful. Opening your BAA workspace…');setTimeout(()=>location.href=roleTarget(result),400)}catch(e){msg(e.message)}};
+$('loginBtn').onclick=async()=>{try{await call('/login',{email:$('loginEmail').value,password:$('loginPassword').value});const session=await currentSession();msg('Login successful. Opening your BAA workspace…');setTimeout(()=>location.href=roleTarget(session),400)}catch(e){msg(e.message)}};
 $('signupBtn').onclick=async()=>{try{await call('/signup',{name:$('signupName').value,email:$('signupEmail').value,password:$('signupPassword').value,role:$('signupRole').value});msg('Account created. Please log in.');$('loginTab').click()}catch(e){msg(e.message)}};
 </script><script src="js/baa-themes.js"></script>
 </body></html>
