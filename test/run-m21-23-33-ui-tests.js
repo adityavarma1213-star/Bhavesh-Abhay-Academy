@@ -18,6 +18,8 @@ class FakeDocument{
   constructor(){this.nodes={};}
   getElementById(id){return this.nodes[id]||null;}
   createElement(tag){const e=new FakeElement(tag);e._doc=this;return e;}
+  querySelector(){return null;}
+  querySelectorAll(){return [];}
   add(id,tag='div'){const e=this.createElement(tag);e.id=id;return e;}
 }
 const d=new FakeDocument();
@@ -26,7 +28,7 @@ d.getElementById('m21PracticeLimit').value='3';
 d.getElementById('m33LabSelect').value='ohm';
 
 const calls={practice:0,weak:0,strong:0,lab:0};
-const sandbox={window:null,document:d,console};sandbox.window=sandbox;
+const sandbox={window:null,document:d,console,setTimeout:(fn)=>{fn();return 1;},clearTimeout:()=>{},setInterval:()=>1,clearInterval:()=>{},location:{href:'',search:'',pathname:'student-os.html'}};sandbox.window=sandbox;
 sandbox.BAAPractice={getPracticeSet(n){calls.practice++;assert.equal(n,3);return [{id:'q1',prompt:'What is 2+2?',subject:'Math',concept:'addition'}];}};
 sandbox.BAAWeakness={getWeaknesses(){calls.weak++;return [{subject:'Math',concept:'fractions',correctCount:1,evidenceCount:4,status:'needs_revision',reason:'Evidence is below the mastery threshold.'}]}};
 sandbox.BAAStrength={getStrengths(){calls.strong++;return [{subject:'Science',concept:'cells',correctCount:4,evidenceCount:4,status:'mastered',reason:'Evidence shows 4/4 correct.'}]}};
