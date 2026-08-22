@@ -20,8 +20,10 @@ export async function currentSession(req) {
                              AND s.expires_at > NOW()
                              AND u.deactivated_at IS NULL
                            GROUP BY s.id,u.id`;
-  if (!result.length) return null;
-  return {...result[0], tokenHash, ip:clientIp(req)};
+  // db.js wraps postgres.js results as { rows: [...] }.
+  const rows = Array.isArray(result?.rows) ? result.rows : [];
+  if (!rows.length) return null;
+  return {...rows[0], tokenHash, ip:clientIp(req)};
 }
 
 export async function requireAuth(req) {
@@ -39,15 +41,15 @@ export async function canAccessLearner(session, learnerId) {
   if (hasRole(session,'admin')) return true;
   if (session.roles.includes('student')) {
     const r=await sql`SELECT 1 FROM learners WHERE id=${learnerId} AND user_id=${session.user_id} AND deactivated_at IS NULL LIMIT 1`;
-    if (r.length) return true;
+    if (r.rows.length) return true;
   }
   if (session.roles.includes('parent')) {
     const r=await sql`SELECT 1 FROM parent_learner WHERE parent_user_id=${session.user_id} AND learner_id=${learnerId} AND status='active' LIMIT 1`;
-    if (r.length) return true;
+    if (r.rows.length) return true;
   }
   if (session.roles.includes('teacher')) {
     const r=await sql`SELECT 1 FROM teacher_learner WHERE teacher_user_id=${session.user_id} AND learner_id=${learnerId} AND status='active' LIMIT 1`;
-    if (r.length) return true;
+    if (r.rows.length) return true;
   }
   return false;
 }
