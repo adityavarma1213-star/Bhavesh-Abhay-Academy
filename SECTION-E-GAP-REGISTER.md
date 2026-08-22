@@ -3,132 +3,82 @@
 Legend: 🟢 IMPLEMENTED · 🟡 PARTIALLY IMPLEMENTED · 🔵 ARCHITECTURAL FOUNDATION ·
 🟠 DEPENDENT ON FUTURE G4/G5/G6 · 🔴 NOT YET IMPLEMENTED
 
+This register is refreshed against the current source as of 2026-08-22. Historical checkpoint notes may describe an earlier state; current source is authoritative.
+
 | # | Item | Status | Notes |
 |---|---|---|---|
 | 1 | Data inventory (what/why/who/retention) | 🟢 | `trust-privacy.html`, code-derived, not templated |
 | 2 | Retention policy statement | 🟢 | Explicitly disclaims legal-compliance claims |
-| 3 | Parental consent | 🔵 | Local acknowledgement only — a *foundation*, not verified consent |
-| 4 | Auditability / activity log | 🔵 | Real, append-only, but not tamper-proof (no server) |
-| 5 | Legal compliance (COPPA/GDPR/FERPA) | 🔴 | Explicitly NOT claimed anywhere; requires G4/G5/G6 |
-| 6 | Explainability — concept states, trends, planner tasks | 🟢 | Pre-existing from Section C, reused unchanged |
-| 7 | Explainability — assessment/evaluation decisions | 🟢 | Pre-existing from Section B, reused unchanged |
-| 8 | Explainability — career recommendations | 🔴 | Feature does not exist anywhere in the codebase yet; correctly not fabricated |
-| 9 | Explainability — "AI Guardian" alerts | 🔴 | Feature does not exist anywhere in the codebase yet; correctly not fabricated |
-| 10 | Student/parent re-evaluation requests | 🟢 | `requestReevaluation()`, tested |
-| 11 | Teacher override | 🟢 | Pre-existing, reused |
-| 12 | Grading-change history/versioning | 🟢 | `decisionHistory[]` — this fixed a real bug (silent overwrite) |
-| 13 | Preservation of original AI evaluation through appeals | 🟢 | Verified across multiple decision rounds |
-| 14 | Healthy stopping points / break reminders | 🟢 | Session-level, dismissible, off-by-default control respected |
+| 3 | Parental consent | 🔵 | Local acknowledgement only — a foundation, not verified consent |
+| 4 | Auditability / activity log | 🔵 | Real, append-only, but not tamper-proof without server controls |
+| 5 | Legal compliance (COPPA/GDPR/FERPA) | 🔴 | Explicitly NOT claimed; requires legal/product/infrastructure controls |
+| 6 | Explainability — concept states, trends, planner tasks | 🟢 | Implemented learning-intelligence explanations |
+| 7 | Explainability — assessment/evaluation decisions | 🟢 | Implemented assessment rationale/history |
+| 8 | Explainability — career recommendations | 🔴 | Career explainability is not fully implemented |
+| 9 | Explainability — AI Guardian alerts | 🟢 | `js/baa-guardian.js` now provides bounded academic-support alerts with explainable reasons; it is not a mental-health diagnostic system |
+| 10 | Student/parent re-evaluation requests | 🟢 | `requestReevaluation()` and review flow |
+| 11 | Teacher override | 🟢 | Teacher review/override flow exists |
+| 12 | Grading-change history/versioning | 🟢 | `decisionHistory[]` and server review records |
+| 13 | Preservation of original AI evaluation through appeals | 🟢 | Original evaluation is retained across decision rounds |
+| 14 | Healthy stopping points / break reminders | 🟢 | Session-level, dismissible, off-by-default control |
 | 15 | No shame-based messaging | 🟢 | Centralized + tested against banned-phrase list |
-| 16 | No dark patterns for engagement | 🟢 | Verified none exist; new reminder code follows the same rule (tested) |
+| 16 | No dark patterns for engagement | 🟢 | Engagement controls follow the humane-design rules |
 | 17 | Data export | 🟢 | Real, live data, downloadable JSON |
-| 18 | Fresh-start / archive | 🟢 | Preserves human review/appeal records by design (tested) |
-| 19 | Scoped deletion (`this_app_only` / `everything`) | 🟢 | Client-side only — see #20 |
-| 20 | Server-side / legally-enforceable deletion | 🟠 | Requires G4/G5 backend; this build has no server copy to purge |
-| 21 | Protection of uploaded images | 🟢 | Verified never persisted (pre-existing in `js/image.js`, now documented) |
-| 22 | Protection of voice/TTS audio | 🟢 | Verified never persisted (pre-existing in `api/speak.js`, now documented) |
-| 23 | Production-secure storage / encryption at rest | 🔴 | Explicitly disclaimed; requires G4/G5/G6 |
-| 24 | Page-level access gating for Trust & Privacy Center | 🔴 | Same boundary G3 already documented — no page in this app is access-gated yet; out of scope for E per the boundary rule (E is not G4) |
-| 25 | Human-in-the-loop governance (uncertainty surfaced, human accountable) | 🟢 | Reused Section B/C patterns + fixed the silent-overwrite gap |
-| 26 | Emotion + purpose design system application | 🟢 | Applied to existing UX; no separate feature built to "claim" it |
-
-## Checkpoint E.2 — Home-screen data honesty labeling
-
-The Gamification/Community/Career surfaces on `student-os.html` (streak,
-level, coins, achievements, community feed, coding-lab stats, career
-path) are pre-existing preview/demo UI, out of scope for Section E to
-rebuild (see boundary list below). E.2 does not build real tracking for
-any of them — that would be a Gamification/Community/Career-ecosystem
-checkpoint, not E. Instead, each surface now honestly discloses itself
-as preview/sample content via a visible `preview` tag or a
-`preview-note` line, so nothing on the home screen implies real tracked
-activity that doesn't exist yet. No stores, tests, or frozen checkpoints
-were touched.
-
-## Explicitly out of scope for Section E (per blueprint boundary)
-
-Not touched, as instructed: Curriculum & Board Intelligence, Smart
-Low-Bandwidth Learning, Multilingual Learning, Voice Learning Assistant
-(beyond the existing TTS feature, which was only *audited*, not
-extended), Interactive Virtual Labs, Gamification, School/Coaching
-Management, AI Content Generator, Community/Collaboration, Career
-ecosystem expansion, AI Attendance, any H section, G4/G5/G6/G7.
+| 18 | Fresh-start / archive | 🟢 | Preserves human review/appeal records by design |
+| 19 | Scoped deletion (`this_app_only` / `everything`) | 🟢 | Client-side controls |
+| 20 | Server-side / legally-enforceable deletion | 🟠 | Requires production backend/storage |
+| 21 | Protection of uploaded images | 🟢 | Raw image bytes are not persisted by the homework data layer |
+| 22 | Protection of voice/TTS audio | 🟢 | Audio is not persisted as a stored asset |
+| 23 | Production-secure storage / encryption at rest | 🔴 | Requires production backend/storage controls |
+| 24 | Page-level access gating for Trust & Privacy Center | 🟡 | Role/access work is improving, but full production page-gating verification remains |
+| 25 | Human-in-the-loop governance (uncertainty surfaced, human accountable) | 🟢 | Review/override patterns + uncertainty states |
+| 26 | Emotion + purpose design system application | 🟢 | Applied to existing UX |
 
 ---
-## G7 Checkpoint 1 — Planner real per-learner persistence (added by audit follow-up)
+## Current persistence audit
 
-Status: DONE for Planner. Preferences, goals, upcoming assessments, and task
-status/history now persist to the real per-learner Postgres tables
-(`planner_preferences`, `planner_goals`, `planner_upcoming_assessments`,
-`planner_tasks`, `planner_task_events`) instead of being trapped in one
-browser's localStorage — verified with 88/88 passing tests (87 pre-existing
-+ 1 new), including a 13-assertion mock-database functional test of the
-sync endpoint's upsert/reconciliation logic run during development.
+### Planner
+Status: 🟢 **Implemented in source/tests; live production DB gate remains.** Preferences, goals, upcoming assessments and task history sync through the per-learner PostgreSQL planner tables.
 
-What changed:
-- `api/auth/signup.js` — a new student account now gets a real `learners`
-  row (previously: none did, so no valid `learnerId` ever existed for a
-  signed-up student).
-- `api/v1/my-learners.js` (new) — resolves which learner(s) a session may
-  act as; self-heals a missing learner row for pre-existing accounts.
-- `api/v1/planner.js` (new) — GET returns a learner's server snapshot,
-  PUT syncs the client's local store (replace-set for goals/upcoming,
-  upsert-never-delete for tasks, with a `planner_task_events` row recorded
-  on every real status change).
-- `js/baa-planner.js` — added `setSyncTarget`/`hydrateFromServer`;
-  `save()` now also pushes a non-blocking background sync when a session
-  has opted in. Off by default — zero behavior change for anonymous/local
-  use, confirmed by the full existing test suite staying green.
-- `student-os.html` — on load, resolves a logged-in session's learner and
-  hydrates from the server.
+### Learning Memory
+Status: 🟡 **Partially implemented.** Derived mastery summary/history and mistake-pattern summary have server persistence. Raw question-level evidence depends on assessment/question rows existing server-side.
 
-What this does NOT yet do (separate checkpoints, see plan below):
-- Task **generation** (`generateCandidates`) still runs entirely client-side
-  against local Section B evidence — Section B (learning evidence/memory)
-  is not itself wired to the DB yet, so the Planner's *recommendations*
-  still only reflect one browser's mastery data even though its *storage*
-  is now real. Wiring Section B is the natural next checkpoint.
-- Homework evidence, rewards, and assessment-attempt persistence — same
-  "real backend exists, nothing calls it" gap, not yet fixed.
-- Parent/Teacher dashboards do not yet query this new per-learner data
-  (they still read local browser storage) — that's the read side of the
-  same problem and is next after Section B.
-- Not integration-tested against a live Postgres (no DB credentials in
-  this sandbox, same limitation noted previously) — verified instead via
-  code review, the full regression suite, and a mock-database functional
-  test.
+### Assessment attempts/results/evidence
+Status: 🟡 **Server path exists and is security-validated.** `api/v1/[...route].js` accepts authenticated learner-scoped assessment snapshots, validates assessment/question ownership, re-grades deterministic questions server-side and requires signed AI verdicts for AI-graded questions. The remaining gate is production database/content verification, not absence of the route.
+
+### Homework
+Status: 🟡 **Server sync path exists.** `js/baa-homework.js` syncs learner-scoped submissions to `/api/v1/homework`; the remaining limitation is that the local/browser store remains part of the current testing architecture and complete production media/evidence integration is not yet claimed.
+
+### Rewards
+Status: 🟡 **Server-derived reward path exists.** The API derives XP/badges from server-backed assessment/evidence data and stores `learner_rewards`; deployed production acceptance remains pending.
+
+### Parent/Teacher dashboards
+Status: 🟡 **Server-backed learner-view helper now exists and enforces role.** Parent/Teacher pages still contain legacy local-data sections, so the final release gate is to prove the visible dashboard consistently uses the server-backed learner snapshot and does not present local preview data as production data.
 
 ---
-## G7 Checkpoint 2 — Learning Memory (mastery) real per-learner persistence
+## Mastery Gate / Forecast
 
-Status: DONE for the derived mastery summary. `learning_memory` (per-concept
-status: mastered/learning/needs_revision/insufficient_evidence),
-`learning_memory_history` (append-only transitions), and `mistake_patterns`
-(summary only) now sync to the real per-learner backend — verified with
-89/89 passing tests (88 prior + 1 new), plus a 10-assertion mock-database
-functional test run during development.
+Status: 🟡 **Implemented in source; strict deployed acceptance remains.** The current API contains progression-gate, parent-authenticated bypass, audit logging and evidence-based forecast logic. The gate is designed to block progression while red findings remain and to re-check after a later assessment.
 
-**Real blocker found and documented, not worked around**: raw per-question
-evidence (`learning_evidence`) and `assessment_attempts` CANNOT be synced
-yet. The schema's `learning_evidence` table has NOT NULL foreign keys to
-`assessment_attempts`, `assessments`, and `questions` — and no assessment
-content (the actual questions/assessments) is seeded into the database
-anywhere in this codebase; it only ever exists in client-side JS data
-files. Fixing this needs a real decision: either (a) seed real assessment
-content server-side first (a content-migration task, separate from this
-audit), or (b) relax those foreign keys (a schema change with real
-tradeoffs). I did not make that call unilaterally — flagging it here for
-you to decide before the next checkpoint touches it.
+---
+## External / infrastructure gaps
 
-## Checkpoint 3 (Mentor/Scholarship/ERP/Olympiad/AI Council empty states) — investigated, not yet changed
+These are not to be fabricated as complete:
 
-Correction to the original audit: these five modules are not prominently
-exposed on the student dashboard — they're reachable only via
-`feature-map.html`, and `UI-REACHABILITY-MATRIX.json` already documents at
-least Mentor Marketplace and AI Council honestly ("no live marketplace
-claimed", "no invented reviewers"). The original "misleadingly presented"
-characterization was too strong for at least these two. Still true: there's
-no real mentor/scholarship/ERP/competition data behind any of them. Not
-changed yet — needs a closer pass through `feature-map.html` and each
-module's actual entry point before editing, to avoid duplicating messaging
-that may already be honest in places.
+- COPPA/GDPR/FERPA legal compliance
+- Production encryption/secure storage
+- Server-side legally enforceable deletion
+- Real Gemini/photo verification with deployed credentials
+- Real payment processing/webhooks
+- Live ERP, scholarship, mentor-marketplace and competition providers
+- Full multi-device offline conflict resolution
+- Production monitoring/disaster recovery/staging
+
+Where a provider or production credential is required, the UI must show an honest unavailable/foundation state until it is configured and tested.
+
+---
+## UI reachability correction
+
+The previous `62/62 UI-reachable` wording was too strong. `UI-REACHABILITY-MATRIX.json` contains source-level reachability descriptions, but a deployed-browser click-through has not been independently completed for every module. The strict audit therefore keeps that gate pending instead of converting catalog/locator entries into completion claims.
+
+The current strict M1–M62 table is in `BLUEPRINT-ROADMAP-DEEP-AUDIT-2026-08-22.md` and the visible website audit page is `blueprint-roadmap-audit.html`.
