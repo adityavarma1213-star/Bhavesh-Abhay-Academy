@@ -5,6 +5,28 @@
 (function(global){
 'use strict';
 function esc(v){const d=document.createElement('div');d.textContent=String(v??'');return d.innerHTML;}
+async function getSession(){
+  const r=await fetch('/api/auth/me',{credentials:'include',cache:'no-store'});
+  if(!r.ok) throw new Error(`AUTH_${r.status}`);
+  return r.json();
+}
+function expectedRole(){
+  const path=String(global.location.pathname||'');
+  if(path.endsWith('/teacher-os.html')||path.endsWith('/teacher-portal.html')) return 'teacher';
+  if(path.endsWith('/parent-os.html')) return 'parent';
+  return null;
+}
+async function enforceRole(){
+  const expected=expectedRole();
+  if(!expected) return null;
+  const session=await getSession();
+  const roles=Array.isArray(session?.user?.roles)?session.user.roles:[session?.user?.roles||session?.user?.role].filter(Boolean);
+  if(!roles.includes(expected)){
+    const target=roles.includes('teacher')?'teacher-portal.html':roles.includes('parent')?'parent-os.html':'account.html';
+    throw Object.assign(new Error(`ROLE_${expected.toUpperCase()}_REQUIRED`),{redirect:target});
+  }
+  return session;
+}
 async function getLearners(){
   const r=await fetch('/api/v1/my-learners',{credentials:'include'});
   if(!r.ok) throw new Error(`AUTH_${r.status}`);
@@ -22,6 +44,7 @@ async function init({mountId='serverLearnerView',onLearnerChange}={}){
   const mount=document.getElementById(mountId); if(!mount) return null;
   mount.innerHTML='<div class="card"><div class="empty-note">Checking authenticated learner data…</div></div>';
   try{
+    await enforceRole();
     const learners=await getLearners();
     if(!learners.length){
       mount.innerHTML='<div class="card"><div class="empty-note">No learner is connected to this account yet. This view will remain empty rather than showing browser-local data as if it were server data.</div></div>';
@@ -63,6 +86,11 @@ async function init({mountId='serverLearnerView',onLearnerChange}={}){
     const snapshot=await render(first.id);
     return {learners,snapshot};
   }catch(e){
+    if(e.redirect){
+      mount.innerHTML=`<div class="card"><div class="empty-note">This area requires the correct BAA account role. Redirecting to ${esc(e.redirect)}…</div></div>`;
+      setTimeout(()=>{global.location.href=e.redirect;},350);
+      return null;
+    }
     mount.innerHTML='<div class="card"><div class="empty-note">This page is not connected to an authenticated BAA account. Sign in first; no browser-local data is presented as server-backed data.</div></div>';
     return null;
   }
