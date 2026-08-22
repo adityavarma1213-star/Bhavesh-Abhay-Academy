@@ -1,9 +1,9 @@
 const fs=require('fs'),path=require('path');
 const ROOT=path.join(__dirname,'..'); let failures=0;
 function assert(c,m){if(!c){console.error('FAIL:',m);failures++;}else console.log('PASS:',m)}
-const api=fs.readFileSync(path.join(ROOT,'api/v1/progression-gate.js'),'utf8');
-const forecast=fs.readFileSync(path.join(ROOT,'api/v1/academic-forecast.js'),'utf8');
-const assessmentApi=fs.readFileSync(path.join(ROOT,'api/v1/assessment.js'),'utf8');
+const api=fs.readFileSync(path.join(ROOT,'api/v1/[...route].js'),'utf8');
+const forecast=fs.readFileSync(path.join(ROOT,'api/v1/[...route].js'),'utf8');
+const assessmentApi=fs.readFileSync(path.join(ROOT,'api/v1/[...route].js'),'utf8');
 const migration=fs.readFileSync(path.join(ROOT,'db/migrations/007_mastery_gates_and_forecast.sql'),'utf8');
 const schema=fs.readFileSync(path.join(ROOT,'db/schema.sql'),'utf8');
 const client=fs.readFileSync(path.join(ROOT,'js/baa-progression-gate.js'),'utf8');
