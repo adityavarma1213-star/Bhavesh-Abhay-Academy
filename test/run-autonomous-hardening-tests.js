@@ -1,9 +1,9 @@
 const fs=require('fs'), assert=require('assert');
 const read=f=>fs.readFileSync(f,'utf8');
-const planner=read('api/v1/planner.js');
-const homework=read('api/v1/homework.js');
-const assessment=read('api/v1/assessment.js');
-const rewards=read('api/v1/rewards.js');
+const planner=read('api/v1/[...route].js');
+const homework=read('api/v1/[...route].js');
+const assessment=read('api/v1/[...route].js');
+const rewards=read('api/v1/[...route].js');
 const student=read('student-os.html');
 let n=0;
 function t(name,fn){fn();n++;console.log('PASS:',name)}
