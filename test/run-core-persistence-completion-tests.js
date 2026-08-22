@@ -5,7 +5,7 @@ const migration=read('db/migrations/004_assessment_catalog_seed.sql');
 a(migration.includes('INSERT INTO questions'),'C1: assessment question seed migration exists');
 a(migration.includes('INSERT INTO assessments'),'C2: assessment catalog seed migration exists');
 a(migration.includes('INSERT INTO assessment_questions'),'C3: assessment-question mapping seed exists');
-for(const f of ['api/v1/assessment.js','api/v1/homework.js','api/v1/rewards.js']){const s=read(f);a(s.includes('requireAuth'),'C4: '+f+' requires authentication');a(s.includes('requireLearnerAccess'),'C5: '+f+' enforces learner authorization');}
+for(const f of ['api/v1/[...route].js','api/v1/[...route].js','api/v1/[...route].js']){const s=read(f);a(s.includes('requireAuth'),'C4: '+f+' requires authentication');a(s.includes('requireLearnerAccess'),'C5: '+f+' enforces learner authorization');}
 a(read('db/migrations/005_core_module_persistence.sql').includes('CREATE TABLE IF NOT EXISTS homework_submissions'),'C6: homework persistence table exists');
 a(read('db/migrations/005_core_module_persistence.sql').includes('CREATE TABLE IF NOT EXISTS learner_rewards'),'C7: rewards persistence table exists');
 a(read('js/baa-assessment.js').includes('/api/v1/assessment'),'C8: assessment client has server sync path');
