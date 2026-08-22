@@ -3,8 +3,8 @@
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 const assessment = fs.readFileSync('assessment.html','utf8');
-const api = fs.readFileSync('api/v1/assessment.js','utf8');
-const forecast = fs.readFileSync('api/v1/academic-forecast.js','utf8');
+const api = fs.readFileSync('api/v1/[...route].js','utf8');
+const forecast = fs.readFileSync('api/v1/[...route].js','utf8');
 
 assert.match(assessment, /window\.BAA_READY\s*=\s*initGateLearner\(\)/, 'M1: assessment page exposes a shared readiness promise');
 assert.match(assessment, /await window\.BAA_READY/, 'M2: deep-link startup awaits learner readiness');
