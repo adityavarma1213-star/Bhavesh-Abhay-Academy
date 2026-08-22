@@ -2,7 +2,7 @@
 const fs=require('fs');const assert=require('assert');const vm=require('vm');
 const analytics=fs.readFileSync('js/baa-teacher-analytics.js','utf8');
 const teacher=fs.readFileSync('teacher-os.html','utf8');
-const endpoint=fs.readFileSync('api/v1/class-analytics.js','utf8');
+const endpoint=fs.readFileSync('api/v1/[...route].js','utf8');
 let passed=0;function test(n,f){try{f();passed++;console.log(`PASS ${n}`)}catch(e){console.error(`FAIL ${n}\n${e.stack||e}`);process.exitCode=1}}
 
 test('Analytics engine summarizes real evidence',()=>{assert.ok(analytics.includes('snapshot?.evidence'));assert.ok(analytics.includes('accuracy'))});
