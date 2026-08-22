@@ -2,7 +2,7 @@
    Network-first for API requests; cache-first for static application assets.
    This is a real browser cache layer, not a claim of server synchronization. */
 const CACHE='baa-os-static-v1';
-const CORE=['./','./index.html','./student-os.html','./parent-os.html','./teacher-os.html','./teacher-review.html','./assessment.html','./homework-scanner.html','./knowledge-universe.html','./mathematics-world.html','./trust-privacy.html'];
+const CORE=['./','./index.html','./student-os.html','./parent-os.html','./teacher-os.html','./teacher-portal.html','./teacher-review.html','./assessment.html','./homework-scanner.html','./knowledge-universe.html','./mathematics-world.html','./trust-privacy.html'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(self.clients.claim()));
 self.addEventListener('fetch',event=>{
