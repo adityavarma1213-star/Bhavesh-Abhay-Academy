@@ -22,14 +22,14 @@ const ROOT = path.join(__dirname, '..');
 let fail = 0;
 function ok(cond, msg) { if (cond) console.log('PASS', msg); else { console.error('FAIL', msg); fail++; } }
 
-const plannerApi = fs.readFileSync(path.join(ROOT, 'api/v1/planner.js'), 'utf8');
-const myLearners = fs.readFileSync(path.join(ROOT, 'api/v1/my-learners.js'), 'utf8');
-const signup = fs.readFileSync(path.join(ROOT, 'api/auth/signup.js'), 'utf8');
+const plannerApi = fs.readFileSync(path.join(ROOT, 'api/v1/[...route].js'), 'utf8');
+const myLearners = fs.readFileSync(path.join(ROOT, 'api/v1/[...route].js'), 'utf8');
+const signup = fs.readFileSync(path.join(ROOT, 'api/auth/[...action].js'), 'utf8');
 const plannerClient = fs.readFileSync(path.join(ROOT, 'js/baa-planner.js'), 'utf8');
 const studentOs = fs.readFileSync(path.join(ROOT, 'student-os.html'), 'utf8');
 
-ok(fs.existsSync(path.join(ROOT, 'api/v1/planner.js')), 'api/v1/planner.js exists');
-ok(fs.existsSync(path.join(ROOT, 'api/v1/my-learners.js')), 'api/v1/my-learners.js exists');
+ok(fs.existsSync(path.join(ROOT, 'api/v1/[...route].js')), 'api/v1/[...route].js exists');
+ok(fs.existsSync(path.join(ROOT, 'api/v1/[...route].js')), 'api/v1/[...route].js exists');
 
 ok(/requireAuth/.test(plannerApi) && /requireLearnerAccess/.test(plannerApi),
   'Planner sync route requires auth and per-learner access control (no cross-learner leakage)');
