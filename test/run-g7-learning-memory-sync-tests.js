@@ -9,8 +9,8 @@ const ROOT = path.join(__dirname, '..');
 let fail = 0;
 function ok(cond, msg) { if (cond) console.log('PASS', msg); else { console.error('FAIL', msg); fail++; } }
 
-ok(fs.existsSync(path.join(ROOT, 'api/v1/learning-memory.js')), 'api/v1/learning-memory.js exists');
-const api = fs.readFileSync(path.join(ROOT, 'api/v1/learning-memory.js'), 'utf8');
+ok(fs.existsSync(path.join(ROOT, 'api/v1/[...route].js')), 'api/v1/[...route].js exists');
+const api = fs.readFileSync(path.join(ROOT, 'api/v1/[...route].js'), 'utf8');
 const client = fs.readFileSync(path.join(ROOT, 'js/baa-assessment.js'), 'utf8');
 const studentOs = fs.readFileSync(path.join(ROOT, 'student-os.html'), 'utf8');
 
@@ -19,7 +19,7 @@ ok(/method === 'GET'/.test(api) && /method === 'PUT'/.test(api), 'Learning memor
 ok(/ON CONFLICT\(learner_id,concept\) DO UPDATE/.test(api), 'Concept mastery is upserted (one row per learner+concept, matches DERIVED table comment in schema)');
 ok(/learning_memory_history/.test(api) && /p\.status !== status \|\| Number\(p\.evidence_count\) !== evidenceCount/.test(api),
   'History row is only written when status or evidence count actually changed (append-only, not spammed every sync)');
-const assessmentApi = fs.readFileSync(path.join(ROOT, 'api/v1/assessment.js'), 'utf8');
+const assessmentApi = fs.readFileSync(path.join(ROOT, 'api/v1/[...route].js'), 'utf8');
 const seed = fs.readFileSync(path.join(ROOT, 'db/migrations/004_assessment_catalog_seed.sql'), 'utf8');
 ok(/assessment sync/.test(assessmentApi) || /assessment_attempts/.test(assessmentApi),
   'Assessment sync route owns raw attempts/answers/results/evidence persistence');
