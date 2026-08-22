@@ -1,0 +1,41 @@
+name: BAA Regression
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: JavaScript syntax gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r -d '' file; do
+            node --check "$file"
+          done < <(find . -type f -name '*.js' -not -path './node_modules/*' -print0)
+      - name: Core regression suite
+        run: node test/run-tests.js
+      - name: Module regression suites
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          tests=(test/run-*.js)
+          for test_file in "${tests[@]}"; do
+            if [[ "$test_file" == "test/run-tests.js" ]]; then continue; fi
+            echo "==> $test_file"
+            node "$test_file"
+          done
