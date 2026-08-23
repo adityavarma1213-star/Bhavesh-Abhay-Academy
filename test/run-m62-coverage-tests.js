@@ -17,7 +17,7 @@ const expected=Array.from({length:62},(_,i)=>i+1);
 if(ids.some((id,i)=>id!==expected[i])) throw new Error('M62 coverage matrix must contain module IDs 1..62 in order');
 
 for(const row of rows){
-  if(!row.name && !row.feature && !row.title) throw new Error(`Module ${row.id??row.module} is missing a feature name`);
+  if(!row.status) throw new Error(`Module ${row.module??row.id} is missing a status`);
 }
 
 console.log('M62 coverage gate: 62/62 module records present and structurally valid.');
