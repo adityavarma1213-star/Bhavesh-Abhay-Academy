@@ -46,6 +46,29 @@
   function installAuthUx(){installPasswordToggle('authPassword');installPasswordToggle('resetPassword');const style=document.createElement('style');style.textContent='.modal input:focus-visible,.modal button:focus-visible{outline:2px solid #F5B942;outline-offset:2px}.modal .auth-tab,.modal .btn-primary{min-height:44px}#keepSignedInWrap input{margin:0}';document.head.appendChild(style);installKeepSignedIn();}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installAuthUx);else installAuthUx();
 
+  /* Role-aware workspace navigation: teachers/admins must be able to reach
+     Academic Management from the OS instead of knowing a hidden URL. This is
+     additive and server-authoritative: the link is shown only after /api/auth/me
+     confirms the role. */
+  function installRoleWorkspaceLink(){
+    if(document.getElementById('baaRoleWorkspaceLink')) return;
+    fetch('/api/auth/me',{credentials:'include',cache:'no-store'}).then(function(r){return r.ok?r.json():null}).then(function(session){
+      const roles=session&&session.user&&(session.user.roles||session.user.role);
+      const list=Array.isArray(roles)?roles:[roles].filter(Boolean);
+      if(!list.includes('teacher')&&!list.includes('admin')) return;
+      const host=document.querySelector('.tb-right,#screen-home .tb-right,.topbar,.top');
+      if(!host) return;
+      const link=document.createElement('a');
+      link.id='baaRoleWorkspaceLink';
+      link.href='teacher-portal.html';
+      link.setAttribute('aria-label','Open Teacher and Academic Management');
+      link.textContent='👩‍🏫 Teacher Portal';
+      link.style.cssText='display:inline-flex;align-items:center;gap:7px;margin-left:8px;padding:9px 13px;border:1px solid rgba(76,217,232,.38);border-radius:999px;background:rgba(76,217,232,.08);color:#4CD9E8;text-decoration:none;font:700 .78rem Inter,Arial,sans-serif;white-space:nowrap;';
+      host.appendChild(link);
+    }).catch(function(){});
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installRoleWorkspaceLink);else installRoleWorkspaceLink();
+
   function installLandingLinks(){
     const path=window.location.pathname;
     if(!(path==='/' || path.endsWith('/index.html'))) return;
