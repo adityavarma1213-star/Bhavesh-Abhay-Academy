@@ -5,8 +5,8 @@ const portal=fs.readFileSync('teacher-portal.html','utf8');
 const serverView=fs.readFileSync('js/baa-server-learner-view.js','utf8');
 
 assert(account.includes("fetch(API+'/me'"), 'Account login must resolve the authenticated session after login');
-assert(account.includes("roles.includes('teacher')"), 'Account routing must recognize teacher role');
-assert(account.includes("roles.includes('parent')"), 'Account routing must recognize parent role');
+assert(account.includes("list.includes('teacher')"), 'Account routing must recognize teacher role');
+assert(account.includes("list.includes('parent')"), 'Account routing must recognize parent role');
 assert(account.includes("return 'student-os.html'"), 'Account routing must retain student fallback');
 assert(portal.includes("fetch('/api/auth/me'"), 'Teacher academic portal must verify authenticated session');
 assert(portal.includes("roles.includes('teacher')"), 'Teacher academic portal must enforce teacher role');
