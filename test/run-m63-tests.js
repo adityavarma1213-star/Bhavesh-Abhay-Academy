@@ -1,0 +1,24 @@
+#!/usr/bin/env node
+const fs=require('fs'),assert=require('assert'),vm=require('vm');
+const catalogue=fs.readFileSync('js/baa-guide-catalogue.js','utf8');
+assert.ok(catalogue.includes('BAAGuideCatalogue'));
+const ctx={window:{}};vm.createContext(ctx);vm.runInContext(catalogue,ctx);
+assert.ok(ctx.window.BAAGuideCatalogue);
+const features=ctx.window.BAAGuideCatalogue.getFeatures();
+assert.ok(features.length>=10,'catalogue should cover the major BAA features');
+assert.ok(features.some(f=>f.id==='student-os'));
+assert.ok(features.some(f=>f.id==='teacher-portal'));
+assert.ok(features.some(f=>f.id==='parent-os'));
+assert.ok(features.some(f=>f.id==='themes'));
+assert.ok(features.every(f=>f.id&&f.title&&f.description&&f.route&&Array.isArray(f.roles)));
+const robot=fs.readFileSync('js/baa-guide-robot.js','utf8');
+const css=fs.readFileSync('css/baa-guide-robot.css','utf8');
+assert.ok(robot.includes('BAAGuideRobot'));
+assert.ok(robot.includes('baaGuideRobotButton'));
+assert.ok(robot.includes('aria-expanded'));
+assert.ok(robot.includes('Escape'));
+assert.ok(robot.includes('/api/auth/me'));
+assert.ok(css.includes('.baa-guide-launcher'));
+assert.ok(css.includes('@media(max-width:560px)'));
+assert.ok(css.includes('prefers-reduced-motion'));
+console.log('M63 PASS');
