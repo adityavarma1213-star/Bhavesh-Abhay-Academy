@@ -7,8 +7,9 @@
     "dev": "vercel dev",
     "db:migrate": "node scripts/apply-migrations.mjs",
     "db:export": "node scripts/export-backup.mjs",
-    "test": "node test/run-tests.js && node test/run-role-routing-tests.js && node test/run-m62-coverage-tests.js && node test/g4g5g6/run-tests.js",
-    "test:g4g5g6": "node test/g4g5g6/run-tests.js"
+    "test": "node test/run-tests.js && node test/run-role-routing-tests.js && node test/run-m62-coverage-tests.js && node test/g4g5g6/run-tests.js && node test/run-external-module-contract-tests.js",
+    "test:g4g5g6": "node test/g4g5g6/run-tests.js",
+    "test:external": "node test/run-external-module-contract-tests.js"
   },
   "engines": {
     "node": ">=18"
