@@ -69,6 +69,25 @@
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installRoleWorkspaceLink);else installRoleWorkspaceLink();
 
+  /* Starter/landing discoverability: the Galaxy/Student OS can be entered
+     before authentication, so role-aware navigation cannot be the only path.
+     Expose an explicit Teacher / Academic Management entry that leads to the
+     secure account flow. The destination still enforces teacher/admin access. */
+  function installTeacherStarterLink(){
+    if(document.getElementById('baaTeacherStarterLink')) return;
+    const path=window.location.pathname;
+    const isStudentOs=path.endsWith('/student-os.html') || path==='/student-os.html';
+    if(!isStudentOs) return;
+    const link=document.createElement('a');
+    link.id='baaTeacherStarterLink';
+    link.href='account.html?role=teacher';
+    link.textContent='👩‍🏫 Teacher / Academic Management';
+    link.setAttribute('aria-label','Teacher and Academic Management sign in');
+    link.style.cssText='position:fixed;right:18px;bottom:18px;z-index:9999;display:inline-flex;align-items:center;gap:8px;padding:12px 16px;border:1px solid rgba(245,185,66,.45);border-radius:999px;background:rgba(11,15,46,.92);color:#F5B942;text-decoration:none;font:700 .8rem Inter,Arial,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.3);backdrop-filter:blur(12px);';
+    document.body.appendChild(link);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installTeacherStarterLink);else installTeacherStarterLink();
+
   function installLandingLinks(){
     const path=window.location.pathname;
     if(!(path==='/' || path.endsWith('/index.html'))) return;
