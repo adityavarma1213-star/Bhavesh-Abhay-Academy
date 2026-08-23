@@ -130,9 +130,33 @@
     body.append(note,editor,run,output,frame);
   }
 
+  function initTeacherPortalEntry(){
+    if(!location.pathname.endsWith('student-os.html')) return;
+    if(document.getElementById('baa-teacher-portal-entry')) return;
+    const home=document.getElementById('screen-home');
+    if(!home) return;
+    const inner=home.querySelector('.home-inner');
+    if(!inner) return;
+    const card=document.createElement('section');
+    card.id='baa-teacher-portal-entry';
+    card.setAttribute('aria-label','Teacher and academic management');
+    card.style.cssText='margin:24px 0;padding:20px 22px;border:1px solid rgba(245,185,66,.35);border-radius:18px;background:linear-gradient(135deg,rgba(124,92,252,.14),rgba(245,185,66,.08));display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;';
+    const copy=document.createElement('div');
+    const title=document.createElement('strong'); title.textContent='👩‍🏫 Teacher / Academic Management'; title.style.cssText='display:block;font-size:1rem;margin-bottom:5px;';
+    const desc=document.createElement('span'); desc.textContent='Teacher Portal access — sign in with a teacher or admin account.'; desc.style.cssText='display:block;color:rgba(253,249,240,.65);font-size:.84rem;line-height:1.5;';
+    copy.append(title,desc);
+    const link=document.createElement('a');
+    link.href='account.html?role=teacher'; link.textContent='Open Teacher Portal'; link.setAttribute('data-role','teacher');
+    link.style.cssText='display:inline-flex;align-items:center;justify-content:center;padding:11px 17px;border-radius:999px;background:#F5B942;color:#0B0F2E;font-weight:800;white-space:nowrap;';
+    card.append(copy,link);
+    inner.insertBefore(card,inner.firstElementChild);
+  }
+
   function initLiveDashboard(){
     const root=location.pathname.endsWith('student-os.html') || document.querySelector('.baa-dashboard');
     if(!root) return;
+
+    initTeacherPortalEntry();
 
     const setAll=(selector,value)=>document.querySelectorAll(selector).forEach(n=>{ n.textContent=String(value); });
     const setStat=(index,value,note,progress)=>{
@@ -174,7 +198,6 @@
         setStat(2,'—','Streak tracking is not enabled server-side yet',null);
         setStat(3,'—','Ranking service is not enabled yet',null);
         setStat(4,learning==null?'—':`${learning}%`,learning==null?'Complete an assessment to build evidence.':'Based on submitted assessment scores',learning==null?0:learning);
-
         const plan=planner.snapshot||{};
         const tasks=Array.isArray(plan.tasks)?plan.tasks:[];
         const pending=tasks.filter(t=>t.status==='pending'||t.status==='missed');
@@ -193,7 +216,6 @@
         }
         if(planScore) planScore.textContent=learning==null?'—':`${learning}%`;
         if(planProgress) planProgress.style.width=`${learning==null?0:learning}%`;
-
         const rankRows=document.querySelectorAll('.baa-side-card .baa-rank-row');
         rankRows.forEach(row=>{ row.innerHTML='<span class="baa-rank-num">—</span><strong>Live ranking unavailable</strong><span class="baa-rank-xp">Not configured</span>'; });
         const challenge=document.querySelector('.baa-challenge-banner');
