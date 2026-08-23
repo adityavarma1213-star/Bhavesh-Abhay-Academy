@@ -7,7 +7,7 @@
     "dev": "vercel dev",
     "db:migrate": "node scripts/apply-migrations.mjs",
     "db:export": "node scripts/export-backup.mjs",
-    "test": "node test/run-tests.js && node test/run-role-routing-tests.js && node test/run-m62-coverage-tests.js && node test/run-m20-career-tests.js && node test/run-m12-server-persistence-tests.js && node test/run-m24-25-tests.js && node test/run-m26-tests.js && node test/g4g5g6/run-tests.js && node test/run-external-module-contract-tests.js && node test/run-teacher-portal-discoverability.js",
+    "test": "node test/run-tests.js && node test/run-role-routing-tests.js && node test/run-m62-coverage-tests.js && node test/run-m20-career-tests.js && node test/run-m12-server-persistence-tests.js && node test/run-m24-25-tests.js && node test/run-m26-tests.js && node test/run-m27-learning-resources-tests.js && node test/g4g5g6/run-tests.js && node test/run-external-module-contract-tests.js && node test/run-teacher-portal-discoverability.js",
     "test:g4g5g6": "node test/g4g5g6/run-tests.js",
     "test:external": "node test/run-external-module-contract-tests.js",
     "test:teacher-portal": "node test/run-teacher-portal-discoverability.js",
@@ -15,6 +15,7 @@
     "test:m12": "node test/run-m12-server-persistence-tests.js",
     "test:m24-25": "node test/run-m24-25-tests.js",
     "test:m26": "node test/run-m26-tests.js",
+    "test:m27": "node test/run-m27-learning-resources-tests.js",
     "test:m62": "node test/run-m62-coverage-tests.js"
   },
   "engines": {
