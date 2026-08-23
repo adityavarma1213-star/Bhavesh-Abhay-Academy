@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+
+Sitemap: https://bhavesh-abhay-academy.vercel.app/sitemap.xml
