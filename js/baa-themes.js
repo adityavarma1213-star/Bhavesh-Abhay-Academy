@@ -99,4 +99,16 @@
     document.body.appendChild(wrap);
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installLandingLinks);else installLandingLinks();
+
+  /* M63 — Guide Robot bootstrap. Shared theme-engine pages already load this
+     file, so the robot is attached without duplicating three script tags in
+     every page. The catalogue is static and verified; no LLM call or storage
+     is required. */
+  function installGuideRobot(){
+    if(!document.querySelector('link[data-baa-guide-css]')){const link=document.createElement('link');link.rel='stylesheet';link.href='css/baa-guide-robot.css';link.dataset.baaGuideCss='1';document.head.appendChild(link);}
+    if(window.BAAGuideRobot) return;
+    const load=function(src,done){const existing=document.querySelector('script[src="'+src+'"]');if(existing){if(done)done();return;}const s=document.createElement('script');s.src=src;s.async=false;s.onload=done;s.onerror=function(){};document.head.appendChild(s);};
+    load('js/baa-guide-catalogue.js',function(){load('js/baa-guide-robot.js');});
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installGuideRobot);else installGuideRobot();
 })();
