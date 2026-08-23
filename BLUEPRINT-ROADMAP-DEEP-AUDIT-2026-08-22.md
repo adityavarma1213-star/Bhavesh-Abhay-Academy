@@ -59,7 +59,7 @@ This is a strict source-and-acceptance audit of all 62 BAA M62 modules listed in
 | 34 | School & Coaching Management | 🟢 Verified in source/UI tests | 25% | Reachability matrix specifies teacher input → school module → rendered state. **Owner:** Our code/audit. |
 | 35 | Community & Collaboration | 🟢 Verified in source/UI tests | 25% | Reachability matrix specifies post → community module → rendered result; production backend still needs verification. **Owner:** Our code/audit. |
 | 36 | AI Insights Dashboard | 🟡 Pending | 50% | Insights surface exists; complete server-backed evidence and deployed acceptance remain. **Owner:** Our code/audit. |
-| 37 | AI Trust, Privacy & Compliance | 🟡 Pending | 50% | Trust center exists; legal compliance and production secure storage are explicitly not implemented. **Owner:** Our code/audit. |
+| 37 | AI Trust, Privacy & Compliance | 🟡 Pending | 50% | Trust center exists; legal compliance and production secure storage are explicitly not implemented. **Owner:** Product/legal + infrastructure. |
 | 38 | Explainable AI Framework | 🟡 Pending | 50% | Core explainability exists; career explainability remains a gap. Guardian explainability now exists. **Owner:** Our code/audit. |
 | 39 | AI Review & Appeal | 🟡 Pending | 25% | Appeal/review capabilities are implemented/tested; live browser and server acceptance remain. **Owner:** Our code/audit. |
 | 40 | Curriculum & Board Intelligence | 🟡 Pending | 75% | Curriculum capability exists; real board intelligence/data source not verified. **Owner:** Our code/audit. |
@@ -106,6 +106,62 @@ This is a strict source-and-acceptance audit of all 62 BAA M62 modules listed in
 | Accessibility/WCAG | 🟡 Pending | 50% | Some keyboard/focus work exists; complete WCAG audit has not been independently executed. **Owner:** Our code/audit. |
 | Production monitoring/DR/staging | 🟡 Pending infrastructure | 75% | Full production observability/disaster recovery verification is not complete. **Owner:** Infrastructure. |
 
+## Audit quality controls — added 2026-08-23
+
+These controls supplement the Blueprint/Roadmap and do not replace or rewrite its requirements.
+
+### 1. Requirement traceability
+Every auditable requirement should have a unique Requirement ID and remain traceable from Blueprint/Roadmap → implementation → verification evidence → deployment result.
+
+### 2. Evidence gate
+A task cannot be marked complete without evidence appropriate to the requirement: source path, route/UI control, API/module call, test result, persistence/integration evidence, role/security evidence, and/or deployed-browser evidence as applicable.
+
+### 3. Website acceptance is separate from repository implementation
+`Implemented in GitHub` must never be treated as equivalent to `Working on the deployed website`. The live website must have its own acceptance state.
+
+### 4. Explicit working-state taxonomy
+Use only these working states where applicable:
+- 🟢 WORKING — verified functional behavior.
+- 🟡 PARTIALLY WORKING — some required behavior works, but one or more required gates remain.
+- 🔴 NOT WORKING — implementation exists but required behavior fails.
+- ⚫ MISSING — required capability is absent.
+- 🔵 BLOCKED — cannot be completed until an identified external/user dependency is supplied.
+- ⚪ NOT YET VERIFIED — implementation may exist, but evidence is insufficient to claim functionality.
+
+### 5. Separate audit status from working status
+A feature can be technically working while still failing the statutory acceptance gate. Therefore `Working Status` and `Audit Status` must remain separate in status reporting.
+
+### 6. Numeric task accounting
+Status reports should show `Task Completed = completed tasks / total auditable tasks`. Do not convert module mapping counts into overall completion unless the denominator and acceptance definition explicitly match.
+
+### 7. Regression protection
+Any fix must be checked against affected existing functionality. A newly introduced regression must reopen the affected requirement rather than leaving it marked complete.
+
+### 8. Role/access matrix
+Role-sensitive requirements should be verified per intended role (for example Student, Teacher, Parent, Admin where applicable), including unauthorized-access behavior.
+
+### 9. Persistence verification
+Where persistence is required, verify refresh/reload and appropriate session or re-login behavior, and verify server/database persistence when the Blueprint/Roadmap requires it. Browser-local state must not be presented as server persistence.
+
+### 10. Deployment verification
+A GitHub commit is not a deployed acceptance result. The release/deployment must be verified separately before the live feature is marked deployed and working.
+
+### 11. External-dependency classification
+Provider credentials, legal approvals, production infrastructure, third-party data, payment providers, ERP integrations, and similar dependencies must be explicitly identified and assigned an owner. They must not be silently counted as engineering-complete.
+
+### 12. Change/commit traceability
+Every substantive repository fix should be traceable to its GitHub commit and linked back to the requirement(s) it addresses.
+
+### 13. False-completion protection — mandatory final gate
+A requirement may be marked `COMPLETE` only when all gates relevant to that requirement have passed:
+
+`Blueprint/Roadmap requirement → code/implementation → visible UI/route where applicable → real function/result → role/security → required persistence/integration → regression verification → deployed acceptance → evidence recorded.`
+
+If any required gate is missing, the requirement remains pending, blocked, partially working, not working, or not yet verified as appropriate.
+
+### 14. Status-reporting standard
+The live status report should include: `What I am doing NOW`, `Working Status`, `Audit Status`, `Task Completed (X/Total)`, `Percentage`, `What was found`, `What was fixed`, `GitHub commit`, `Website impact`, `External/user dependency`, and `Next target`.
+
 ## Fixes already committed during this audit
 
 - Fixed authenticated role-aware login routing in `account.html` so Teacher/Parent/Student destinations are selected from `/api/auth/me`.
@@ -117,6 +173,7 @@ This is a strict source-and-acceptance audit of all 62 BAA M62 modules listed in
 - Added regression coverage that requires all M1–M62 entries to be represented in the audit.
 - Corrected stale status/gap documentation so existing Guardian, homework, assessment and rewards server paths are not falsely reported as completely absent.
 - Corrected the previous `62/62` UI claim so source wiring is not treated as live acceptance.
+- Added the audit quality controls in this document to prevent false completion and separate implementation, working-state, evidence, and deployment acceptance.
 
 ## Remaining work policy
 
