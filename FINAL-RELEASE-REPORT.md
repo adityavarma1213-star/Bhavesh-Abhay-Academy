@@ -1,41 +1,52 @@
-# BHAVESH ABHAY ACADEMY — FINAL M62 MODULE RELEASE
+# BHAVESH ABHAY ACADEMY — M62 RELEASE / STRICT AUDIT STATUS
 
-## Product-module completion
-**62 / 62 = 100%**
+## Product-module inventory
+**62 / 62 roadmap modules identified and tracked.**
 
-## Audit completion
-**BAA roadmap/module audit: 100% complete.**
+## Important correction
+The previous release note described the 62-module software baseline as a 100% audit completion. That wording was too broad. Source/module implementation evidence is not the same as end-to-end product acceptance.
 
-All 62 roadmap module IDs have an implemented and tested software capability in the current BAA prototype baseline. The audit completion statement is based on the verified module status reports, focused suites, individual smoke tests, regression suites, syntax checks, and Student OS reference check listed below.
+**The strict BAA Blueprint/Roadmap audit is NOT yet 100% complete.**
 
-## Build baseline
-Started from the verified M31 frozen baseline and continuously implemented M32 through M62.
+A module may only be certified complete when the applicable gates are evidenced: visible UI control → real module/API call → rendered result → role/security boundary → intended persistence/integration → regression test → deployed-browser acceptance.
 
-## Verification
-- M32–M40 focused suite: PASS
-- M41–M50 focused suite: PASS
-- M51–M62 focused suite: PASS
-- M32–M62 individual module smoke tests: 31/31 PASS
-- Historical/available regression suites: 45/45 PASS
-- JavaScript syntax checks: 161/161 PASS
-- Student OS script-reference check: PASS
+## Current strict-audit baseline
+See `BLUEPRINT-ROADMAP-DEEP-AUDIT-2026-08-22.md` for the authoritative M1–M62 status table.
 
-## Final audit verdict
-**AUDIT STATUS: COMPLETE — 100% OF THE 62 ROADMAP MODULES VERIFIED AS IMPLEMENTED AND TESTED IN THIS SOFTWARE BASELINE.**
+- M62 modules audited for requirements: 62/62
+- Source/UI/test-verified baseline: 8
+- Implemented by source/docs but live gate remains: 2
+- Partial/pending: 44
+- Genuine implementation gaps in the strict baseline: 4
+- Foundation-only capabilities: 2
+- Deployed-browser acceptance: NOT YET VERIFIED for all modules
 
-## Important release boundary
-100% module/audit completion means all 62 roadmap module IDs have implemented and tested software capabilities in this baseline. It does not claim that every external production dependency is connected, nor does it claim legal, regulatory, security, professional, or third-party certification.
+## Remediation status
+The repository is in an active remediation phase. Code-addressable gaps are being fixed and regression-tested. External-provider and infrastructure requirements are not to be fabricated as complete.
 
-Examples of explicit dependencies:
+## Release gates that remain open
+- Complete strict M1–M62 UI/reachability acceptance
+- Complete server/database/persistence acceptance where required
+- Complete role/security acceptance
+- Complete regression verification after each remediation batch
+- Complete deployed-browser verification
+- Configure and verify real external providers where required
+- Complete production infrastructure, accessibility and disaster-recovery gates
+
+## External dependencies that cannot be truthfully marked complete without real configuration
 - real school ERP credentials/endpoints
 - live scholarship/competition/job feeds
 - real mentor identity verification, payments and safeguarding
-- server-enforced account authorization and compliance
+- server-enforced legal/compliance controls
 - external longitudinal testing cohorts
-- actual multi-model/independent AI Council consultations
-- professional translation/dialect certification
+- independent/multi-model AI Council operation
+- production payment processing/webhooks
+- production monitoring, backups and disaster recovery
 
-These are documented in LIMITATIONS.md and the individual module status files rather than fabricated as complete.
+## Release rule
+**Do not declare BAA 100% complete until the strict audit evidence supports every applicable requirement.**
 
-## Design phase
-The current OS visual design has intentionally NOT been replaced. After module completion, BAA OS design alternatives can be reviewed jointly and the chosen design can then be applied to the real files with regression testing.
+A green module count, test count, status document, or source file alone is insufficient evidence for final certification.
+
+## Design preservation
+The existing BAA OS visual design remains in place. Remediation must preserve the approved existing experience unless a specific blueprint requirement requires a change.
