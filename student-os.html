@@ -3671,5 +3671,25 @@ if ('serviceWorker' in navigator) {
 }
 </script>
 <script src="js/baa-ui-wiring-final.js"></script>
+
+<!-- BAA TEACHER PORTAL: static discoverability entry -->
+<style id="baa-teacher-portal-static-style">
+#baa-teacher-portal-entry{margin:0 0 24px;padding:22px 24px;border:1px solid rgba(245,185,66,.42);border-radius:20px;background:linear-gradient(135deg,rgba(124,92,252,.16),rgba(76,217,232,.08));box-shadow:0 12px 34px rgba(0,0,0,.18);display:flex;align-items:center;justify-content:space-between;gap:18px;position:relative;z-index:30}
+#baa-teacher-portal-entry .tp-copy{min-width:0}
+#baa-teacher-portal-entry .tp-kicker{font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:#F5B942;font-weight:700;margin-bottom:6px}
+#baa-teacher-portal-entry .tp-title{font-size:1.05rem;font-weight:700;color:#FDF9F0;margin-bottom:5px}
+#baa-teacher-portal-entry .tp-sub{font-size:.82rem;line-height:1.45;color:rgba(253,249,240,.68)}
+#baa-teacher-portal-entry .tp-btn{display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;padding:11px 17px;border-radius:999px;background:#F5B942;color:#0B0F2E;font-weight:800;text-decoration:none;border:0;box-shadow:0 8px 22px rgba(245,185,66,.25)}
+#baa-teacher-portal-entry .tp-btn:hover{transform:translateY(-1px)}
+@media(max-width:640px){#baa-teacher-portal-entry{align-items:flex-start;flex-direction:column}.tp-btn{width:100%}}
+</style>
+<div id="baa-teacher-portal-entry" aria-label="Teacher and Academic Management">
+  <div class="tp-copy">
+    <div class="tp-kicker">Academic Management</div>
+    <div class="tp-title">👩‍🏫 Teacher Portal</div>
+    <div class="tp-sub">Manage classes, syllabus, students, assessments and teacher tools.</div>
+  </div>
+  <a class="tp-btn" href="account.html?role=teacher" aria-label="Open Teacher Portal">Open Teacher Portal →</a>
+</div>
 </body>
 </html>
