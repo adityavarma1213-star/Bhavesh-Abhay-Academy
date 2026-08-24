@@ -79,7 +79,7 @@ function getRecommendations(limit=8){
   const preferred=getPreference();
   const recommendations=[];
   ev.states.filter(s=>s&&s.concept).slice(0,20).forEach(state=>{
-    rankFormats(state,preferred).slice(0,2).forEach(r=>{
+    rankFormats(state,preferred).slice(0,3).forEach(r=>{
       const format=FORMATS.find(f=>f.id===r.id);
       const query=`${state.subject||''} ${String(state.concept).replace(/-/g,' ')}`.trim();
       recommendations.push({
