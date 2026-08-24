@@ -8,6 +8,7 @@ const path=require('path');
 const source=fs.readFileSync(path.join(__dirname,'..','js','baa-career.js'),'utf8');
 const context={
   console,
+  window:null,
   BAAAssessment:{
     getAcademicProfile(){
       return {
@@ -17,6 +18,7 @@ const context={
     }
   }
 };
+context.window=context;
 vm.createContext(context);
 vm.runInContext(source,context,{filename:'baa-career.js'});
 const plan=context.BAACareer.getPlan('Software Development');

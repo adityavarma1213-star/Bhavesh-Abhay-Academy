@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BAA — Scholarship Finder</title>
+<style>
+:root{--bg:#0b0f2e;--panel:#141b4d;--text:#fdf9f0;--muted:#aeb6d4;--accent:#7c5cfc;--cyan:#4cd9e8;--gold:#f5b942;--danger:#ff8b8b}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 20% 0%,#25206b,transparent 35%),var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}.wrap{max-width:1100px;margin:auto;padding:28px 18px 60px}.back{color:var(--cyan);text-decoration:none}.hero{margin:28px 0}.hero h1{margin:0 0 8px;font-size:clamp(1.8rem,5vw,3rem)}.hero p{color:var(--muted);line-height:1.6}.controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;background:#ffffff08;border:1px solid #ffffff12;border-radius:18px;padding:16px}input,button{font:inherit;border-radius:12px;padding:12px;border:1px solid #ffffff1c;background:#ffffff08;color:var(--text)}button{cursor:pointer;background:linear-gradient(120deg,var(--accent),var(--cyan));border:0;font-weight:700}.notice{margin:16px 0;padding:14px;border:1px solid #f5b94240;background:#f5b9420b;border-radius:14px;color:#e8ddbd;line-height:1.5}.status{margin:16px 0;color:var(--muted)}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}.card{background:#ffffff08;border:1px solid #ffffff12;border-radius:18px;padding:18px}.card h2{font-size:1.05rem;margin:0 0 8px}.provider{color:var(--cyan);font-size:.85rem}.meta{color:var(--muted);font-size:.85rem;line-height:1.55}.source{display:inline-block;margin-top:10px;color:var(--cyan)}.empty{padding:24px;border:1px dashed #ffffff20;border-radius:16px;color:var(--muted)}.error{color:var(--danger)}
+</style>
+</head>
+<body>
+<main class="wrap">
+<a class="back" href="student-os.html">← Student OS</a>
+<section class="hero"><h1>🎓 Scholarship Finder</h1><p>Find scholarships from BAA's published scholarship dataset. BAA does not invent scholarship facts; records are published through the authenticated server workflow.</p></section>
+<section class="controls" aria-label="Scholarship filters">
+<input id="country" placeholder="Country (optional)" autocomplete="country-name">
+<input id="level" placeholder="Level (optional)">
+<input id="field" placeholder="Field (optional)">
+<button id="search" type="button">Find scholarships</button>
+</section>
+<div class="notice"><strong>Important:</strong> Results are informational. Always verify eligibility, deadline, amount and application instructions at the scholarship provider's official source before applying.</div>
+<div id="status" class="status" aria-live="polite">Loading published scholarships…</div>
+<section id="results" class="grid" aria-live="polite"></section>
+</main>
+<script src="js/baa-scholarships.js"></script>
+<script>
+(function(){
+ const country=document.getElementById('country'),level=document.getElementById('level'),field=document.getElementById('field'),status=document.getElementById('status'),results=document.getElementById('results');
+ function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+ function render(rows){
+  if(!rows.length){results.innerHTML='<div class="empty">No published scholarships matched these filters.</div>';return;}
+  results.innerHTML=rows.map(r=>`<article class="card"><h2>${esc(r.title)}</h2><div class="provider">${esc(r.provider)}</div><p class="meta">${r.country?`Country: ${esc(r.country)}<br>`:''}${r.level?`Level: ${esc(r.level)}<br>`:''}${r.amountText?`Amount: ${esc(r.amountText)}<br>`:''}${r.deadline?`Deadline: ${esc(r.deadline)}<br>`:''}${Array.isArray(r.fields)&&r.fields.length?`Fields: ${esc(r.fields.join(', '))}`:''}</p>${r.sourceUrl?`<a class="source" href="${esc(r.sourceUrl)}" target="_blank" rel="noopener noreferrer">Open provider source →</a>`:''}</article>`).join('');
+ }
+ async function load(){
+  status.textContent='Loading published scholarships…';status.className='status';results.innerHTML='';
+  const r=await window.BAAScholarships.fetchPublished({country:country.value.trim(),level:level.value.trim(),field:field.value.trim()});
+  if(!r.ok){status.textContent='Scholarship service is currently unavailable. No sample or fabricated results are shown.';status.className='status error';return;}
+  status.textContent=`${r.results.length} published scholarship${r.results.length===1?'':'s'} found.`;render(r.results);
+ }
+ document.getElementById('search').addEventListener('click',load);load();
+})();
+</script>
+</body>
+</html>

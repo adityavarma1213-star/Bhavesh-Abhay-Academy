@@ -5,6 +5,14 @@
 (function(global){
 'use strict';
 function esc(v){const d=document.createElement('div');d.textContent=String(v??'');return d.innerHTML;}
+function setLegacyVisibility(visible){
+  // Parent/Teacher pages historically contain a browser-local analytics
+  // section below #serverLearnerView. Keep it hidden until the authenticated
+  // server snapshot has actually loaded so local preview data can never be
+  // mistaken for the production learner record.
+  const legacy=document.getElementById('content');
+  if(legacy) legacy.hidden=!visible;
+}
 async function getSession(){
   const r=await fetch('/api/auth/me',{credentials:'include',cache:'no-store'});
   if(!r.ok) throw new Error(`AUTH_${r.status}`);
@@ -42,6 +50,7 @@ async function getOverview(learnerId){
 }
 async function init({mountId='serverLearnerView',onLearnerChange}={}){
   const mount=document.getElementById(mountId); if(!mount) return null;
+  setLegacyVisibility(false);
   mount.innerHTML='<div class="card"><div class="empty-note">Checking authenticated learner data…</div></div>';
   try{
     await enforceRole();
@@ -74,9 +83,11 @@ async function init({mountId='serverLearnerView',onLearnerChange}={}){
           <div class="pstat"><b>${r.xp||0}</b><span>Recorded XP</span></div>
           <div class="pstat"><b>${pct===null?'—':pct+'%'}</b><span>Recorded score</span></div>
         </div><div style="margin-top:14px"><b>Server-backed concept states</b>${conceptRows||'<div class="empty-note">No server-backed concept evidence yet.</div>'}</div><div style="margin-top:14px"><b>Recent server-backed assessments</b>${attemptRows||'<div class="empty-note">No server-backed assessment attempts yet.</div>'}</div>`;
+        setLegacyVisibility(true);
         if(typeof onLearnerChange==='function') onLearnerChange(id,s);
         return s;
       }catch(e){
+        setLegacyVisibility(false);
         target.innerHTML='<div class="empty-note" style="padding:20px;">Server data could not be loaded. The page will not substitute another learner or fabricate a result.</div>';
         return null;
       }
@@ -86,6 +97,7 @@ async function init({mountId='serverLearnerView',onLearnerChange}={}){
     const snapshot=await render(first.id);
     return {learners,snapshot};
   }catch(e){
+    setLegacyVisibility(false);
     if(e.redirect){
       mount.innerHTML=`<div class="card"><div class="empty-note">This area requires the correct BAA account role. Redirecting to ${esc(e.redirect)}…</div></div>`;
       setTimeout(()=>{global.location.href=e.redirect;},350);

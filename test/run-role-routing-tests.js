@@ -8,7 +8,7 @@ assert(account.includes("fetch(API+'/me'"), 'Account login must resolve the auth
 assert(account.includes("list.includes('teacher')"), 'Account routing must recognize teacher role');
 assert(account.includes("list.includes('parent')"), 'Account routing must recognize parent role');
 assert(account.includes("return 'student-os.html'"), 'Account routing must retain student fallback');
-assert(portal.includes("fetch('/api/auth/me'"), 'Teacher academic portal must verify authenticated session');
+assert(/fetch\(['\"]\/api\/auth\/me['\"]/.test(portal), 'Teacher academic portal must verify authenticated session');
 assert(portal.includes("roles.includes('teacher')"), 'Teacher academic portal must enforce teacher role');
 assert(portal.includes("location.href='account.html'"), 'Unauthenticated academic portal access must return to Account');
 assert(serverView.includes("expectedRole()"), 'Parent/Teacher server view must determine page role');
