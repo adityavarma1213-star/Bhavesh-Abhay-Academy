@@ -35,5 +35,17 @@
     const fitLabel=coverage===0?'Not enough evidence':positiveSignals===aligned.length?'Strong current alignment':positiveSignals>=Math.ceil(aligned.length*0.6)?'Promising current alignment':'Mixed alignment — explore further';
     return {track:name,description:track.description,skills:aligned,strengths,gaps,fitSummary:{label:fitLabel,coverage,positiveSignals,trackedSkills:tracked.length,totalSkills:aligned.length},evidenceSummary:{trackedSkills:tracked.length,strengthSkills:strengths.length,supportNeededSkills:aligned.filter(x=>x.status==='support_needed').length,untrackedSkills:aligned.filter(x=>x.status==='not_yet_tracked').length},methodology:'Track skills are compared only with tagged academic evidence already available to BAA. Missing evidence is reported as not-yet-tracked; it is never treated as proof of weakness. Confidence reflects evidence quantity, not future-outcome probability.',limitations:['Career alignment is exploratory guidance, not a prediction or guarantee.','No job, salary, admission, or future outcome is inferred from the evidence.','Recommendations should be reviewed with a parent, teacher, or qualified career professional for consequential decisions.'],disclaimer:'Career alignment is exploratory guidance, not a prediction or guarantee.'};
   }
-  global.BAACareer={tracks:Object.keys(TRACKS),getPlan,_getTrack:getTrack,_evidenceForSkill:evidenceForSkill};
+  function explainPlan(name){
+    const plan=getPlan(name);
+    return {
+      track:plan.track,
+      headline:plan.fitSummary.label,
+      explanation:`${plan.fitSummary.label}. ${plan.fitSummary.trackedSkills} of ${plan.fitSummary.totalSkills} track skills have tagged academic evidence, including ${plan.fitSummary.positiveSignals} current strength signal${plan.fitSummary.positiveSignals===1?'':'s'}.`,
+      evidence:plan.skills.map(skill=>({skill:skill.skill,status:skill.status,confidence:skill.confidence,evidenceIds:skill.evidenceIds,evidenceSources:skill.evidenceSources,explanation:skill.explanation,decisionBasis:skill.decisionBasis})),
+      nextSteps:plan.gaps.map(skill=>skill.status==='support_needed'?`Practice or review ${humanize(skill.skill)} and collect new evidence.`:`Collect tagged academic evidence for ${humanize(skill.skill)} before drawing a conclusion.`),
+      limitations:plan.limitations,
+      disclaimer:plan.disclaimer
+    };
+  }
+  global.BAACareer={tracks:Object.keys(TRACKS),getPlan,explainPlan,_getTrack:getTrack,_evidenceForSkill:evidenceForSkill};
 })(window);
