@@ -19,6 +19,7 @@
     "test:m26": "node test/run-m26-tests.js",
     "test:m27": "node test/run-m27-learning-resources-tests.js",
     "test:m28": "node test/run-m28-tests.js",
+    "test:m55": "node test/run-m55-server-deletion-tests.js",
     "test:m62": "node test/run-m62-coverage-tests.js"
   },
   "engines": {
