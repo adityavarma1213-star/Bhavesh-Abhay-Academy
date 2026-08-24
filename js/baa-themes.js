@@ -111,4 +111,29 @@
     load('js/baa-guide-catalogue.js',function(){load('js/baa-guide-robot.js');});
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installGuideRobot);else installGuideRobot();
+
+  /* M37/M55 page-level Trust & Privacy gate. The page contains sensitive
+     account/data controls, so unauthenticated visitors are sent to the
+     authenticated account flow instead of being shown the control surface.
+     The API remains the authoritative decision; a browser-local role is not
+     sufficient to open this page. */
+  function installTrustPrivacyGate(){
+    const path=window.location.pathname;
+    if(!path.endsWith('/trust-privacy.html') && path!=='/trust-privacy.html') return;
+    if(document.documentElement.dataset.baaTrustGate==='1') return;
+    document.documentElement.dataset.baaTrustGate='1';
+    fetch('/api/auth/me',{credentials:'include',cache:'no-store'})
+      .then(function(r){
+        if(!r.ok) throw new Error('AUTH_REQUIRED');
+        return r.json();
+      })
+      .then(function(session){
+        if(!session || !session.user) throw new Error('AUTH_REQUIRED');
+        document.documentElement.dataset.baaTrustAuthenticated='1';
+      })
+      .catch(function(){
+        document.body.innerHTML='<main style="min-height:100vh;display:grid;place-items:center;padding:32px;background:#0B0F2E;color:#FDF9F0;font:500 16px Inter,Arial,sans-serif;text-align:center"><section style="max-width:520px"><div style="font-size:44px;margin-bottom:16px">🔐</div><h1 style="font:600 30px Fraunces,Georgia,serif;margin:0 0 12px">Sign in to open Trust &amp; Privacy</h1><p style="color:rgba(253,249,240,.65);line-height:1.6;margin:0 0 22px">Your Trust &amp; Privacy controls are available only inside an authenticated BAA account.</p><a href="account.html" style="display:inline-block;padding:12px 20px;border-radius:999px;background:#F5B942;color:#0B0F2E;text-decoration:none;font-weight:700">Go to account sign in</a></section></main>';
+      });
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installTrustPrivacyGate);else installTrustPrivacyGate();
 })();
