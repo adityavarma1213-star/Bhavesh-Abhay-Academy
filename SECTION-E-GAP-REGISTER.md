@@ -3,7 +3,7 @@
 Legend: 🟢 IMPLEMENTED · 🟡 PARTIALLY IMPLEMENTED · 🔵 ARCHITECTURAL FOUNDATION ·
 🟠 DEPENDENT ON FUTURE G4/G5/G6 · 🔴 NOT YET IMPLEMENTED
 
-This register is refreshed against the current source as of 2026-08-22. Historical checkpoint notes may describe an earlier state; current source is authoritative.
+This register is refreshed against the current source. Historical checkpoint notes may describe an earlier state; current source is authoritative.
 
 | # | Item | Status | Notes |
 |---|---|---|---|
@@ -14,8 +14,8 @@ This register is refreshed against the current source as of 2026-08-22. Historic
 | 5 | Legal compliance (COPPA/GDPR/FERPA) | 🔴 | Explicitly NOT claimed; requires legal/product/infrastructure controls |
 | 6 | Explainability — concept states, trends, planner tasks | 🟢 | Implemented learning-intelligence explanations |
 | 7 | Explainability — assessment/evaluation decisions | 🟢 | Implemented assessment rationale/history |
-| 8 | Explainability — career recommendations | 🔴 | Career explainability is not fully implemented |
-| 9 | Explainability — AI Guardian alerts | 🟢 | `js/baa-guardian.js` now provides bounded academic-support alerts with explainable reasons; it is not a mental-health diagnostic system |
+| 8 | Explainability — career recommendations | 🟢 | `js/baa-career.js` exposes `explainRecommendation()` with per-signal reason, evidence references, confidence, decision basis, safe next action, limitations and disclaimer |
+| 9 | Explainability — AI Guardian alerts | 🟢 | `js/baa-guardian.js` provides bounded academic-support alerts with explainable reasons; it is not a mental-health diagnostic system |
 | 10 | Student/parent re-evaluation requests | 🟢 | `requestReevaluation()` and review flow |
 | 11 | Teacher override | 🟢 | Teacher review/override flow exists |
 | 12 | Grading-change history/versioning | 🟢 | `decisionHistory[]` and server review records |
