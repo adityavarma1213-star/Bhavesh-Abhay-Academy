@@ -8,6 +8,7 @@
 
   const ENDPOINT = '/api/account/delete';
   const CONFIRMATION = 'DELETE MY ACCOUNT';
+  const DEFAULT_TIMEOUT_MS = 15000;
 
   async function deleteAccount(options = {}) {
     const confirmation = String(options.confirmation || '');
@@ -15,31 +16,48 @@
       return { ok: false, error: 'DELETE_CONFIRMATION_REQUIRED', confirmation: CONFIRMATION };
     }
 
-    const response = await fetch(ENDPOINT, {
-      method: 'DELETE',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ confirmation: CONFIRMATION }),
-    });
+    const timeoutMs = Number.isFinite(options.timeoutMs)
+      ? Math.max(1000, Math.min(60000, Number(options.timeoutMs)))
+      : DEFAULT_TIMEOUT_MS;
+    const controller = typeof AbortController === 'function' ? new AbortController() : null;
+    const timeout = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
 
-    let body = null;
-    try { body = await response.json(); } catch (_) { body = null; }
+    try {
+      const response = await fetch(ENDPOINT, {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confirmation: CONFIRMATION }),
+        ...(controller ? { signal: controller.signal } : {}),
+      });
 
-    if (!response.ok) {
+      let body = null;
+      try { body = await response.json(); } catch (_) { body = null; }
+
+      if (!response.ok) {
+        return {
+          ok: false,
+          status: response.status,
+          error: body?.error?.code || body?.error || 'ACCOUNT_DELETION_FAILED',
+          message: body?.error?.message || body?.message || 'Account deletion could not be completed.',
+        };
+      }
+
       return {
-        ok: false,
+        ok: true,
         status: response.status,
-        error: body?.error?.code || body?.error || 'ACCOUNT_DELETION_FAILED',
-        message: body?.error?.message || body?.message || 'Account deletion could not be completed.',
+        deleted: body?.deleted === true,
+        learnerCount: Number.isFinite(Number(body?.learnerCount)) ? Number(body.learnerCount) : null,
+        message: body?.message || 'Account deletion completed.',
       };
+    } catch (error) {
+      if (error?.name === 'AbortError') {
+        return { ok: false, error: 'ACCOUNT_DELETION_TIMEOUT', message: 'Account deletion request timed out. No completion is claimed.' };
+      }
+      return { ok: false, error: 'ACCOUNT_DELETION_NETWORK_ERROR', message: 'Account deletion could not reach the server. No completion is claimed.' };
+    } finally {
+      if (timeout) clearTimeout(timeout);
     }
-
-    return {
-      ok: true,
-      status: response.status,
-      deleted: body?.deleted !== false,
-      message: body?.message || 'Account deletion completed.',
-    };
   }
 
   function confirmationPhrase() { return CONFIRMATION; }
@@ -49,5 +67,6 @@
     deleteAccount,
     confirmationPhrase,
     endpoint,
+    defaultTimeoutMs: DEFAULT_TIMEOUT_MS,
   };
 })(typeof window !== 'undefined' ? window : global);
