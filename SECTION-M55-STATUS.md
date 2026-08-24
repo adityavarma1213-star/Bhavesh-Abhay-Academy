@@ -1,25 +1,27 @@
 # BAA Module 55 — Student Data Trust & Fresh-Start Controls
 
 ## Status
-**Implemented and regression-tested in the continuous M32–M62 build.**
+**Server-side account deletion implementation added; production verification remains pending.**
 
 ## Scope
-Previewable local-data reset controls; cloud/account deletion remains a server dependency.
+- Client-side/local reset controls remain available.
+- Authenticated server-side account deletion is now implemented at `DELETE/POST /api/account/delete`.
+- The deletion path requires explicit `DELETE MY ACCOUNT` confirmation and clears the authenticated session cookie after success.
+- PostgreSQL deletion is transactional and deletes learner-owned records before the user row so existing foreign-key cascades can remove dependent data.
 
 ## Honest boundary
-This implementation does not claim external services, professional certification, live third-party data, human review, or production infrastructure that is not actually connected. Where the blueprint requires such dependencies, the code exposes the contract and clearly labels the dependency.
+This implementation does not claim live PostgreSQL/deployed-browser verification, backup-retention behavior, external-service deletion, professional certification, or production infrastructure that is not actually connected.
 
 ## Verification
-- Module-specific smoke test: `test/run-m55-tests.js`
-- Batch verification: M32–M40, M41–M50, or M51–M62
-- Final regression: 45/45 available suites passed
+- Module-specific contract test: `test/run-m55-server-deletion-tests.js`
+- npm script: `npm run test:m55`
+- Repository runner discovers `run-m55-server-deletion-tests.js` automatically.
+- Required next acceptance gate: execute the deletion against the real production-like PostgreSQL database and verify the deployed browser/API flow.
 
 ## Files
-Primary implementation file is listed in the corresponding module batch test.
-
+Primary implementation is covered by the M55 server-deletion test contract and migration/API changes in the speed-build branch.
 
 ## UI Reachability Completion Pass — M55
-- Real host-page control added.
-- Existing module function is invoked with user/page input.
-- Result is rendered in the host UI.
-- External integrations remain explicitly unclaimed where applicable.
+- Existing local-data reset control remains reachable.
+- Server deletion is exposed through the authenticated account-deletion API contract.
+- Production UI/browser wiring still requires deployed acceptance verification before final statutory sign-off.
