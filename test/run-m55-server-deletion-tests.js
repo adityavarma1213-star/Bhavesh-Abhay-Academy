@@ -12,7 +12,7 @@ const path = require('path');
 
 const root = path.resolve(__dirname, '..');
 const endpoint = fs.readFileSync(path.join(root, 'api', 'account', 'delete.js'), 'utf8');
-const migration = fs.readFileSync(path.join(root, 'db', 'migrations', '015_account_deletion.sql'), 'utf8');
+const migration = fs.readFileSync(path.join(root, 'db', 'migrations', '016_account_deletion.sql'), 'utf8');
 
 const checks = [
   ['endpoint requires authentication', /requireAuth\(req\)/.test(endpoint)],
