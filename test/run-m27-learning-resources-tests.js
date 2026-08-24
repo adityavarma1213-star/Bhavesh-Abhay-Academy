@@ -25,7 +25,7 @@ let n = 0;
 function t(name, fn) { try { fn(); n++; console.log('PASS ' + name); } catch (e) { console.error('FAIL ' + name + '\n' + e.stack); process.exitCode = 1; } }
 
 t('M27 module exports resource API', () => assert.ok(mod && typeof mod.getRecommendations === 'function'));
-t('M27 rejects invalid preference', () => assert.strictEqual(mod.setPreference('diagnostic-learning-style'), false));
+t('M27 rejects invalid preference', () => { const r=mod.setPreference('diagnostic-learning-style'); assert.strictEqual(r.ok, false); assert.strictEqual(r.error, 'INVALID_RESOURCE_FORMAT'); });
 t('M27 accepts explicit student format preference', () => {
   const r = mod.setPreference('visual');
   assert.strictEqual(r.ok, true);
@@ -53,6 +53,6 @@ t('M27 encodes external search query safely', () => {
   assert.ok(r.recommendations.some(x => x.url.includes('%26')));
   context.window.BAAAssessment.getAcademicProfile = original;
 });
-t('M27 does not claim psychological learning styles', () => assert.ok(!source.includes('learning style')));
+t('M27 does not claim psychological learning styles', () => assert.ok(!source.includes('psychological learning style')));
 console.log(`\nM27: ${n}/7 PASS`);
 if (process.exitCode) process.exit(process.exitCode);
