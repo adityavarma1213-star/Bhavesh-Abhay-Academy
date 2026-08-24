@@ -44,20 +44,3 @@ sql.query = async (text, values = []) => {
   const rows = await getClient().unsafe(text, values);
   return { rows };
 };
-
-// Execute a group of tagged-template queries on one PostgreSQL transaction.
-// The callback receives the same `{ rows }` result shape as `sql`.
-export async function transaction(work) {
-  const db = getClient();
-  return db.begin(async (tx) => {
-    const txSql = async (strings, ...values) => {
-      const rows = await tx(strings, ...values);
-      return { rows };
-    };
-    txSql.query = async (text, values = []) => {
-      const rows = await tx.unsafe(text, values);
-      return { rows };
-    };
-    return work(txSql);
-  });
-}
