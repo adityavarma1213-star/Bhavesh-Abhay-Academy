@@ -38,14 +38,36 @@
   function explainPlan(name){
     const plan=getPlan(name);
     return {
-      track:plan.track,
-      headline:plan.fitSummary.label,
+      track:plan.track, headline:plan.fitSummary.label,
       explanation:`${plan.fitSummary.label}. ${plan.fitSummary.trackedSkills} of ${plan.fitSummary.totalSkills} track skills have tagged academic evidence, including ${plan.fitSummary.positiveSignals} current strength signal${plan.fitSummary.positiveSignals===1?'':'s'}.`,
       evidence:plan.skills.map(skill=>({skill:skill.skill,status:skill.status,confidence:skill.confidence,evidenceIds:skill.evidenceIds,evidenceSources:skill.evidenceSources,explanation:skill.explanation,decisionBasis:skill.decisionBasis})),
       nextSteps:plan.gaps.map(skill=>skill.status==='support_needed'?`Practice or review ${humanize(skill.skill)} and collect new evidence.`:`Collect tagged academic evidence for ${humanize(skill.skill)} before drawing a conclusion.`),
-      limitations:plan.limitations,
+      limitations:plan.limitations, disclaimer:plan.disclaimer
+    };
+  }
+  // Explicit recommendation explanation contract: callers receive a reason for
+  // every signal, its evidence references, confidence and the safe next action.
+  // This prevents the UI from presenting an unexplained career recommendation.
+  function explainRecommendation(name){
+    const plan=getPlan(name);
+    return {
+      track:plan.track,
+      summary:plan.fitSummary.label,
+      methodology:plan.methodology,
+      signals:plan.skills.map(item=>({
+        skill:item.skill,
+        signal:item.status,
+        reason:item.explanation,
+        evidenceCount:item.evidenceCount,
+        evidenceIds:item.evidenceIds,
+        evidenceSources:item.evidenceSources,
+        confidence:item.confidence,
+        decisionBasis:item.decisionBasis,
+        nextAction:item.status==='strength_evidence'?'Continue developing this strength.':item.status==='support_needed'?`Practice ${humanize(item.skill)} and collect fresh evidence.`:`Collect tagged evidence for ${humanize(item.skill)} before drawing a conclusion.`
+      })),
+      safety:plan.limitations,
       disclaimer:plan.disclaimer
     };
   }
-  global.BAACareer={tracks:Object.keys(TRACKS),getPlan,explainPlan,_getTrack:getTrack,_evidenceForSkill:evidenceForSkill};
+  global.BAACareer={tracks:Object.keys(TRACKS),getPlan,explainPlan,explainRecommendation,_getTrack:getTrack,_evidenceForSkill:evidenceForSkill};
 })(window);
