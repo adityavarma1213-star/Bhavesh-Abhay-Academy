@@ -39,5 +39,7 @@ function moderate(project,participantId,state){
 }
 function persist(project){const checked=validateProject(project);if(!checked.ok)return checked;const all=load();const i=all.findIndex(x=>x.id===checked.project.id);if(i>=0)all[i]=checked.project;else all.push(checked.project);return save(all)?{ok:true,error:null,project:checked.project}:{ok:false,error:'PERSISTENCE_UNAVAILABLE'};}
 function list(){return {ok:true,error:null,projects:load()};}
-global.BAAGlobalCollab={validateProject,join,transition,moderate,persist,list,statuses:STATUSES};
+function filter(options){const o=options&&typeof options==='object'?options:{};const q=clean(o.query,120).toLowerCase();const region=clean(o.region,80).toLowerCase();const status=clean(o.status,40);const minAge=Number.isInteger(o.minimumAge)?o.minimumAge:null;return list().projects.filter(p=>(!q||`${p.title} ${p.description}`.toLowerCase().includes(q))&&(!region||p.region.toLowerCase()===region)&&(!status||p.status===status)&& (minAge==null||p.minimumAge<=minAge));}
+function exportProject(project){const checked=validateProject(project);if(!checked.ok)return checked;return {ok:true,error:null,data:JSON.stringify(checked.project)};}
+global.BAAGlobalCollab={validateProject,join,transition,moderate,persist,list,filter,exportProject,statuses:STATUSES};
 })(window);
