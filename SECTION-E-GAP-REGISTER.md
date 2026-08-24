@@ -3,7 +3,7 @@
 Legend: 🟢 IMPLEMENTED · 🟡 PARTIALLY IMPLEMENTED · 🔵 ARCHITECTURAL FOUNDATION ·
 🟠 DEPENDENT ON FUTURE G4/G5/G6 · 🔴 NOT YET IMPLEMENTED
 
-This register is refreshed against the current source as of 2026-08-22. Historical checkpoint notes may describe an earlier state; current source is authoritative.
+This register is refreshed against the current source as of 2026-08-24. Historical checkpoint notes may describe an earlier state; current source is authoritative.
 
 | # | Item | Status | Notes |
 |---|---|---|---|
@@ -14,8 +14,8 @@ This register is refreshed against the current source as of 2026-08-22. Historic
 | 5 | Legal compliance (COPPA/GDPR/FERPA) | 🔴 | Explicitly NOT claimed; requires legal/product/infrastructure controls |
 | 6 | Explainability — concept states, trends, planner tasks | 🟢 | Implemented learning-intelligence explanations |
 | 7 | Explainability — assessment/evaluation decisions | 🟢 | Implemented assessment rationale/history |
-| 8 | Explainability — career recommendations | 🔴 | Career explainability is not fully implemented |
-| 9 | Explainability — AI Guardian alerts | 🟢 | `js/baa-guardian.js` now provides bounded academic-support alerts with explainable reasons; it is not a mental-health diagnostic system |
+| 8 | Explainability — career recommendations | 🟢 | M20 career explainability evidence mapping/status distinctions/methodology/limitations are implemented and covered by a dedicated gate |
+| 9 | Explainability — AI Guardian alerts | 🟢 | `js/baa-guardian.js` provides bounded academic-support alerts with explainable reasons; it is not a mental-health diagnostic system |
 | 10 | Student/parent re-evaluation requests | 🟢 | `requestReevaluation()` and review flow |
 | 11 | Teacher override | 🟢 | Teacher review/override flow exists |
 | 12 | Grading-change history/versioning | 🟢 | `decisionHistory[]` and server review records |
@@ -26,11 +26,11 @@ This register is refreshed against the current source as of 2026-08-22. Historic
 | 17 | Data export | 🟢 | Real, live data, downloadable JSON |
 | 18 | Fresh-start / archive | 🟢 | Preserves human review/appeal records by design |
 | 19 | Scoped deletion (`this_app_only` / `everything`) | 🟢 | Client-side controls |
-| 20 | Server-side / legally-enforceable deletion | 🟠 | Requires production backend/storage |
+| 20 | Server-side / legally-enforceable deletion | 🟢 | Authenticated `/api/account/delete` calls the transactional `baa_delete_user_account` PostgreSQL function; live production verification remains a separate gate |
 | 21 | Protection of uploaded images | 🟢 | Raw image bytes are not persisted by the homework data layer |
 | 22 | Protection of voice/TTS audio | 🟢 | Audio is not persisted as a stored asset |
 | 23 | Production-secure storage / encryption at rest | 🔴 | Requires production backend/storage controls |
-| 24 | Page-level access gating for Trust & Privacy Center | 🟡 | Role/access work is improving, but full production page-gating verification remains |
+| 24 | Page-level access gating for Trust & Privacy Center | 🟢 | `js/baa-themes.js` now server-checks `/api/auth/me` on `trust-privacy.html` and replaces the page with an authenticated sign-in gate when no valid session exists; deployed-browser acceptance remains pending |
 | 25 | Human-in-the-loop governance (uncertainty surfaced, human accountable) | 🟢 | Review/override patterns + uncertainty states |
 | 26 | Emotion + purpose design system application | 🟢 | Applied to existing UX |
 
@@ -67,7 +67,7 @@ These are not to be fabricated as complete:
 
 - COPPA/GDPR/FERPA legal compliance
 - Production encryption/secure storage
-- Server-side legally enforceable deletion
+- Server-side deletion production verification and external-system deletion where applicable
 - Real Gemini/photo verification with deployed credentials
 - Real payment processing/webhooks
 - Live ERP, scholarship, mentor-marketplace and competition providers
