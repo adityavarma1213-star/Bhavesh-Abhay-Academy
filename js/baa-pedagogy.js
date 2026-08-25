@@ -1,33 +1,12 @@
-/* BAA M51 — Learning Science & Pedagogy Framework.
-   Encodes explicit teaching policies used by later modules. It does not
-   claim that these policies are a substitute for qualified educators. */
+/* BAA M51 — Learning Science & Pedagogy Framework. */
 (function(global){
 'use strict';
 const POLICY={productiveStruggle:true,showWorkedExampleAfterAttempt:true,spacedReview:true,masteryRequiresEvidence:true,avoidShameLanguage:true};
-const ACTIONS={
- guided_reteach:{reason:'The learner is struggling or needs revision, so the next step should provide supported re-teaching before another independent attempt.',focus:'re-teach the concept, model one example, then invite a fresh attempt.'},
- retrieval_practice:{reason:'The learner is still learning, so retrieval practice strengthens recall without assuming mastery.',focus:'ask a short retrieval question and use the result as new evidence.'},
- extension:{reason:'The learner has evidence of mastery or strength, so extension can deepen transfer without unnecessary repetition.',focus:'apply the concept in a new context or increase complexity.'},
- evidence_building:{reason:'The current state is not specific enough to justify a stronger instructional claim.',focus:'collect a small piece of tagged evidence before adapting instruction.'}
-};
+const ACTIONS={guided_reteach:{reason:'The learner is struggling or needs revision, so the next step should provide supported re-teaching before another independent attempt.',focus:'re-teach the concept, model one example, then invite a fresh attempt.'},retrieval_practice:{reason:'The learner is still learning, so retrieval practice strengthens recall without assuming mastery.',focus:'ask a short retrieval question and use the result as new evidence.'},extension:{reason:'The learner has evidence of mastery or strength, so extension can deepen transfer without unnecessary repetition.',focus:'apply the concept in a new context or increase complexity.'},evidence_building:{reason:'The current state is not specific enough to justify a stronger instructional claim.',focus:'collect a small piece of tagged evidence before adapting instruction.'}};
 function getPolicy(){return {...POLICY};}
 function chooseAction(state){const s=String(state||'').toLowerCase();if(['struggling','needs_revision'].includes(s))return 'guided_reteach';if(s==='learning')return 'retrieval_practice';if(['mastered','strong'].includes(s))return 'extension';return 'evidence_building';}
-function plan(state,options){
- const action=chooseAction(state), o=options&&typeof options==='object'?options:{};
- const evidenceCount=Number.isFinite(o.evidenceCount)&&o.evidenceCount>=0?Math.floor(o.evidenceCount):0;
- const concept=String(o.concept||'').trim().slice(0,160)||null;
- const rationale=ACTIONS[action];
- return {
-   state:String(state||'').trim().toLowerCase()||'unknown',
-   concept,
-   action,
-   reason:rationale.reason,
-   focus:rationale.focus,
-   evidenceCount,
-   evidenceSufficient:action==='extension'?evidenceCount>0:evidenceCount>=1,
-   policy:getPolicy(),
-   safety:['No shame-based language.','Mastery is not inferred from a single unsupported signal.','Instructional guidance does not replace teacher judgment.']
- };
-}
-global.BAAPedagogy={getPolicy,chooseAction,plan};
+function plan(state,options){const action=chooseAction(state),o=options&&typeof options==='object'?options:{};const evidenceCount=Number.isFinite(o.evidenceCount)&&o.evidenceCount>=0?Math.floor(o.evidenceCount):0;const concept=String(o.concept||'').trim().slice(0,160)||null;const rationale=ACTIONS[action];return {state:String(state||'').trim().toLowerCase()||'unknown',concept,action,reason:rationale.reason,focus:rationale.focus,evidenceCount,evidenceSufficient:action==='extension'?evidenceCount>0:evidenceCount>=1,policy:getPolicy(),safety:['No shame-based language.','Mastery is not inferred from a single unsupported signal.','Instructional guidance does not replace teacher judgment.']};}
+async function load(learnerId,filters){const q=new URLSearchParams({learnerId:String(learnerId||'')});if(filters?.subject)q.set('subject',filters.subject);if(filters?.chapter)q.set('chapter',filters.chapter);const r=await fetch(`/api/m51-pedagogy.js?${q}`);const d=await r.json().catch(()=>({error:{message:'Invalid server response.'}}));if(!r.ok)throw new Error(d?.error?.message||'Unable to load pedagogy guidance.');return d;}
+function mount(root,data){if(!root)return;const concepts=data?.concepts||[];root.innerHTML='<section class="baa-pedagogy-card"><h2>Learning Science Guidance</h2><p>Instruction adapts from recorded learning evidence; it does not diagnose the learner.</p><div data-pedagogy-list></div></section>';const list=root.querySelector('[data-pedagogy-list]');if(!concepts.length){list.textContent='Not enough tagged evidence yet. Collect evidence before adapting instruction.';return;}list.innerHTML=concepts.map(x=>`<article><strong>${String(x.subject||'Unknown')}${x.chapter?' — '+String(x.chapter):''}</strong><p>${String(x.reason)}</p><small>State: ${String(x.state)} · Accuracy: ${String(x.accuracy)}% · Action: ${String(x.action)}</small></article>`).join('');}
+global.BAAPedagogy={getPolicy,chooseAction,plan,load,mount};
 })(window);
