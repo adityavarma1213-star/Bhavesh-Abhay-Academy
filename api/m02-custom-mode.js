@@ -1,0 +1,71 @@
+import { sql } from './_lib/db.js';
+import { json } from './_lib/security.js';
+import { requireAuth, requireLearnerAccess } from './_lib/auth.js';
+
+export const config = { runtime: 'nodejs' };
+const MAX_STEPS = 20;
+const MAX_TITLE = 120;
+const MIN_MINUTES = 5;
+const MAX_MINUTES = 180;
+const VALID_TYPES = new Set(['learn', 'practice', 'review', 'assessment', 'tutor']);
+
+function cleanText(value, max = MAX_TITLE) {
+  return typeof value === 'string' ? value.replace(/\s+/g, ' ').trim().slice(0, max) : '';
+}
+function normalizeSteps(value) {
+  if (!Array.isArray(value) || value.length > MAX_STEPS) return null;
+  const steps = [];
+  for (const raw of value) {
+    const title = cleanText(raw?.title);
+    const minutes = Number(raw?.minutes);
+    const type = cleanText(raw?.type, 20);
+    if (!title || !Number.isInteger(minutes) || minutes < MIN_MINUTES || minutes > MAX_MINUTES || !VALID_TYPES.has(type)) return null;
+    steps.push({ id: cleanText(raw?.id, 80) || crypto.randomUUID(), title, minutes, type, completed: Boolean(raw?.completed) });
+  }
+  return steps;
+}
+
+export default async function handler(req, res) {
+  try {
+    const session = await requireAuth(req);
+    const learnerId = String(req.query?.learnerId || '').trim();
+    await requireLearnerAccess(session, learnerId);
+
+    if (req.method === 'GET') {
+      const result = await sql`
+        SELECT path, updated_at
+        FROM custom_learning_paths
+        WHERE learner_id=${learnerId}
+      `;
+      const row = result.rows[0];
+      return json(res, 200, {
+        ok: true,
+        learnerId,
+        path: row?.path || { schemaVersion: 1, mode: 'custom', steps: [] },
+        updatedAt: row?.updated_at || null,
+      });
+    }
+
+    if (req.method === 'PUT') {
+      const steps = normalizeSteps(req.body?.steps);
+      if (!steps) return json(res, 400, { error: { code: 'INVALID_CUSTOM_PATH', message: 'A valid custom path with up to 20 bounded steps is required.' } });
+      const path = { schemaVersion: 1, mode: 'custom', steps };
+      await sql`
+        INSERT INTO custom_learning_paths(learner_id, path, updated_at)
+        VALUES(${learnerId}, ${JSON.stringify(path)}::jsonb, NOW())
+        ON CONFLICT(learner_id)
+        DO UPDATE SET path=EXCLUDED.path, updated_at=NOW()
+      `;
+      return json(res, 200, { ok: true, learnerId, path });
+    }
+
+    if (req.method === 'DELETE') {
+      await sql`DELETE FROM custom_learning_paths WHERE learner_id=${learnerId}`;
+      return json(res, 200, { ok: true, learnerId, path: { schemaVersion: 1, mode: 'custom', steps: [] } });
+    }
+
+    return json(res, 405, { error: { code: 'METHOD_NOT_ALLOWED', message: 'GET, PUT or DELETE required.' } }, { Allow: 'GET, PUT, DELETE' });
+  } catch (e) {
+    return json(res, e.status || 500, { error: { code: e.code || 'CUSTOM_MODE_API_FAILED', message: e.status ? e.message : 'Custom Mode service unavailable.' } });
+  }
+}
