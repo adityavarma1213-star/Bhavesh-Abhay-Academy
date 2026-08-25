@@ -1,9 +1,12 @@
 /* BAA M58 — Teacher Diagnostic Snap & Differentiated Assignment.
-   Converts supplied structured classroom evidence into grouped instructional
-   suggestions. It does not infer a diagnosis from images or sparse evidence. */
+   Uses server-backed classroom evidence for instructional grouping.
+   It does not infer a diagnosis from images or sparse evidence. */
 (function(global){
 'use strict';
 function group(records){if(!Array.isArray(records))return {ok:false,error:'INVALID_CLASSROOM_RECORDS'};const groups={reteach:[],practice:[],extend:[]};records.forEach(r=>{if(!r||typeof r.studentId!=='string')return;const state=String(r.state||'insufficient_evidence');if(['struggling','needs_revision'].includes(state))groups.reteach.push(r.studentId);else if(state==='learning')groups.practice.push(r.studentId);else if(['mastered','strong'].includes(state))groups.extend.push(r.studentId);});return {ok:true,error:null,groups};}
 function assignment(groupName,topic){if(!['reteach','practice','extend'].includes(groupName)||typeof topic!=='string'||!topic.trim())return {ok:false,error:'INVALID_ASSIGNMENT'};const task=groupName==='reteach'?'guided examples and one supported retry':groupName==='practice'?'retrieval practice with feedback':'extension problem with explanation';return {ok:true,error:null,group:groupName,topic:topic.trim(),task};}
-global.BAATeacherDiagnostic={group,assignment};
+async function load(classId){const response=await fetch(`/api/m58-teacher-diagnostic.js?classId=${encodeURIComponent(classId||'')}`);const data=await response.json();if(!response.ok)throw Object.assign(new Error(data?.error?.message||'Unable to load diagnostic evidence.'),{code:data?.error?.code,status:response.status,data});return data;}
+function mount(root){if(!root)return;root.innerHTML='<section class="baa-teacher-diagnostic-card"><h2>Teacher Diagnostic & Differentiation</h2><p data-diagnostic-status>Evidence-based instructional grouping.</p><button type="button" data-diagnostic-load>Load class evidence</button><div data-diagnostic-groups></div></section>';const status=root.querySelector('[data-diagnostic-status]');const groups=root.querySelector('[data-diagnostic-groups]');root.querySelector('[data-diagnostic-load]').addEventListener('click',async()=>{try{const data=await load(root.dataset.classId||'');groups.textContent=`Reteach: ${data.groups.reteach.length} · Practice: ${data.groups.practice.length} · Extend: ${data.groups.extend.length} · Insufficient evidence: ${data.groups.insufficientEvidence.length}`;status.textContent=data.limitation;}catch(e){status.textContent=e.message;}});}
+global.BAATeacherDiagnostic={group,assignment,load,mount};
+if(typeof document!=='undefined')document.querySelectorAll('[data-baa-teacher-diagnostic]').forEach(mount);
 })(window);
