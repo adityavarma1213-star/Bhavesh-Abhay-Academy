@@ -36,6 +36,7 @@
   }
   function startBridges(){
     loadScript('js/baa-m10-confidence-integration.js','data-baa-m10-integration');
+    loadScript('js/baa-m10-confidence-ui.js','data-baa-m10-ui');
     loadScript('js/baa-m11-planner-integration.js','data-baa-m11-integration');
     loadScript('js/baa-m13-prediction-integration.js','data-baa-m13-integration');
   }
