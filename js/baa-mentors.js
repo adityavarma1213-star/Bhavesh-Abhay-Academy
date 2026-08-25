@@ -1,24 +1,12 @@
-/* BAA M45 — Mentor Marketplace.
-   Search reads only verified + safeguarded profiles. Requests are server-
-   authorized. Identity verification, payments and safeguarding remain real
-   operational gates and are never fabricated. */
+/* BAA M45 — Mentor Marketplace. */
 (function(global){
 'use strict';
 function validate(m){if(!m||typeof m!=='object'||typeof m.name!=='string'||!m.name.trim())return {ok:false,error:'INVALID_MENTOR'};if(!Array.isArray(m.subjects))return {ok:false,error:'INVALID_MENTOR_SUBJECTS'};return {ok:true,error:null,mentor:{name:m.name.trim(),subjects:m.subjects.filter(x=>typeof x==='string'),verified:!!m.verified}};}
-function search(mentors,subject){if(!Array.isArray(mentors))return {ok:false,error:'INVALID_MENTOR_LIST',results:[]};return {ok:true,error:null,results:mentors.filter(m=>m&&(!subject||Array.isArray(m.subjects)&&m.subjects.includes(subject))) };}
-async function fetchVerified(subject){
-  const q=subject?'?subject='+encodeURIComponent(subject):'';
-  const r=await fetch('/api/m45-mentors'+q).catch(()=>null);
-  if(!r) return {ok:false,error:'MENTOR_SERVER_UNAVAILABLE',results:[]};
-  const body=await r.json().catch(()=>({}));
-  if(!r.ok||!body.ok) return {ok:false,error:body?.error?.code||'MENTOR_SERVER_ERROR',results:[]};
-  return {ok:true,error:null,results:Array.isArray(body.results)?body.results:[]};
-}
-async function requestMentor(mentorId,learnerId,details={}){
-  const r=await fetch('/api/m45-mentors',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mentorId,learnerId,requestedStart:details.requestedStart||null,notes:details.notes||''})}).catch(()=>null);
-  if(!r) return {ok:false,error:'MENTOR_SERVER_UNAVAILABLE'};
-  const body=await r.json().catch(()=>({}));
-  return r.ok&&body.ok?body:{ok:false,error:body?.error?.code||'MENTOR_REQUEST_FAILED'};
-}
-global.BAAMentors={validate,search,fetchVerified,requestMentor};
+function search(mentors,subject){if(!Array.isArray(mentors))return {ok:false,error:'INVALID_MENTOR_LIST',results:[]};return {ok:true,error:null,results:mentors.filter(m=>m&&(!subject||Array.isArray(m.subjects)&&m.subjects.includes(subject)))};}
+async function fetchVerified(subject){const q=subject?'?subject='+encodeURIComponent(subject):'';const r=await fetch('/api/m45-mentors'+q).catch(()=>null);if(!r)return {ok:false,error:'MENTOR_SERVER_UNAVAILABLE',results:[]};const body=await r.json().catch(()=>({}));if(!r.ok||!body.ok)return {ok:false,error:body?.error?.code||'MENTOR_SERVER_ERROR',results:[]};return {ok:true,error:null,results:Array.isArray(body.results)?body.results:[]};}
+async function requestMentor(mentorId,learnerId,details={}){const r=await fetch('/api/m45-mentors',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mentorId,learnerId,requestedStart:details.requestedStart||null,notes:details.notes||''})}).catch(()=>null);if(!r)return {ok:false,error:'MENTOR_SERVER_UNAVAILABLE'};const body=await r.json().catch(()=>({}));return r.ok&&body.ok?body:{ok:false,error:body?.error?.code||'MENTOR_REQUEST_FAILED'};}
+function mount(root){if(!root)return;root.innerHTML='<section class="baa-mentor-marketplace"><h2>🧑‍🏫 Mentor Marketplace</h2><p>Only verified and safeguarded mentors are shown.</p><form><input name="subject" placeholder="Subject"><button type="submit">Find mentors</button></form><div data-mentor-results aria-live="polite"></div></section>';const form=root.querySelector('form'),out=root.querySelector('[data-mentor-results]');form.addEventListener('submit',async e=>{e.preventDefault();out.textContent='Loading…';const d=await fetchVerified(new FormData(form).get('subject'));if(!d.ok){out.textContent=d.error;return;}out.innerHTML=d.results.length?d.results.map(m=>'<article><h3>'+esc(m.displayName)+'</h3><p>'+esc(Array.isArray(m.subjects)?m.subjects.join(', '):'')+'</p><span>Verified & safeguarded</span></article>').join(''):'<p>No verified mentors are currently available.</p>';});}
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+global.BAAMentors={validate,search,fetchVerified,requestMentor,mount};
+if(typeof document!=='undefined')document.querySelectorAll('[data-baa-mentors]').forEach(mount);
 })(window);
