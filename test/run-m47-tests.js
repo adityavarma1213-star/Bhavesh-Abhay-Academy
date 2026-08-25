@@ -1,9 +1,13 @@
-#!/usr/bin/env node
-const fs=require('fs'),assert=require('assert'),vm=require('vm');
-const c={window:{localStorage:{getItem:()=>null,setItem:()=>{},removeItem:()=>{},key:()=>null,length:0}}};
-vm.createContext(c);
-vm.runInContext(fs.readFileSync('js/baa-institution.js','utf8'),c);
-const api=c.window.BAAInstitution;
-assert.ok(api);
-assert.equal(c.window.BAAInstitution.summarize([]).evidenceQuality,'insufficient_evidence');
-console.log('M47 PASS');
+const fs = require('node:fs');
+const vm = require('node:vm');
+const assert = require('node:assert/strict');
+const src = fs.readFileSync('js/baa-institution.js','utf8');
+const context={window:{},document:{querySelectorAll:()=>[]}};
+vm.runInNewContext(src,context);
+assert.equal(typeof context.window.BAAInstitutionAnalytics.load,'function');
+assert.equal(typeof context.window.BAAInstitutionAnalytics.render,'function');
+assert.equal(typeof context.window.BAAInstitutionAnalytics.mount,'function');
+const root={dataset:{classId:'class-1'},innerHTML:'',textContent:''};
+context.window.BAAInstitutionAnalytics.render(root,{class:{name:'Demo'},summary:{students:2,attempts:3,averagePercentage:81},topics:[{subject:'Math',chapter:'Algebra',accuracy:75,evidenceCount:4,learners:2}]});
+assert.match(root.innerHTML,/Algebra/);
+console.log('M47 contract tests passed');

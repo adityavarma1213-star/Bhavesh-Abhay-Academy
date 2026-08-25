@@ -1,9 +1,11 @@
-#!/usr/bin/env node
-const fs=require('fs'),assert=require('assert'),vm=require('vm');
-const c={window:{localStorage:{getItem:()=>null,setItem:()=>{},removeItem:()=>{},key:()=>null,length:0}}};
-vm.createContext(c);
-vm.runInContext(fs.readFileSync('js/baa-erp.js','utf8'),c);
-const api=c.window.BAAERP;
-assert.ok(api);
-assert.equal(c.window.BAAERP.buildPayload('bad',{}).error,'INVALID_ERP_DATA_TYPE');
-console.log('M46 PASS');
+const fs = require('node:fs');
+const vm = require('node:vm');
+const assert = require('node:assert/strict');
+const src = fs.readFileSync('js/baa-erp.js','utf8');
+const calls=[];
+const context={window:{},document:{querySelectorAll:()=>[]},fetch:async(...args)=>{calls.push(args);return {ok:true,json:async()=>({ok:true})};}};
+vm.runInNewContext(src,context);
+assert.equal(typeof context.window.BAASchoolERP.request,'function');
+assert.equal(typeof context.window.BAASchoolERP.list,'function');
+assert.equal(typeof context.window.BAASchoolERP.mount,'function');
+console.log('M46 contract tests passed');

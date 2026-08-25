@@ -1,14 +1,20 @@
-/* BAA M46 — School ERP Integration.
-   Vendor-neutral configuration is server-backed. No provider credential is
-   stored in source or browser storage, and no live provider is claimed until
-   deployment secrets and an adapter are configured. */
+/* BAA M46 — vendor-neutral School ERP Integration client. */
 (function(global){
-'use strict';
-const ALLOWED=['students','attendance','timetable','homework','exams'];
-function validateConfig(c){if(!c||typeof c!=='object'||typeof c.provider!=='string'||!c.provider.trim())return {ok:false,error:'INVALID_ERP_CONFIG'};if(!Array.isArray(c.scopes)||c.scopes.some(x=>!ALLOWED.includes(x)))return {ok:false,error:'INVALID_ERP_SCOPE'};return {ok:true,error:null,config:{provider:c.provider.trim(),scopes:c.scopes.slice()}};}
-function buildPayload(type,data){if(!ALLOWED.includes(type))return {ok:false,error:'INVALID_ERP_DATA_TYPE'};if(!data||typeof data!=='object')return {ok:false,error:'INVALID_ERP_PAYLOAD'};return {ok:true,error:null,payload:{schemaVersion:1,type,data}};}
-async function listConnections(){const r=await fetch('/api/m46-erp').catch(()=>null);if(!r)return {ok:false,error:'ERP_SERVER_UNAVAILABLE',connections:[]};const b=await r.json().catch(()=>({}));return r.ok&&b.ok?b:{ok:false,error:b?.error?.code||'ERP_SERVER_ERROR',connections:[]};}
-async function configure(config){const check=validateConfig({...config,scopes:Array.isArray(config?.scopes)?config.scopes:[]});if(!check.ok)return check;const r=await fetch('/api/m46-erp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(config)}).catch(()=>null);if(!r)return {ok:false,error:'ERP_SERVER_UNAVAILABLE'};const b=await r.json().catch(()=>({}));return r.ok&&b.ok?b:{ok:false,error:b?.error?.code||'ERP_CONFIG_FAILED'};}
-async function queueSync(id,entityType='students',direction='pull'){const r=await fetch('/api/m46-erp?id='+encodeURIComponent(id)+'&action=sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({entityType,direction})}).catch(()=>null);if(!r)return {ok:false,error:'ERP_SERVER_UNAVAILABLE'};const b=await r.json().catch(()=>({}));return r.ok&&b.ok?b:{ok:false,error:b?.error?.code||'ERP_SYNC_FAILED'};}
-global.BAAERP={validateConfig,buildPayload,listConnections,configure,queueSync};
+  'use strict';
+  async function request(action, payload){
+    const response=await fetch('/api/m46-erp.js',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,...(payload||{})})});
+    const data=await response.json().catch(()=>({ok:false,error:{code:'INVALID_RESPONSE',message:'Invalid server response.'}}));
+    if(!response.ok) throw Object.assign(new Error(data?.error?.message||'ERP request failed'),{code:data?.error?.code,status:response.status,data});
+    return data;
+  }
+  async function list(){const r=await fetch('/api/m46-erp.js'); const d=await r.json(); if(!r.ok) throw new Error(d?.error?.message||'Unable to load ERP connections.'); return d;}
+  function mount(root){
+    if(!root) return;
+    root.innerHTML='<section class="baa-erp-card"><h2>School ERP Integration</h2><p class="baa-erp-status">Provider-neutral ERP boundary. Live vendor synchronization requires configured credentials and an approved adapter.</p><form data-erp-form><input name="provider" required maxlength="64" placeholder="ERP provider identifier"><input name="baseUrl" required type="url" placeholder="https://erp.example.com"><input name="credentialRef" maxlength="240" placeholder="Credential reference (not secret)"><button type="submit">Save connection</button></form><button type="button" data-erp-sync hidden>Request student sync</button></section>';
+    const form=root.querySelector('[data-erp-form]'); const sync=root.querySelector('[data-erp-sync]');
+    form.addEventListener('submit',async e=>{e.preventDefault(); const b=Object.fromEntries(new FormData(form)); const status=root.querySelector('.baa-erp-status'); try{const d=await request('configure',b); status.textContent=`Connection ${d.id} saved as ${d.status}.`; sync.hidden=false; sync.dataset.connectionId=d.id;}catch(err){status.textContent=err.message;}});
+    sync.addEventListener('click',async()=>{const status=root.querySelector('.baa-erp-status'); try{const d=await request('sync',{connectionId:sync.dataset.connectionId,entityType:'students'}); status.textContent=d.error?.message||`Sync status: ${d.status}`;}catch(err){status.textContent=err.message;}});
+  }
+  global.BAASchoolERP={request,list,mount};
+  if(typeof document!=='undefined') document.querySelectorAll('[data-baa-erp]').forEach(mount);
 })(window);
