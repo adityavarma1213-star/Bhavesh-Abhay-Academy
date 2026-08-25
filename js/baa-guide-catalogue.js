@@ -39,6 +39,7 @@
     loadScript('js/baa-m10-confidence-ui.js','data-baa-m10-ui');
     loadScript('js/baa-m11-planner-integration.js','data-baa-m11-integration');
     loadScript('js/baa-m13-prediction-integration.js','data-baa-m13-integration');
+    loadScript('js/baa-m12-guardian-ui.js','data-baa-m12-ui');
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',startBridges);
   else startBridges();
