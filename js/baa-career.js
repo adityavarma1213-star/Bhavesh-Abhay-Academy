@@ -35,39 +35,9 @@
     const fitLabel=coverage===0?'Not enough evidence':positiveSignals===aligned.length?'Strong current alignment':positiveSignals>=Math.ceil(aligned.length*0.6)?'Promising current alignment':'Mixed alignment — explore further';
     return {track:name,description:track.description,skills:aligned,strengths,gaps,fitSummary:{label:fitLabel,coverage,positiveSignals,trackedSkills:tracked.length,totalSkills:aligned.length},evidenceSummary:{trackedSkills:tracked.length,strengthSkills:strengths.length,supportNeededSkills:aligned.filter(x=>x.status==='support_needed').length,untrackedSkills:aligned.filter(x=>x.status==='not_yet_tracked').length},methodology:'Track skills are compared only with tagged academic evidence already available to BAA. Missing evidence is reported as not-yet-tracked; it is never treated as proof of weakness. Confidence reflects evidence quantity, not future-outcome probability.',limitations:['Career alignment is exploratory guidance, not a prediction or guarantee.','No job, salary, admission, or future outcome is inferred from the evidence.','Recommendations should be reviewed with a parent, teacher, or qualified career professional for consequential decisions.'],disclaimer:'Career alignment is exploratory guidance, not a prediction or guarantee.'};
   }
-  function explainPlan(name){
-    const plan=getPlan(name);
-    return {
-      track:plan.track, headline:plan.fitSummary.label,
-      explanation:`${plan.fitSummary.label}. ${plan.fitSummary.trackedSkills} of ${plan.fitSummary.totalSkills} track skills have tagged academic evidence, including ${plan.fitSummary.positiveSignals} current strength signal${plan.fitSummary.positiveSignals===1?'':'s'}.`,
-      evidence:plan.skills.map(skill=>({skill:skill.skill,status:skill.status,confidence:skill.confidence,evidenceIds:skill.evidenceIds,evidenceSources:skill.evidenceSources,explanation:skill.explanation,decisionBasis:skill.decisionBasis})),
-      nextSteps:plan.gaps.map(skill=>skill.status==='support_needed'?`Practice or review ${humanize(skill.skill)} and collect new evidence.`:`Collect tagged academic evidence for ${humanize(skill.skill)} before drawing a conclusion.`),
-      limitations:plan.limitations, disclaimer:plan.disclaimer
-    };
-  }
-  // Explicit recommendation explanation contract: callers receive a reason for
-  // every signal, its evidence references, confidence and the safe next action.
-  // This prevents the UI from presenting an unexplained career recommendation.
-  function explainRecommendation(name){
-    const plan=getPlan(name);
-    return {
-      track:plan.track,
-      summary:plan.fitSummary.label,
-      methodology:plan.methodology,
-      signals:plan.skills.map(item=>({
-        skill:item.skill,
-        signal:item.status,
-        reason:item.explanation,
-        evidenceCount:item.evidenceCount,
-        evidenceIds:item.evidenceIds,
-        evidenceSources:item.evidenceSources,
-        confidence:item.confidence,
-        decisionBasis:item.decisionBasis,
-        nextAction:item.status==='strength_evidence'?'Continue developing this strength.':item.status==='support_needed'?`Practice ${humanize(item.skill)} and collect fresh evidence.`:`Collect tagged evidence for ${humanize(item.skill)} before drawing a conclusion.`
-      })),
-      safety:plan.limitations,
-      disclaimer:plan.disclaimer
-    };
-  }
-  global.BAACareer={tracks:Object.keys(TRACKS),getPlan,explainPlan,explainRecommendation,_getTrack:getTrack,_evidenceForSkill:evidenceForSkill};
+  function explainPlan(name){const plan=getPlan(name);return {track:plan.track,headline:plan.fitSummary.label,explanation:`${plan.fitSummary.label}. ${plan.fitSummary.trackedSkills} of ${plan.fitSummary.totalSkills} track skills have tagged academic evidence, including ${plan.fitSummary.positiveSignals} current strength signal${plan.fitSummary.positiveSignals===1?'':'s'}.`,evidence:plan.skills.map(skill=>({skill:skill.skill,status:skill.status,confidence:skill.confidence,evidenceIds:skill.evidenceIds,evidenceSources:skill.evidenceSources,explanation:skill.explanation,decisionBasis:skill.decisionBasis})),nextSteps:plan.gaps.map(skill=>skill.status==='support_needed'?`Practice or review ${humanize(skill.skill)} and collect new evidence.`:`Collect tagged academic evidence for ${humanize(skill.skill)} before drawing a conclusion.`),limitations:plan.limitations,disclaimer:plan.disclaimer};}
+  function explainRecommendation(name){const plan=getPlan(name);return {track:plan.track,summary:plan.fitSummary.label,methodology:plan.methodology,signals:plan.skills.map(item=>({skill:item.skill,signal:item.status,reason:item.explanation,evidenceCount:item.evidenceCount,evidenceIds:item.evidenceIds,evidenceSources:item.evidenceSources,confidence:item.confidence,decisionBasis:item.decisionBasis,nextAction:item.status==='strength_evidence'?'Continue developing this strength.':item.status==='support_needed'?`Practice ${humanize(item.skill)} and collect fresh evidence.`:`Collect tagged evidence for ${humanize(item.skill)} before drawing a conclusion.`})),safety:plan.limitations,disclaimer:plan.disclaimer};}
+  async function load(learnerId,track){const q=new URLSearchParams({learnerId:String(learnerId||''),track:String(track||'')});const r=await fetch(`/api/m20-career.js?${q}`);const d=await r.json().catch(()=>({error:{message:'Invalid server response.'}}));if(!r.ok)throw new Error(d?.error?.message||'Unable to load career evidence.');return d;}
+  function mount(root,opts){if(!root)return;const tracks=Object.keys(TRACKS),selected=opts?.track&&TRACKS[opts.track]?opts.track:tracks[0];root.innerHTML=`<section class="baa-career-card"><h2>AI Career & Future Planning</h2><p data-career-summary>Loading evidence-backed guidance…</p><label>Explore a track <select data-career-track>${tracks.map(x=>`<option value="${x}"${x===selected?' selected':''}>${x}</option>`).join('')}</select></label><div data-career-signals></div><small>Exploratory guidance only. Missing evidence is not treated as weakness.</small></section>`;const summary=root.querySelector('[data-career-summary]'),list=root.querySelector('[data-career-signals]'),select=root.querySelector('[data-career-track]');const render=d=>{summary.textContent=d.summary||'Not enough evidence';list.innerHTML=(d.skills||[]).map(x=>`<article><strong>${humanize(x.skill)}</strong><p>${x.status.replaceAll('_',' ')} · ${x.confidence?.label||'Insufficient evidence'}</p><small>${x.decisionBasis}</small></article>`).join('')||'<p>No tagged academic evidence yet.</p>';};const refresh=async()=>{try{render(await load(opts?.learnerId,select.value));}catch(e){summary.textContent=e.message;list.textContent='';}};select.addEventListener('change',refresh);refresh();}
+  global.BAACareer={tracks:Object.keys(TRACKS),getPlan,explainPlan,explainRecommendation,load,mount,_getTrack:getTrack,_evidenceForSkill:evidenceForSkill};
 })(window);
