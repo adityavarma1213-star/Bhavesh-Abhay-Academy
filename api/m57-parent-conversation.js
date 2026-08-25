@@ -13,6 +13,11 @@ function buildPrompts(topic, state) {
     'Agree on one small next step together.',
   ];
 }
+async function requireParentLearner(session, learnerId) {
+  const rows = await sql`SELECT 1 FROM parent_learner WHERE parent_user_id=${session.user_id} AND learner_id=${learnerId} AND status='active' LIMIT 1`;
+  if (!rows.rows.length) return false;
+  return true;
+}
 
 export default async function handler(req, res) {
   try {
@@ -21,6 +26,7 @@ export default async function handler(req, res) {
     if (req.method === 'GET') {
       const learnerId = clean(req.query?.learnerId, 128);
       if (!learnerId) return json(res, 400, { error: { code: 'INVALID_LEARNER', message: 'learnerId is required.' } });
+      if (!await requireParentLearner(session, learnerId)) return json(res, 403, { error: { code: 'LEARNER_ACCESS_DENIED', message: 'Parent is not linked to this learner.' } });
       const rows = await sql`SELECT id, learner_id AS "learnerId", topic, state, prompts, created_at AS "createdAt" FROM parent_conversation_prompts WHERE learner_id=${learnerId} AND parent_user_id=${session.user_id} ORDER BY created_at DESC LIMIT 20`;
       return json(res, 200, { ok: true, conversations: rows.rows });
     }
@@ -29,6 +35,7 @@ export default async function handler(req, res) {
     const topic = clean(req.body?.topic || 'the recent study work');
     const state = clean(req.body?.state || 'learning', 120);
     if (!learnerId) return json(res, 400, { error: { code: 'INVALID_LEARNER', message: 'learnerId is required.' } });
+    if (!await requireParentLearner(session, learnerId)) return json(res, 403, { error: { code: 'LEARNER_ACCESS_DENIED', message: 'Parent is not linked to this learner.' } });
     const prompts = buildPrompts(topic, state);
     const conversationId = id('parentconv');
     await sql`INSERT INTO parent_conversation_prompts(id,parent_user_id,learner_id,topic,state,prompts) VALUES(${conversationId},${session.user_id},${learnerId},${topic},${state},${JSON.stringify(prompts)}::jsonb)`;
