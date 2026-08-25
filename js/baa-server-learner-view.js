@@ -95,5 +95,21 @@ async function init({mountId='serverLearnerView',onLearnerChange}={}){
     return null;
   }
 }
+
+function autoMountPrivateParentView(){
+  const path=String(global.location.pathname||'');
+  if(!path.endsWith('/parent-os.html')) return;
+  const mount=document.getElementById('serverLearnerView');
+  const legacy=document.getElementById('content');
+  if(legacy) legacy.style.display='none';
+  if(!mount) return;
+  init({mountId:'serverLearnerView'});
+}
+
+if(typeof global.document!=='undefined'){
+  if(global.document.readyState==='loading') global.document.addEventListener('DOMContentLoaded',autoMountPrivateParentView,{once:true});
+  else autoMountPrivateParentView();
+}
+
 global.BAAServerLearnerView={getLearners,getOverview,init};
 })(window);
