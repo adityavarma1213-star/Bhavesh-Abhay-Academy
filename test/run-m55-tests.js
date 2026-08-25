@@ -1,9 +1,20 @@
 #!/usr/bin/env node
 const fs=require('fs'),assert=require('assert'),vm=require('vm');
-const c={window:{localStorage:{getItem:()=>null,setItem:()=>{},removeItem:()=>{},key:()=>null,length:0}}};
+const c={window:{localStorage:{getItem:()=>null,setItem:()=>{},removeItem:()=>{},key:()=>null,length:0},fetch:()=>Promise.resolve({ok:true,json:async()=>({ok:true})})}};
 vm.createContext(c);
 vm.runInContext(fs.readFileSync('js/baa-fresh-start.js','utf8'),c);
 const api=c.window.BAAFreshStart;
 assert.ok(api);
-assert.equal(c.window.BAAFreshStart.apply(['x'],false).error,'RESET_CONFIRMATION_REQUIRED');
-console.log('M55 PASS');
+assert.equal(api.apply(['x'],false).error,'RESET_CONFIRMATION_REQUIRED');
+assert.equal(typeof api.serverStatus,'function');
+assert.equal(typeof api.deleteServerData,'function');
+const endpoint=fs.readFileSync('api/m55-data-trust.js','utf8');
+assert.match(endpoint,/requireAuth/);
+assert.match(endpoint,/withTransaction/);
+assert.match(endpoint,/DELETE FROM learners/);
+assert.match(endpoint,/DELETE FROM users/);
+assert.match(endpoint,/DELETE_CONFIRMATION_REQUIRED/);
+const db=fs.readFileSync('api/_lib/db.js','utf8');
+assert.match(db,/export async function withTransaction/);
+assert.match(db,/\.begin\(/);
+console.log('M55 server data-trust contract checks passed.');

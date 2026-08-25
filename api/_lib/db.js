@@ -51,3 +51,11 @@ sql.query = async (text, values = []) => {
   const rows = await getClient().unsafe(text, values);
   return { rows };
 };
+
+// Transaction boundary for destructive multi-table operations. The callback
+// receives the postgres transaction-tagged template so all statements stay
+// on one connection and commit/rollback atomically.
+export async function withTransaction(callback) {
+  const db = getClient();
+  return db.begin(async tx => callback(tx));
+}
