@@ -7,16 +7,19 @@ function map(evidence){if(!Array.isArray(evidence))return {ok:false,error:'INVAL
 async function load(learnerId,filters){
   const p=new URLSearchParams({learnerId:String(learnerId||'')});
   if(filters?.subject)p.set('subject',filters.subject); if(filters?.chapter)p.set('chapter',filters.chapter);
-  const r=await fetch(`/api/m52-mistakes.js?${p}`); const d=await r.json().catch(()=>({error:{message:'Invalid server response.'}}));
+  const r=await fetch(`/api/m52-mistakes.js?${p}`,{credentials:'include'}); const d=await r.json().catch(()=>({error:{message:'Invalid server response.'}}));
   if(!r.ok) throw Object.assign(new Error(d?.error?.message||'Unable to load mistake analytics.'),{code:d?.error?.code,status:r.status});
   return d;
 }
 function mount(root,learnerId){
   if(!root)return;
-  root.innerHTML='<section class="baa-mistakes-card"><h2>Mistake Archeology</h2><p data-m52-status>Loading recorded evidence…</p><div data-m52-groups></div></section>';
-  const status=root.querySelector('[data-m52-status]'), groups=root.querySelector('[data-m52-groups]');
+  root.innerHTML='<section class="baa-mistakes-card"><h2>Mistake Archeology</h2><p data-m52-status>Loading recorded evidence…</p><div data-m52-summary></div><div data-m52-groups></div></section>';
+  const status=root.querySelector('[data-m52-status]'),summary=root.querySelector('[data-m52-summary]'),groups=root.querySelector('[data-m52-groups]');
   load(learnerId).then(data=>{
     status.textContent=`${data.evidenceCount} recorded mistake evidence point(s).`;
+    const summaryItems=Object.entries(data.reasonSummary||{}).map(([type,count])=>`<span>${escapeHtml(type)}: ${count}</span>`).join(' · ');
+    const common=(data.commonMistakes||[]).slice(0,8).map(g=>`<li><strong>${escapeHtml(g.concept)}</strong> — ${g.count} evidence point(s); ${escapeHtml(g.reasonTypes.join(', '))}</li>`).join('');
+    summary.innerHTML=`<p data-m52-reasons>${summaryItems||'No classified mistake reasons yet.'}</p>${common?`<h3>Common mistakes</h3><ol>${common}</ol>`:''}`;
     groups.innerHTML=data.groups.length?data.groups.map(g=>`<article class="baa-mistake-group"><strong>${escapeHtml(g.subject||'Unknown')} · ${escapeHtml(g.chapter||'Unspecified')}</strong><div>${escapeHtml(g.reasonType)} — ${g.count} evidence point(s), ${g.questions} question(s)</div><small>${g.confidence==='review_required'?'Human review required.':'Evidence-based classification.'}</small></article>`).join(''):'<p>No recorded incorrect-answer evidence yet.</p>';
   }).catch(err=>{status.textContent=err.message;});
 }
