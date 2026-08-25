@@ -17,7 +17,7 @@ export default async function handler(req, res) {
     const limit = Math.min(Math.max(Number(req.query?.limit || 200), 1), 500);
 
     const rows = await sql`
-      SELECT le.id, le.subject, le.chapter, le.question_id AS "questionId",
+      SELECT le.id, le.subject, le.chapter, le.concept, le.question_id AS "questionId",
              le.attempt_id AS "attemptId", le.correctness, le.finding_details AS "findingDetails",
              le.created_at AS "createdAt",
              ar.confidence, ar.human_review_required AS "humanReviewRequired",
@@ -33,6 +33,7 @@ export default async function handler(req, res) {
       LIMIT ${limit}`;
 
     const map = {};
+    const conceptMap = {};
     for (const row of rows.rows) {
       const details = Array.isArray(row.findingDetails) ? row.findingDetails : [];
       const labels = details.length ? details : ['general_error'];
@@ -45,10 +46,19 @@ export default async function handler(req, res) {
         if (row.questionId) map[key].questions.add(row.questionId);
         if (!map[key].lastSeen || new Date(row.createdAt) > new Date(map[key].lastSeen)) map[key].lastSeen = row.createdAt;
         if (row.humanReviewRequired || row.evaluationFailed) map[key].reviewRequired += 1;
+
+        const concept = clean(row.concept, 180) || 'Unspecified concept';
+        const ckey = `${row.subject || 'Unknown'}::${row.chapter || 'Unspecified'}::${concept}`;
+        if (!conceptMap[ckey]) conceptMap[ckey] = { subject: row.subject || null, chapter: row.chapter || null, concept, count: 0, reasonTypes: new Set(), lastSeen: null };
+        conceptMap[ckey].count += 1;
+        conceptMap[ckey].reasonTypes.add(reasonType);
+        if (!conceptMap[ckey].lastSeen || new Date(row.createdAt) > new Date(conceptMap[ckey].lastSeen)) conceptMap[ckey].lastSeen = row.createdAt;
       }
     }
     const groups = Object.values(map).map(g => ({ ...g, questions: g.questions.size, confidence: g.reviewRequired ? 'review_required' : 'evidence_based' })).sort((a,b) => b.count-a.count || String(a.subject).localeCompare(String(b.subject)));
-    return json(res, 200, { ok: true, learnerId, filters: { subject: subject || null, chapter: chapter || null }, groups, evidenceCount: rows.rows.length, limitation: 'Mistake archeology reports recorded evidence only; it does not diagnose psychological causes.' });
+    const commonMistakes = Object.values(conceptMap).map(g => ({ ...g, reasonTypes: [...g.reasonTypes] })).sort((a,b) => b.count-a.count || String(a.concept).localeCompare(String(b.concept))).slice(0, 25);
+    const reasonSummary = groups.reduce((out,g) => { out[g.reasonType]=(out[g.reasonType]||0)+g.count; return out; }, {});
+    return json(res, 200, { ok: true, learnerId, filters: { subject: subject || null, chapter: chapter || null }, groups, commonMistakes, reasonSummary, evidenceCount: rows.rows.length, limitation: 'Mistake archeology reports recorded evidence only; it does not diagnose psychological causes.' });
   } catch (e) {
     return json(res, e.status || 500, { error: { code: e.code || 'MISTAKE_ANALYTICS_FAILED', message: e.status ? e.message : 'Unable to load mistake analytics.' } });
   }
