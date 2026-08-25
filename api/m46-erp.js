@@ -6,7 +6,8 @@ export const config = { runtime: 'nodejs' };
 const ROLES = ['admin', 'teacher'];
 const PROVIDER = /^[a-z0-9][a-z0-9._-]{1,63}$/i;
 const BASE_URL = /^https:\/\/[^\s]+$/i;
-
+const ENTITY_TYPES = new Set(['students', 'attendance', 'classes', 'results', 'teachers']);
+const DIRECTIONS = new Set(['pull', 'push']);
 function allowed(session) { return ROLES.some(role => hasRole(session, role)); }
 function clean(v, max = 200) { return String(v ?? '').trim().slice(0, max); }
 
@@ -22,7 +23,7 @@ export default async function handler(req, res) {
 
     if (req.method === 'POST') {
       const body = req.body || {};
-      const action = clean(body.action);
+      const action = clean(body.action || req.query?.action);
       if (action === 'configure') {
         const provider = clean(body.provider).toLowerCase();
         const baseUrl = clean(body.baseUrl, 1000);
@@ -36,15 +37,16 @@ export default async function handler(req, res) {
         return json(res, 201, { ok: true, id: connectionId, status: credentialRef ? 'configured' : 'not_configured', provider });
       }
       if (action === 'sync') {
-        const connectionId = clean(body.connectionId);
+        const connectionId = clean(body.connectionId || req.query?.id);
+        const direction = clean(body.direction || 'pull').toLowerCase();
         const entityType = clean(body.entityType || 'students').toLowerCase();
-        if (!connectionId) return json(res, 400, { error: { code: 'INVALID_CONNECTION', message: 'connectionId is required.' } });
+        if (!connectionId || !DIRECTIONS.has(direction) || !ENTITY_TYPES.has(entityType)) return json(res, 400, { error: { code: 'INVALID_SYNC_REQUEST', message: 'connectionId/id, valid direction and valid entityType are required.' } });
         const connection = await sql`SELECT id,provider,status FROM erp_connections WHERE id=${connectionId} AND owner_user_id=${session.user_id} LIMIT 1`;
         if (!connection.rows.length) return json(res, 404, { error: { code: 'ERP_CONNECTION_NOT_FOUND', message: 'ERP connection not found.' } });
         const runId = id('erpsync');
-        await sql`INSERT INTO erp_sync_runs(id,connection_id,direction,entity_type,status,error_message) VALUES(${runId},${connectionId},'pull',${entityType},'failed','EXTERNAL_PROVIDER_REQUIRED: vendor credentials and provider adapter are required for live ERP synchronization.')`;
+        await sql`INSERT INTO erp_sync_runs(id,connection_id,direction,entity_type,status,error_message) VALUES(${runId},${connectionId},${direction},${entityType},'failed','EXTERNAL_PROVIDER_REQUIRED: vendor credentials and provider adapter are required for live ERP synchronization.')`;
         await sql`UPDATE erp_connections SET status=CASE WHEN credential_ref IS NULL THEN 'not_configured' ELSE 'error' END,last_error='EXTERNAL_PROVIDER_REQUIRED',updated_at=NOW() WHERE id=${connectionId}`;
-        await writeAudit({ actorUserId: session.user_id, action: 'erp.sync.request', entityType: 'erp_sync_run', entityId: runId, metadata: { connectionId, entityType } });
+        await writeAudit({ actorUserId: session.user_id, action: 'erp.sync.request', entityType: 'erp_sync_run', entityId: runId, metadata: { connectionId, direction, entityType } });
         return json(res, 202, { ok: true, runId, status: 'failed', error: { code: 'EXTERNAL_PROVIDER_REQUIRED', message: 'The ERP boundary is wired, but a live vendor adapter and credentials are required before records can be synchronized.' } });
       }
       return json(res, 400, { error: { code: 'INVALID_ACTION', message: 'Supported actions: configure, sync.' } });
