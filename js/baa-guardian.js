@@ -66,6 +66,22 @@
     return {alerts:active,alertCount:active.length,highestSeverity:active[0]?.severity||'none',evaluatedAt:new Date().toISOString(),scope:'academic_support_only'};
   }
 
+  async function getServerSummary(learnerId){
+    if(!learnerId) return {status:'unavailable',error:'LEARNER_ID_REQUIRED'};
+    try{
+      const response=await fetch(`/api/m12-guardian?learnerId=${encodeURIComponent(learnerId)}`,{credentials:'include'});
+      const data=await response.json().catch(()=>({}));
+      if(!response.ok) return {status:'unavailable',error:data?.error?.code||'GUARDIAN_SERVER_UNAVAILABLE',httpStatus:response.status};
+      const store=load(); store.acknowledged={};
+      (data.acknowledgements||[]).forEach(x=>{if(x?.alertId) store.acknowledged[String(x.alertId)]=x.acknowledgedAt||new Date().toISOString();});
+      store.lastEvaluatedAt=data.evaluatedAt||new Date().toISOString();
+      save(store);
+      const acknowledgements=new Set((data.acknowledgements||[]).map(x=>String(x.alertId)));
+      const alerts=(data.alerts||[]).filter(x=>!acknowledgements.has(String(x.id)));
+      return {status:'ready',...data,alerts,alertCount:alerts.length,highestSeverity:alerts[0]?.severity||'none'};
+    }catch{return {status:'unavailable',error:'GUARDIAN_SERVER_UNAVAILABLE'};}
+  }
+
   function acknowledgeAlert(id){
     if(!id) return false;
     const store=load(); store.acknowledged[String(id)]=new Date().toISOString(); store.lastEvaluatedAt=new Date().toISOString();
@@ -74,8 +90,6 @@
 
   function resetAcknowledgements(){const store=load();store.acknowledged={};return save(store);}
 
-  // Production path: acknowledgement state is also persisted server-side for authenticated learners.
-  // Local storage remains only as an offline/test fallback and never acts as the authorization boundary.
   async function syncServer(learnerId){
     if(!learnerId) return {ok:false,error:'LEARNER_ID_REQUIRED'};
     const response=await fetch(`/api/m12-guardian?learnerId=${encodeURIComponent(learnerId)}`,{credentials:'include'});
@@ -83,9 +97,9 @@
     const data=await response.json();
     const store=load(); store.acknowledged={};
     (data.acknowledgements||[]).forEach(x=>{if(x?.alertId) store.acknowledged[String(x.alertId)]=x.acknowledgedAt||new Date().toISOString();});
-    store.lastEvaluatedAt=new Date().toISOString();
+    store.lastEvaluatedAt=data.evaluatedAt||new Date().toISOString();
     save(store);
-    return {ok:true,acknowledgements:data.acknowledgements||[]};
+    return {ok:true,acknowledgements:data.acknowledgements||[],alerts:data.alerts||[],evaluatedAt:data.evaluatedAt||null};
   }
 
   async function acknowledgeAlertServer(learnerId, alertId){
@@ -104,5 +118,5 @@
     return {ok:true};
   }
 
-  global.BAAGuardian={getAcademicAlerts,getSummary,acknowledgeAlert,resetAcknowledgements,syncServer,acknowledgeAlertServer,resetAcknowledgementsServer,_load:load};
+  global.BAAGuardian={getAcademicAlerts,getSummary,getServerSummary,acknowledgeAlert,resetAcknowledgements,syncServer,acknowledgeAlertServer,resetAcknowledgementsServer,_load:load};
 })(window);
