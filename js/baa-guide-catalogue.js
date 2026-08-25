@@ -22,4 +22,20 @@
   ];
   function clone(){return FEATURES.map(function(f){return Object.assign({},f,{roles:f.roles.slice()});});}
   global.BAAGuideCatalogue={version:'m63.1',features:FEATURES.slice(),getFeatures:clone,getFeature:function(id){return FEATURES.find(function(f){return f.id===id;})||null;}};
+
+  // Shared bootstrap hook: the Student OS already loads the Guide Robot
+  // catalogue dynamically after its full script graph is ready. Use that
+  // same trusted bootstrap to attach the authenticated M11 planner bridge,
+  // avoiding a duplicate script tag or parallel page-specific loader.
+  function loadPlannerIntegration(){
+    if(document.querySelector('script[data-baa-m11-integration]')) return;
+    const script=document.createElement('script');
+    script.src='js/baa-m11-planner-integration.js';
+    script.async=false;
+    script.dataset.baaM11Integration='1';
+    script.onerror=function(){};
+    document.head.appendChild(script);
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',loadPlannerIntegration);
+  else loadPlannerIntegration();
 })(window);
