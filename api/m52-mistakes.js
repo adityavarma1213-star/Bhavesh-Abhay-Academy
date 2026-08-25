@@ -1,0 +1,55 @@
+import { json } from './_lib/security.js';
+import { requireAuth, requireLearnerAccess } from './_lib/auth.js';
+import { sql } from './_lib/db.js';
+
+export const config = { runtime: 'nodejs' };
+const TYPES = new Set(['concept_gap','calculation','reading','procedure','careless','unknown']);
+const clean = (v, max = 160) => String(v ?? '').trim().slice(0, max);
+
+export default async function handler(req, res) {
+  if (req.method !== 'GET') return json(res, 405, { error: { code: 'METHOD_NOT_ALLOWED', message: 'GET required.' } }, { Allow: 'GET' });
+  try {
+    const session = await requireAuth(req);
+    const learnerId = clean(req.query?.learnerId, 120);
+    await requireLearnerAccess(session, learnerId);
+    const subject = clean(req.query?.subject, 120);
+    const chapter = clean(req.query?.chapter, 160);
+    const limit = Math.min(Math.max(Number(req.query?.limit || 200), 1), 500);
+
+    const rows = await sql`
+      SELECT le.id, le.subject, le.chapter, le.question_id AS "questionId",
+             le.attempt_id AS "attemptId", le.correctness, le.finding_details AS "findingDetails",
+             le.created_at AS "createdAt",
+             ar.confidence, ar.human_review_required AS "humanReviewRequired",
+             ar.evaluation_failed AS "evaluationFailed"
+      FROM learning_evidence le
+      LEFT JOIN assessment_results ar
+        ON ar.attempt_id=le.attempt_id AND ar.question_id=le.question_id
+      WHERE le.learner_id=${learnerId}
+        AND le.correctness IN ('incorrect','partially_correct','uncertain')
+        AND (${subject}='' OR le.subject=${subject})
+        AND (${chapter}='' OR le.chapter=${chapter})
+      ORDER BY le.created_at DESC
+      LIMIT ${limit}`;
+
+    const map = {};
+    for (const row of rows.rows) {
+      const details = Array.isArray(row.findingDetails) ? row.findingDetails : [];
+      const labels = details.length ? details : ['general_error'];
+      for (const raw of labels) {
+        const label = clean(raw, 180) || 'general_error';
+        const reasonType = TYPES.has(label) ? label : (label.toLowerCase().includes('concept') ? 'concept_gap' : 'unknown');
+        const key = `${row.subject || 'Unknown'}::${row.chapter || 'Unspecified'}::${reasonType}`;
+        if (!map[key]) map[key] = { subject: row.subject || null, chapter: row.chapter || null, reasonType, count: 0, questions: new Set(), lastSeen: null, reviewRequired: 0 };
+        map[key].count += 1;
+        if (row.questionId) map[key].questions.add(row.questionId);
+        if (!map[key].lastSeen || new Date(row.createdAt) > new Date(map[key].lastSeen)) map[key].lastSeen = row.createdAt;
+        if (row.humanReviewRequired || row.evaluationFailed) map[key].reviewRequired += 1;
+      }
+    }
+    const groups = Object.values(map).map(g => ({ ...g, questions: g.questions.size, confidence: g.reviewRequired ? 'review_required' : 'evidence_based' })).sort((a,b) => b.count-a.count || String(a.subject).localeCompare(String(b.subject)));
+    return json(res, 200, { ok: true, learnerId, filters: { subject: subject || null, chapter: chapter || null }, groups, evidenceCount: rows.rows.length, limitation: 'Mistake archeology reports recorded evidence only; it does not diagnose psychological causes.' });
+  } catch (e) {
+    return json(res, e.status || 500, { error: { code: e.code || 'MISTAKE_ANALYTICS_FAILED', message: e.status ? e.message : 'Unable to load mistake analytics.' } });
+  }
+}
