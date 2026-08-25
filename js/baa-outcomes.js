@@ -1,9 +1,9 @@
-/* BAA M53 — Learning Outcome Measurement.
-   Measures change only when comparable pre/post observations are supplied.
-   It never fabricates retention or learning velocity from activity alone. */
+/* BAA M53 — Learning Outcome Measurement. */
 (function(global){
 'use strict';
 function compare(pre,post){if(!Number.isFinite(Number(pre))||!Number.isFinite(Number(post)))return {ok:false,error:'INVALID_OUTCOME_SCORES'};const p=Number(pre),q=Number(post);return {ok:true,error:null,absoluteChange:Number((q-p).toFixed(2)),relativeChange:p?Number(((q-p)/Math.abs(p)*100).toFixed(2)):null,interpretation:q>p?'improved':q<p?'declined':'unchanged'};}
 function retention(initial,followup){if(!Number.isFinite(Number(initial))||!Number.isFinite(Number(followup)))return {ok:false,error:'INVALID_RETENTION_SCORES'};return compare(initial,followup);}
-global.BAAOutcomes={compare,retention};
+async function load(learnerId,filters){const q=new URLSearchParams({learnerId:String(learnerId||'')});if(filters?.subject)q.set('subject',filters.subject);if(filters?.chapter)q.set('chapter',filters.chapter);const r=await fetch(`/api/m53-outcomes.js?${q}`);const d=await r.json().catch(()=>({error:{message:'Invalid server response.'}}));if(!r.ok)throw new Error(d?.error?.message||'Unable to load learning outcomes.');return d;}
+function mount(root,data){if(!root)return;const rows=data?.outcomes||[];root.innerHTML='<section class="baa-outcomes-card"><h2>Learning Outcomes</h2><p>Change is measured from comparable submitted assessment observations.</p><div data-outcomes-list></div></section>';const list=root.querySelector('[data-outcomes-list]');if(!rows.length){list.textContent='Insufficient comparable assessment evidence yet.';return;}list.innerHTML=rows.map(x=>`<article><strong>${String(x.subject||'Unknown')}${x.chapter?' — '+String(x.chapter):''}</strong><p>${String(x.prePercentage)}% → ${String(x.postPercentage)}% · ${String(x.interpretation)}</p><small>${String(x.observations)} submitted observation${x.observations===1?'':'s'}</small></article>`).join('');}
+global.BAAOutcomes={compare,retention,load,mount};
 })(window);
