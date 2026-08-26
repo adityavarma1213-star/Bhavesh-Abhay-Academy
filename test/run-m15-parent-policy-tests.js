@@ -1,0 +1,27 @@
+// M15 Parent Approval Mode — source contract checks.
+import fs from 'node:fs';
+
+const api = fs.readFileSync(new URL('../api/m15-parent-policy.js', import.meta.url), 'utf8');
+const migration = fs.readFileSync(new URL('../db/migrations/025_m15_parent_policies.sql', import.meta.url), 'utf8');
+const client = fs.readFileSync(new URL('../js/baa-m15-parent-policy.js', import.meta.url), 'utf8');
+
+const checks = [
+  ['Authentication enforced', api.includes('requireAuth(req)'), 'policy API requires a live session'],
+  ['Parent/admin role gate', api.includes("hasRole(session, 'parent')") && api.includes("hasRole(session, 'admin')"), 'only parent/admin can mutate policy'],
+  ['Parent learner ownership', api.includes('FROM parent_learner') && api.includes("status='active'"), 'parent must be actively linked to learner'],
+  ['Server persistence', api.includes('parent_ai_policies'), 'policy is stored server-side'],
+  ['Tutor control', migration.includes('tutor_enabled BOOLEAN'), 'Tutor enable/disable is persisted'],
+  ['Mentor control', migration.includes('mentor_enabled BOOLEAN'), 'Mentor enable/disable is persisted'],
+  ['Planner control', migration.includes('planner_enabled BOOLEAN'), 'Planner enable/disable is persisted'],
+  ['Planner minute cap', migration.includes('planner_daily_minutes INTEGER') && migration.includes('BETWEEN 0 AND 480'), 'server bounds daily planner minutes'],
+  ['Credentialed client GET', client.includes("credentials: 'include'") && client.includes('/api/m15-parent-policy?learnerId='), 'client reads server policy with session credentials'],
+  ['Credentialed client POST', client.includes("method: 'POST'") && client.includes("credentials: 'include'") && client.includes('/api/m15-parent-policy'), 'client writes server policy with session credentials'],
+];
+
+let failed = 0;
+for (const [name, ok, why] of checks) {
+  console.log(`${ok ? 'PASS' : 'FAIL'} — ${name} — ${why}`);
+  if (!ok) failed++;
+}
+console.log(`M15 parent policy contract: ${checks.length - failed}/${checks.length}`);
+if (failed) process.exit(1);
