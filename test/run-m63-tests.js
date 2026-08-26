@@ -22,6 +22,8 @@ assert.ok(robot.includes('baaGuideRobotButton'));
 assert.ok(robot.includes('aria-expanded'));
 assert.ok(robot.includes('Escape'));
 assert.ok(robot.includes('/api/auth/me'));
+assert.ok(robot.includes('id="baaGuideRobotAnswer" class="baa-guide-answer" tabindex="-1"'),'Guide Robot answer must be keyboard-focusable');
+assert.ok(robot.includes('answer.focus();'),'Guide Robot must move focus to the rendered answer');
 assert.ok(css.includes('.baa-guide-launcher'));
 assert.ok(css.includes('@media(max-width:560px)'));
 assert.ok(css.includes('prefers-reduced-motion'));
