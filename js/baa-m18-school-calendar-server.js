@@ -66,9 +66,37 @@
 
   global.BAAM18SchoolCalendar={sync,addEvent,removeEvent,isServerBacked:function(){return !!learnerId();}};
 
+  function patchCalendar(calendar){
+    if(calendar.__m18ServerPatched) return;
+    const localAdd=calendar.addEvent;
+    const localRemove=calendar.removeEvent;
+    calendar.addEvent=function(event){
+      const row=localAdd(event);
+      if(learnerId() && row){
+        addEvent(event).catch(function(error){
+          global.dispatchEvent(new CustomEvent('baa:m18-calendar-write-failed',{detail:{message:error.message}}));
+        });
+      }
+      return row;
+    };
+    calendar.removeEvent=function(id){
+      const ok=localRemove(id);
+      if(learnerId() && ok){
+        removeEvent(id).catch(function(error){
+          global.dispatchEvent(new CustomEvent('baa:m18-calendar-write-failed',{detail:{message:error.message}}));
+        });
+      }
+      return ok;
+    };
+    calendar.__m18ServerPatched=true;
+  }
+
   function boot(){
     if(!learnerId()) return;
-    sync().catch(function(error){
+    ensureCalendar().then(function(calendar){
+      patchCalendar(calendar);
+      return sync();
+    }).catch(function(error){
       global.dispatchEvent(new CustomEvent('baa:m18-calendar-unavailable',{detail:{message:error.message}}));
     });
   }
