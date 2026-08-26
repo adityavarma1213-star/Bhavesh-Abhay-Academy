@@ -15,8 +15,45 @@ function buildPrompts(topic, state) {
 }
 async function requireParentLearner(session, learnerId) {
   const rows = await sql`SELECT 1 FROM parent_learner WHERE parent_user_id=${session.user_id} AND learner_id=${learnerId} AND status='active' LIMIT 1`;
-  if (!rows.rows.length) return false;
-  return true;
+  return rows.rows.length > 0;
+}
+async function loadLearningContext(learnerId) {
+  const rows = await sql`
+    SELECT concept, subject, topic, correctness, COUNT(*)::int AS evidence_count,
+           MAX(created_at) AS last_seen
+    FROM learning_evidence
+    WHERE learner_id=${learnerId}
+    GROUP BY concept, subject, topic, correctness
+    ORDER BY last_seen DESC
+    LIMIT 24
+  `;
+  if (!rows.rows.length) return { evidenceCount: 0, topic: 'the recent study work', state: 'insufficient evidence', evidence: [] };
+  const byConcept = new Map();
+  for (const row of rows.rows) {
+    const key = row.concept || 'recent study work';
+    const item = byConcept.get(key) || { concept: key, subject: row.subject || '', topic: row.topic || '', total: 0, correct: 0, incorrect: 0, partial: 0, uncertain: 0, lastSeen: row.last_seen };
+    const count = Number(row.evidence_count) || 0;
+    item.total += count;
+    if (row.correctness === 'correct') item.correct += count;
+    else if (row.correctness === 'incorrect') item.incorrect += count;
+    else if (row.correctness === 'partially_correct') item.partial += count;
+    else item.uncertain += count;
+    byConcept.set(key, item);
+  }
+  const concepts = [...byConcept.values()].sort((a, b) => (b.total - a.total) || String(b.lastSeen).localeCompare(String(a.lastSeen)));
+  const focus = concepts[0];
+  const accuracy = focus.total ? focus.correct / focus.total : 0;
+  let state = 'learning';
+  if (focus.total < 2) state = 'early evidence';
+  else if (accuracy >= 0.8) state = 'on track';
+  else if (accuracy < 0.5 || focus.incorrect >= 2) state = 'needs support';
+  else if (focus.partial || focus.uncertain) state = 'needs clarification';
+  return {
+    evidenceCount: concepts.reduce((sum, item) => sum + item.total, 0),
+    topic: clean(focus.topic || focus.concept || 'the recent study work', 160),
+    state,
+    evidence: concepts.slice(0, 8).map(item => ({ concept: item.concept, subject: item.subject, evidenceCount: item.total, accuracy: item.total ? Math.round((item.correct / item.total) * 100) : null }))
+  };
 }
 
 export default async function handler(req, res) {
@@ -32,15 +69,17 @@ export default async function handler(req, res) {
     }
     if (req.method !== 'POST') return json(res, 405, { error: { code: 'METHOD_NOT_ALLOWED', message: 'GET or POST required.' } }, { Allow: 'GET, POST' });
     const learnerId = clean(req.body?.learnerId, 128);
-    const topic = clean(req.body?.topic || 'the recent study work');
-    const state = clean(req.body?.state || 'learning', 120);
+    const requestedTopic = clean(req.body?.topic, 160);
     if (!learnerId) return json(res, 400, { error: { code: 'INVALID_LEARNER', message: 'learnerId is required.' } });
     if (!await requireParentLearner(session, learnerId)) return json(res, 403, { error: { code: 'LEARNER_ACCESS_DENIED', message: 'Parent is not linked to this learner.' } });
+    const context = await loadLearningContext(learnerId);
+    const topic = requestedTopic || context.topic;
+    const state = context.state;
     const prompts = buildPrompts(topic, state);
     const conversationId = id('parentconv');
     await sql`INSERT INTO parent_conversation_prompts(id,parent_user_id,learner_id,topic,state,prompts) VALUES(${conversationId},${session.user_id},${learnerId},${topic},${state},${JSON.stringify(prompts)}::jsonb)`;
-    await writeAudit({ actorUserId: session.user_id, action: 'parent.conversation.generate', entityType: 'parent_conversation_prompts', entityId: conversationId, metadata: { learnerId } });
-    return json(res, 201, { ok: true, id: conversationId, learnerId, topic, state, prompts, limitation: 'Conversation prompts are supportive guidance, not diagnosis or clinical advice.' });
+    await writeAudit({ actorUserId: session.user_id, action: 'parent.conversation.generate', entityType: 'parent_conversation_prompts', entityId: conversationId, metadata: { learnerId, evidenceCount: context.evidenceCount, evidence: context.evidence } });
+    return json(res, 201, { ok: true, id: conversationId, learnerId, topic, state, evidenceCount: context.evidenceCount, evidence: context.evidence, prompts, limitation: 'Conversation prompts are supportive guidance, not diagnosis or clinical advice. Learning state is derived from recorded academic evidence; it does not measure emotion or wellbeing.' });
   } catch (e) {
     return json(res, e.status || 500, { error: { code: e.code || 'PARENT_CONVERSATION_FAILED', message: e.status ? e.message : 'Unable to create parent conversation prompts.' } });
   }
