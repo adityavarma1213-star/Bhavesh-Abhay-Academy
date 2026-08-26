@@ -10,15 +10,7 @@ function aggregate(rows) {
   const map = new Map();
   for (const row of rows) {
     const key = `${row.subject || 'Unknown'}::${row.concept || 'Unspecified'}`;
-    if (!map.has(key)) map.set(key, {
-      subject: row.subject || null,
-      concept: row.concept || 'Unspecified',
-      evidenceCount: 0,
-      correctCount: 0,
-      incorrectCount: 0,
-      uncertainCount: 0,
-      lastSeen: row.createdAt || null
-    });
+    if (!map.has(key)) map.set(key, { subject: row.subject || null, concept: row.concept || 'Unspecified', evidenceCount: 0, correctCount: 0, incorrectCount: 0, uncertainCount: 0, lastSeen: row.createdAt || null });
     const item = map.get(key);
     item.evidenceCount += 1;
     if (row.correctness === 'correct') item.correctCount += 1;
@@ -26,11 +18,7 @@ function aggregate(rows) {
     else item.uncertainCount += 1;
     if (!item.lastSeen || new Date(row.createdAt) > new Date(item.lastSeen)) item.lastSeen = row.createdAt;
   }
-  return [...map.values()].map(x => ({
-    ...x,
-    accuracy: pct(x.correctCount, x.evidenceCount),
-    insufficientEvidence: x.evidenceCount < 2
-  }));
+  return [...map.values()].map(x => ({ ...x, accuracy: pct(x.correctCount, x.evidenceCount), insufficientEvidence: x.evidenceCount < 2 }));
 }
 
 export default async function handler(req, res) {
@@ -40,34 +28,37 @@ export default async function handler(req, res) {
     const learnerId = clean(req.query?.learnerId, 120);
     await requireLearnerAccess(session, learnerId);
     const limit = Math.min(Math.max(Number(req.query?.limit || 500), 1), 1000);
-    const result = await sql`
-      SELECT subject, concept, correctness, created_at AS "createdAt"
-      FROM learning_evidence
-      WHERE learner_id=${learnerId}
-      ORDER BY created_at DESC
-      LIMIT ${limit}`;
-    const concepts = aggregate(result.rows);
-    const weaknesses = concepts
-      .filter(x => x.evidenceCount >= 2 && x.accuracy < 0.6)
+    const [evidenceResult, questionResult] = await Promise.all([
+      sql`
+        SELECT subject, concept, correctness, created_at AS "createdAt"
+        FROM learning_evidence
+        WHERE learner_id=${learnerId}
+        ORDER BY created_at DESC
+        LIMIT ${limit}`,
+      sql`
+        SELECT id, subject, chapter, topic, concept, difficulty, type, marks,
+               time_estimate_sec AS "timeEstimateSec", text, options,
+               correct_answer AS "correctAnswer", explanation
+        FROM questions
+        ORDER BY subject, chapter, concept, id
+        LIMIT 1000`
+    ]);
+    const concepts = aggregate(evidenceResult.rows);
+    const weaknesses = concepts.filter(x => x.evidenceCount >= 2 && x.accuracy < 0.6)
       .sort((a,b) => a.accuracy-b.accuracy || b.evidenceCount-a.evidenceCount)
       .map(x => ({ ...x, status: 'needs_revision', reason: `Recorded evidence is below the weakness threshold (${x.correctCount}/${x.evidenceCount} correct).` }));
-    const strengths = concepts
-      .filter(x => x.evidenceCount >= 2 && x.accuracy >= 0.8)
+    const strengths = concepts.filter(x => x.evidenceCount >= 2 && x.accuracy >= 0.8)
       .sort((a,b) => b.accuracy-a.accuracy || b.evidenceCount-a.evidenceCount)
       .map(x => ({ ...x, status: 'strong', reason: `Recorded evidence shows ${x.correctCount}/${x.evidenceCount} correct.` }));
-    const prioritizedConcepts = concepts
-      .filter(x => x.evidenceCount >= 2)
+    const prioritizedConcepts = concepts.filter(x => x.evidenceCount >= 2)
       .sort((a,b) => a.accuracy-b.accuracy || b.evidenceCount-a.evidenceCount)
       .map(x => ({ subject: x.subject, concept: x.concept, accuracy: x.accuracy, evidenceCount: x.evidenceCount }));
-    return json(res, 200, {
-      ok: true,
-      learnerId,
-      evidenceCount: result.rows.length,
-      weaknesses,
-      strengths,
-      prioritizedConcepts,
-      limitation: 'M21–M23 summarize recorded academic evidence only; they do not diagnose ability, motivation, personality, or psychological traits.'
-    });
+    const rank = new Map(prioritizedConcepts.map((x,i) => [`${x.subject || 'Unknown'}::${x.concept}`, i]));
+    const practiceQuestions = questionResult.rows
+      .filter(q => rank.has(`${q.subject || 'Unknown'}::${q.concept}`))
+      .sort((a,b) => rank.get(`${a.subject || 'Unknown'}::${a.concept}`) - rank.get(`${b.subject || 'Unknown'}::${b.concept}`) || String(a.id).localeCompare(String(b.id)))
+      .slice(0, 20);
+    return json(res, 200, { ok: true, learnerId, evidenceCount: evidenceResult.rows.length, weaknesses, strengths, prioritizedConcepts, practiceQuestions, limitation: 'M21–M23 summarize recorded academic evidence only; they do not diagnose ability, motivation, personality, or psychological traits.' });
   } catch (e) {
     return json(res, e.status || 500, { error: { code: e.code || 'M21_23_EVIDENCE_FAILED', message: e.status ? e.message : 'Unable to load learning evidence.' } });
   }
