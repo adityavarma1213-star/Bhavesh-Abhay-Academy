@@ -16,6 +16,7 @@ const checks=[
  ['Client calls authenticated M25 endpoint',/api\/m25-goal-tracker/.test(client)&&/credentials:'include'/.test(client)],
  ['Client exposes server goal snapshot',/getServerGoals/.test(client)],
  ['Client auto-loads server progress',/DOMContentLoaded/.test(client)&&/autoLoad/.test(client)],
+ ['Client renders a Student OS goal panel',/baa-m25-goal-panel/.test(client)&&/renderServerGoals/.test(client)],
  ['Client emits server update event',/baa:goals-server-updated/.test(client)],
 ];
 let passed=0;
