@@ -21,7 +21,7 @@
     {id:'demo',title:'BAA Demo',icon:'▶️',roles:['student','parent','teacher','admin'],description:'Open the product demonstration experience.',route:'demo.html'}
   ];
   function clone(){return FEATURES.map(function(f){return Object.assign({},f,{roles:f.roles.slice()});});}
-  global.BAAGuideCatalogue={version:'m63.8',features:FEATURES.slice(),getFeatures:clone,getFeature:function(id){return FEATURES.find(function(f){return f.id===id;})||null;}};
+  global.BAAGuideCatalogue={version:'m63.9',features:FEATURES.slice(),getFeatures:clone,getFeature:function(id){return FEATURES.find(function(f){return f.id===id;})||null;}};
 
   // Shared bootstrap hooks: trusted feature bridges load here so module wiring
   // stays centralized and duplicate page-specific script tags are avoided.
@@ -52,6 +52,7 @@
     loadScript('js/baa-m11-planner-server-ui.js','data-baa-m11-server-ui');
     loadScript('js/baa-m13-prediction-integration.js','data-baa-m13-integration');
     loadScript('js/baa-m12-guardian-ui.js','data-baa-m12-ui');
+    loadScript('js/baa-m12-guardian-server-ui.js','data-baa-m12-server-ui');
     loadScript('js/baa-m18-school-calendar-server.js','data-baa-m18-calendar-server');
     loadScript('js/baa-m21-23-server.js','data-baa-m21-23-server');
     loadScript('js/baa-m27-learning-resources-server.js','data-baa-m27-server');
