@@ -1,10 +1,8 @@
 // js/baa-ai-mode.js
 // BAA OS — Module 1, M1-A1 client orchestration.
-// It gathers only bounded evidence from the existing intelligence/planner
-// stores, calls the real AI Mode endpoint, and renders textContent-based UI.
-// It does NOT implement Custom or Hybrid Mode and never fabricates a plan
-// when the server is unavailable.
-
+// It asks the server-backed AI Mode adapter to build an evidence-bound plan.
+// Learner evidence is never trusted from the browser; the server derives it
+// from authenticated PostgreSQL state.
 (function (global) {
   'use strict';
 
@@ -20,7 +18,10 @@
       : [];
 
     return {
+      learnerId: String(global.BAA_LEARNER_ID || '').trim(),
       goal: (planner.getGoals?.()[0]?.text || '').trim(),
+      // Kept for backward-compatible local preview/debug consumers only.
+      // The production API ignores these values and derives evidence server-side.
       concepts: states.map((c) => ({
         concept: c.concept,
         state: c.state,
@@ -42,15 +43,17 @@
     if (!finalGoal) {
       return { ok: false, error: { code: 'GOAL_REQUIRED', message: 'Add a learning goal before asking AI Mode to build a path.' } };
     }
-    input.goal = finalGoal;
-    if (previousPlan) input.previousPlan = previousPlan;
+    if (!input.learnerId) {
+      return { ok: false, error: { code: 'AUTH_REQUIRED', message: 'Sign in as a learner before using AI Mode.' } };
+    }
 
     let response;
     try {
-      response = await fetch('/api/ai-mode', {
+      response = await fetch(`/api/m01-ai-mode?learnerId=${encodeURIComponent(input.learnerId)}`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(input),
+        body: JSON.stringify({ goal: finalGoal, previousPlan }),
       });
     } catch {
       return { ok: false, error: { code: 'NETWORK_ERROR', message: 'AI Mode could not reach the server.' } };
