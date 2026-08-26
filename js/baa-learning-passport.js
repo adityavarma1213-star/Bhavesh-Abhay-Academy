@@ -7,7 +7,9 @@
 (function(global){
   'use strict';
   const SCHEMA_VERSION=2;
+  let serverRecord=null;
   function build(){
+    if(serverRecord)return serverRecord;
     const a=global.BAAAssessment;
     if(!a)return {schemaVersion:SCHEMA_VERSION,status:'unavailable'};
     const store=a._load(),memory=Object.values(store.learningMemory||{});
@@ -16,13 +18,23 @@
     return {schemaVersion:1,student:a.getStudentName(),issuedAt:new Date().toISOString(),status:'local_testing_record',competencies,assessments:attempts.slice(0,20).map(x=>({id:x.id,title:x.assessmentTitle,score:x.score,maxScore:x.maxScore,status:x.status,completedAt:x.endTime})),evidenceCount:(store.evidence||[]).length};
   }
   async function load(learnerId){
-    const id=String(learnerId||'').trim();
+    const id=String(learnerId||global.BAA_LEARNER_ID||'').trim();
     if(!id)throw new Error('learnerId is required.');
     const response=await fetch('/api/m19-passport?learnerId='+encodeURIComponent(id),{credentials:'include'});
     const body=await response.json().catch(()=>({}));
     if(!response.ok)throw Object.assign(new Error(body?.error?.message||'Unable to load learning passport.'),{status:response.status,code:body?.error?.code});
+    serverRecord=body;
+    global.dispatchEvent(new CustomEvent('baa:m19-passport-loaded',{detail:body}));
     return body;
   }
+  async function autoLoad(){
+    const id=String(global.BAA_LEARNER_ID||'').trim();
+    if(!id)return;
+    try{await load(id);}catch(error){
+      global.dispatchEvent(new CustomEvent('baa:m19-passport-unavailable',{detail:{message:error.message}}));
+    }
+  }
   function exportJson(record){return JSON.stringify(record||build(),null,2);}
-  global.BAALearningPassport={build,load,exportJson};
+  global.BAALearningPassport={build,load,autoLoad,exportJson,getServerRecord:function(){return serverRecord;}};
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',autoLoad);else autoLoad();
 })(window);
