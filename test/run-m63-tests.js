@@ -2,7 +2,11 @@
 const fs=require('fs'),assert=require('assert'),vm=require('vm');
 const catalogue=fs.readFileSync('js/baa-guide-catalogue.js','utf8');
 assert.ok(catalogue.includes('BAAGuideCatalogue'));
-const ctx={window:{}};vm.createContext(ctx);vm.runInContext(catalogue,ctx);
+assert.ok(catalogue.includes("loadScript('js/baa-guide-robot.js','data-baa-m63-robot')"),'catalogue must bootstrap the Guide Robot');
+assert.ok(catalogue.includes("loadStyle('css/baa-guide-robot.css','data-baa-m63-style')"),'catalogue must bootstrap Guide Robot styles');
+assert.ok(catalogue.includes('data-baa-m63-robot'),'Guide Robot loader must be idempotently tagged');
+assert.ok(catalogue.includes('data-baa-m63-style'),'Guide Robot style loader must be idempotently tagged');
+const ctx={window:{},document:{readyState:'complete',head:{appendChild(){}},querySelector(){return null}}};vm.createContext(ctx);vm.runInContext(catalogue,ctx);
 assert.ok(ctx.window.BAAGuideCatalogue);
 const features=ctx.window.BAAGuideCatalogue.getFeatures();
 assert.ok(features.length>=10,'catalogue should cover the major BAA features');
