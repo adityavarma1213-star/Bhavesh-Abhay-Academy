@@ -19,5 +19,13 @@ async function loadServerGoals(learnerId){
  return payload;
 }
 function getServerGoals(){return serverSnapshot?.goals||[];}
+function autoLoad(){
+ if(!global.BAA_LEARNER_ID)return;
+ loadServerGoals(global.BAA_LEARNER_ID).catch(()=>{
+   try{global.dispatchEvent(new CustomEvent('baa:goals-server-unavailable'));}catch(_){ }
+ });
+}
 global.BAAGoals={getGoals,loadServerGoals,getServerGoals};
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',autoLoad,{once:true});
+else autoLoad();
 })(window);
