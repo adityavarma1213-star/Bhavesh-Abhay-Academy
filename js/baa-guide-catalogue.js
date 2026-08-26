@@ -21,7 +21,7 @@
     {id:'demo',title:'BAA Demo',icon:'▶️',roles:['student','parent','teacher','admin'],description:'Open the product demonstration experience.',route:'demo.html'}
   ];
   function clone(){return FEATURES.map(function(f){return Object.assign({},f,{roles:f.roles.slice()});});}
-  global.BAAGuideCatalogue={version:'m63.6',features:FEATURES.slice(),getFeatures:clone,getFeature:function(id){return FEATURES.find(function(f){return f.id===id;})||null;}};
+  global.BAAGuideCatalogue={version:'m63.7',features:FEATURES.slice(),getFeatures:clone,getFeature:function(id){return FEATURES.find(function(f){return f.id===id;})||null;}};
 
   // Shared bootstrap hooks: trusted feature bridges load here so module wiring
   // stays centralized and duplicate page-specific script tags are avoided.
@@ -62,6 +62,7 @@
     loadScript('js/baa-m30-rewards-server-ui.js','data-baa-m30-rewards-ui');
     loadScript('js/baa-m48-collaboration-server.js','data-baa-m48-server');
     loadScript('js/baa-m04-ai-tutor-server.js','data-baa-m04-tutor-server');
+    loadScript('js/baa-m52-mistake-server-ui.js','data-baa-m52-mistake-server-ui');
     loadScript('js/baa-server-learner-view.js','data-baa-server-learner-view');
     loadScript('js/baa-teacher-server-dashboard.js','data-baa-teacher-server-dashboard');
   }
