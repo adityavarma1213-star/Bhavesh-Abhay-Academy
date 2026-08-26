@@ -24,7 +24,7 @@
     if(mounted||!document.body) return;
     mounted=true;
     const root=document.createElement('div');root.id='baaGuideRobotRoot';root.className='baa-guide-root';
-    root.innerHTML='<button id="baaGuideRobotButton" class="baa-guide-launcher" type="button" aria-label="Open BAA Guide Robot" aria-haspopup="dialog" aria-expanded="false" aria-controls="baaGuideRobotPanel"><span class="baa-guide-robot-face" aria-hidden="true">🤖</span><span class="baa-guide-launcher-text">Guide</span></button><section id="baaGuideRobotPanel" class="baa-guide-panel" role="dialog" aria-modal="false" aria-labelledby="baaGuideRobotTitle" hidden><header class="baa-guide-header"><div><div id="baaGuideRobotTitle" class="baa-guide-title">BAA Guide Robot</div><div class="baa-guide-subtitle">Ask me what you want explained.</div></div><button id="baaGuideRobotClose" class="baa-guide-close" type="button" aria-label="Close Guide Robot">×</button></header><div id="baaGuideRobotStatus" class="baa-guide-status" role="status" aria-live="polite">Choose a feature to learn about it.</div><div id="baaGuideRobotOptions" class="baa-guide-options" role="list"></div><div id="baaGuideRobotAnswer" class="baa-guide-answer" aria-live="polite" hidden></div></section>';
+    root.innerHTML='<button id="baaGuideRobotButton" class="baa-guide-launcher" type="button" aria-label="Open BAA Guide Robot" aria-haspopup="dialog" aria-expanded="false" aria-controls="baaGuideRobotPanel"><span class="baa-guide-robot-face" aria-hidden="true">🤖</span><span class="baa-guide-launcher-text">Guide</span></button><section id="baaGuideRobotPanel" class="baa-guide-panel" role="dialog" aria-modal="false" aria-labelledby="baaGuideRobotTitle" hidden><header class="baa-guide-header"><div><div id="baaGuideRobotTitle" class="baa-guide-title">BAA Guide Robot</div><div class="baa-guide-subtitle">Ask me what you want explained.</div></div><button id="baaGuideRobotClose" class="baa-guide-close" type="button" aria-label="Close Guide Robot">×</button></header><div id="baaGuideRobotStatus" class="baa-guide-status" role="status" aria-live="polite">Choose a feature to learn about it.</div><div id="baaGuideRobotOptions" class="baa-guide-options" role="list"></div><div id="baaGuideRobotAnswer" class="baa-guide-answer" tabindex="-1" aria-live="polite" hidden></div></section>';
     document.body.appendChild(root);
     const button=root.querySelector('#baaGuideRobotButton'),panel=root.querySelector('#baaGuideRobotPanel'),close=root.querySelector('#baaGuideRobotClose'),options=root.querySelector('#baaGuideRobotOptions'),answer=root.querySelector('#baaGuideRobotAnswer'),status=root.querySelector('#baaGuideRobotStatus');
     function render(){
@@ -37,7 +37,7 @@
     function explain(id){
       const f=C.getFeature(id);if(!f||!allowed(f)) return;
       answer.hidden=false;answer.innerHTML='<div class="baa-guide-answer-title">'+esc(f.icon)+' '+esc(f.title)+'</div><p>'+esc(f.description)+'</p><a class="baa-guide-go" href="'+esc(f.route)+'">Open '+esc(f.title)+' <span aria-hidden="true">→</span></a>';
-      answer.focus&&answer.focus();
+      answer.focus();
     }
     function open(){panel.hidden=false;button.setAttribute('aria-expanded','true');root.classList.add('is-open');render();const first=options.querySelector('[data-guide-id]');if(first)first.focus();}
     function shut(){panel.hidden=true;button.setAttribute('aria-expanded','false');root.classList.remove('is-open');button.focus();}
