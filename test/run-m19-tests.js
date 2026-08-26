@@ -1,15 +1,23 @@
 #!/usr/bin/env node
 const fs=require('fs'),assert=require('assert'),vm=require('vm');
-const c={window:{BAAAssessment:{_load:()=>({learningMemory:{x:{concept:'algebra',subject:'math',topic:'linear',status:'mastered',evidenceCount:2,correctCount:2,lastUpdated:'2026-01-01'}},attempts:[],evidence:[1]},getStudentName:()=> 'Test'},fetch:async()=>({ok:true,json:async()=>({ok:true})})}};
+const c={window:{BAAAssessment:{_load:()=>({learningMemory:{x:{concept:'algebra',subject:'math',topic:'linear',status:'mastered',evidenceCount:2,correctCount:2,lastUpdated:'2026-01-01'}},attempts:[],evidence:[1]},getStudentName:()=> 'Test'},fetch:async()=>({ok:true,json:async()=>({ok:true,schemaVersion:2,status:'server_evidence_record',competencies:[],assessments:[],evidenceCount:0})})},document:{readyState:'complete'},CustomEvent:function(type,init){this.type=type;this.detail=init?.detail}};
 vm.createContext(c);
 vm.runInContext(fs.readFileSync('js/baa-learning-passport.js','utf8'),c);
 const api=c.window.BAALearningPassport;
 assert.equal(api.build().competencies.length,1);
 assert.equal(api.build().status,'local_testing_record');
 assert.equal(typeof api.load,'function');
+assert.equal(typeof api.autoLoad,'function');
+assert.equal(typeof api.getServerRecord,'function');
 assert.equal(JSON.parse(api.exportJson(api.build())).schemaVersion,1);
 const endpoint=fs.readFileSync('api/m19-passport.js','utf8');
 assert(endpoint.includes('requireLearnerAccess'));
 assert(endpoint.includes('LEARNING_PASSPORT_VIEW'));
 assert(endpoint.includes('learning_evidence'));
-console.log('M19 PASS — local fallback, server evidence API contract, ownership guard');
+assert(endpoint.includes('assessment_attempts'));
+assert(endpoint.includes("status:'server_evidence_record'"));
+const client=fs.readFileSync('js/baa-learning-passport.js','utf8');
+assert(client.includes("credentials:'include'"));
+assert(client.includes('serverRecord=body'));
+assert(client.includes('if(serverRecord)return serverRecord'));
+console.log('M19 PASS — local fallback, server evidence API, authenticated UI bridge');
