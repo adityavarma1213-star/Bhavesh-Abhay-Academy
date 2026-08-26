@@ -98,9 +98,15 @@ async function init({mountId='serverLearnerView',onLearnerChange}={}){
 
 function autoMountPrivateParentView(){
   const path=String(global.location.pathname||'');
-  if(!path.endsWith('/parent-os.html')) return;
+  const isParent=path.endsWith('/parent-os.html');
+  const isTeacher=path.endsWith('/teacher-os.html');
+  if(!isParent && !isTeacher) return;
   const mount=document.getElementById('serverLearnerView');
   const legacy=document.getElementById('content');
+  /* Parent and Teacher dashboards must not visibly mix browser-local preview
+     analytics with the canonical authenticated learner snapshot. The legacy
+     render remains in source for private development, but is hidden whenever
+     the server-backed dashboard is mounted. */
   if(legacy) legacy.style.display='none';
   if(!mount) return;
   init({mountId:'serverLearnerView'});
