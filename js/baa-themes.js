@@ -22,93 +22,37 @@
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',activate);else activate();
   if(window.matchMedia)window.matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change',function(){if(prefs.mode==='system')apply();});
   function installPasswordToggle(inputId){const input=document.getElementById(inputId);if(!input||input.dataset.visibilityReady==='1')return;input.dataset.visibilityReady='1';const parent=input.parentElement;if(!parent)return;const wrap=document.createElement('div');wrap.style.cssText='position:relative;width:100%;';parent.insertBefore(wrap,input);wrap.appendChild(input);input.style.paddingRight='68px';const button=document.createElement('button');button.type='button';button.textContent='Show';button.setAttribute('aria-label','Show password');button.style.cssText='position:absolute;right:10px;top:50%;transform:translateY(-50%);border:0;background:rgba(124,92,252,.18);color:#FDF9F0;padding:7px 10px;border-radius:8px;font:600 .76rem Inter,Arial,sans-serif;cursor:pointer;z-index:3;';button.addEventListener('click',function(){const visible=input.type==='text';input.type=visible?'password':'text';button.textContent=visible?'Show':'Hide';button.setAttribute('aria-label',visible?'Show password':'Hide password');});wrap.appendChild(button);}
-  function installKeepSignedIn(){
-    const password=document.getElementById('authPassword');
-    if(!password || document.getElementById('keepSignedInWrap')) return;
-    const wrap=document.createElement('label');
-    wrap.id='keepSignedInWrap';
-    wrap.style.cssText='display:none;align-items:center;gap:9px;margin:-2px 0 12px;color:var(--modal-fg-dim);font:500 .8rem Inter,Arial,sans-serif;cursor:pointer;user-select:none;';
-    wrap.innerHTML='<input id="keepSignedIn" type="checkbox" style="width:16px;height:16px;accent-color:#7C5CFC;cursor:pointer"><span>Keep me signed in</span>';
-    password.parentElement.insertAdjacentElement('afterend',wrap);
-    const sync=function(){const loginMode=document.getElementById('authTabLogin')?.classList.contains('active');wrap.style.display=loginMode?'flex':'none';};
-    sync();
-    document.getElementById('authTabLogin')?.addEventListener('click',sync);
-    document.getElementById('authTabSignup')?.addEventListener('click',sync);
-    const original=window.callAuthApi;
-    if(typeof original==='function' && !window.__baaRememberPatch){
-      window.__baaRememberPatch=true;
-      window.callAuthApi=function(action,body){
-        if(action==='login') body=Object.assign({},body,{remember:!!document.getElementById('keepSignedIn')?.checked});
-        return original(action,body);
-      };
-    }
-  }
+  function installKeepSignedIn(){const password=document.getElementById('authPassword');if(!password||document.getElementById('keepSignedInWrap'))return;const wrap=document.createElement('label');wrap.id='keepSignedInWrap';wrap.style.cssText='display:none;align-items:center;gap:9px;margin:-2px 0 12px;color:var(--modal-fg-dim);font:500 .8rem Inter,Arial,sans-serif;cursor:pointer;user-select:none;';wrap.innerHTML='<input id="keepSignedIn" type="checkbox" style="width:16px;height:16px;accent-color:#7C5CFC;cursor:pointer"><span>Keep me signed in</span>';password.parentElement.insertAdjacentElement('afterend',wrap);const sync=function(){const loginMode=document.getElementById('authTabLogin')?.classList.contains('active');wrap.style.display=loginMode?'flex':'none';};sync();document.getElementById('authTabLogin')?.addEventListener('click',sync);document.getElementById('authTabSignup')?.addEventListener('click',sync);const original=window.callAuthApi;if(typeof original==='function'&&!window.__baaRememberPatch){window.__baaRememberPatch=true;window.callAuthApi=function(action,body){if(action==='login')body=Object.assign({},body,{remember:!!document.getElementById('keepSignedIn')?.checked});return original(action,body);};}}
   function installAuthUx(){installPasswordToggle('authPassword');installPasswordToggle('resetPassword');const style=document.createElement('style');style.textContent='.modal input:focus-visible,.modal button:focus-visible{outline:2px solid #F5B942;outline-offset:2px}.modal .auth-tab,.modal .btn-primary{min-height:44px}#keepSignedInWrap input{margin:0}';document.head.appendChild(style);installKeepSignedIn();}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installAuthUx);else installAuthUx();
-
-  /* Role-aware workspace navigation: teachers/admins must be able to reach
-     Academic Management from the OS instead of knowing a hidden URL. This is
-     additive and server-authoritative: the link is shown only after /api/auth/me
-     confirms the role. */
-  function installRoleWorkspaceLink(){
-    if(document.getElementById('baaRoleWorkspaceLink')) return;
-    fetch('/api/auth/me',{credentials:'include',cache:'no-store'}).then(function(r){return r.ok?r.json():null}).then(function(session){
-      const roles=session&&session.user&&(session.user.roles||session.user.role);
-      const list=Array.isArray(roles)?roles:[roles].filter(Boolean);
-      if(!list.includes('teacher')&&!list.includes('admin')) return;
-      const host=document.querySelector('.tb-right,#screen-home .tb-right,.topbar,.top');
-      if(!host) return;
-      const link=document.createElement('a');
-      link.id='baaRoleWorkspaceLink';
-      link.href='teacher-portal.html';
-      link.setAttribute('aria-label','Open Teacher and Academic Management');
-      link.textContent='👩‍🏫 Teacher Portal';
-      link.style.cssText='display:inline-flex;align-items:center;gap:7px;margin-left:8px;padding:9px 13px;border:1px solid rgba(76,217,232,.38);border-radius:999px;background:rgba(76,217,232,.08);color:#4CD9E8;text-decoration:none;font:700 .78rem Inter,Arial,sans-serif;white-space:nowrap;';
-      host.appendChild(link);
-    }).catch(function(){});
-  }
+  function installRoleWorkspaceLink(){if(document.getElementById('baaRoleWorkspaceLink'))return;fetch('/api/auth/me',{credentials:'include',cache:'no-store'}).then(function(r){return r.ok?r.json():null}).then(function(session){const roles=session&&session.user&&(session.user.roles||session.user.role);const list=Array.isArray(roles)?roles:[roles].filter(Boolean);if(!list.includes('teacher')&&!list.includes('admin'))return;const host=document.querySelector('.tb-right,#screen-home .tb-right,.topbar,.top');if(!host)return;const link=document.createElement('a');link.id='baaRoleWorkspaceLink';link.href='teacher-portal.html';link.setAttribute('aria-label','Open Teacher and Academic Management');link.textContent='👩‍🏫 Teacher Portal';link.style.cssText='display:inline-flex;align-items:center;gap:7px;margin-left:8px;padding:9px 13px;border:1px solid rgba(76,217,232,.38);border-radius:999px;background:rgba(76,217,232,.08);color:#4CD9E8;text-decoration:none;font:700 .78rem Inter,Arial,sans-serif;white-space:nowrap;';host.appendChild(link);}).catch(function(){});}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installRoleWorkspaceLink);else installRoleWorkspaceLink();
-
-  /* Starter/landing discoverability: the Galaxy/Student OS can be entered
-     before authentication, so role-aware navigation cannot be the only path.
-     Expose an explicit Teacher / Academic Management entry that leads to the
-     secure account flow. The destination still enforces teacher/admin access. */
-  function installTeacherStarterLink(){
-    if(document.getElementById('baaTeacherStarterLink')) return;
-    const path=window.location.pathname;
-    const isStudentOs=path.endsWith('/student-os.html') || path==='/student-os.html';
-    if(!isStudentOs) return;
-    const link=document.createElement('a');
-    link.id='baaTeacherStarterLink';
-    link.href='account.html?role=teacher';
-    link.textContent='👩‍🏫 Teacher / Academic Management';
-    link.setAttribute('aria-label','Teacher and Academic Management sign in');
-    link.style.cssText='position:fixed;right:18px;bottom:18px;z-index:9999;display:inline-flex;align-items:center;gap:8px;padding:12px 16px;border:1px solid rgba(245,185,66,.45);border-radius:999px;background:rgba(11,15,46,.92);color:#F5B942;text-decoration:none;font:700 .8rem Inter,Arial,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.3);backdrop-filter:blur(12px);';
-    document.body.appendChild(link);
-  }
+  function installTeacherStarterLink(){if(document.getElementById('baaTeacherStarterLink'))return;const path=window.location.pathname;const isStudentOs=path.endsWith('/student-os.html')||path==='/student-os.html';if(!isStudentOs)return;const link=document.createElement('a');link.id='baaTeacherStarterLink';link.href='account.html?role=teacher';link.textContent='👩‍🏫 Teacher / Academic Management';link.setAttribute('aria-label','Teacher and Academic Management sign in');link.style.cssText='position:fixed;right:18px;bottom:18px;z-index:9999;display:inline-flex;align-items:center;gap:8px;padding:12px 16px;border:1px solid rgba(245,185,66,.45);border-radius:999px;background:rgba(11,15,46,.92);color:#F5B942;text-decoration:none;font:700 .8rem Inter,Arial,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.3);backdrop-filter:blur(12px);';document.body.appendChild(link);}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installTeacherStarterLink);else installTeacherStarterLink();
-
-  function installLandingLinks(){
-    const path=window.location.pathname;
-    if(!(path==='/' || path.endsWith('/index.html'))) return;
-    if(document.getElementById('baaLandingTools')) return;
-    const wrap=document.createElement('div');
-    wrap.id='baaLandingTools';
-    wrap.style.cssText='position:fixed;right:18px;bottom:18px;z-index:9998;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;';
-    wrap.innerHTML='<a href="demo.html" style="display:inline-flex;align-items:center;gap:7px;padding:11px 15px;border-radius:999px;background:#7C5CFC;color:#fff;text-decoration:none;font:700 13px Inter,Arial,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.25)">▶ Demo</a><a href="user-guide.html" style="display:inline-flex;align-items:center;gap:7px;padding:11px 15px;border-radius:999px;background:#173b73;color:#fff;text-decoration:none;font:700 13px Inter,Arial,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.25)">📖 User Guide</a>';
-    document.body.appendChild(wrap);
-  }
+  function installLandingLinks(){const path=window.location.pathname;if(!(path==='/'||path.endsWith('/index.html')))return;if(document.getElementById('baaLandingTools'))return;const wrap=document.createElement('div');wrap.id='baaLandingTools';wrap.style.cssText='position:fixed;right:18px;bottom:18px;z-index:9998;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;';wrap.innerHTML='<a href="demo.html" style="display:inline-flex;align-items:center;gap:7px;padding:11px 15px;border-radius:999px;background:#7C5CFC;color:#fff;text-decoration:none;font:700 13px Inter,Arial,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.25)">▶ Demo</a><a href="user-guide.html" style="display:inline-flex;align-items:center;gap:7px;padding:11px 15px;border-radius:999px;background:#173b73;color:#fff;text-decoration:none;font:700 13px Inter,Arial,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.25)">📖 User Guide</a>';document.body.appendChild(wrap);}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installLandingLinks);else installLandingLinks();
-
-  /* M63 — Guide Robot bootstrap. Shared theme-engine pages already load this
-     file, so the robot is attached without duplicating three script tags in
-     every page. The catalogue is static and verified; no LLM call or storage
-     is required. */
-  function installGuideRobot(){
-    if(!document.querySelector('link[data-baa-guide-css]')){const link=document.createElement('link');link.rel='stylesheet';link.href='css/baa-guide-robot.css';link.dataset.baaGuideCss='1';document.head.appendChild(link);}
-    if(window.BAAGuideRobot) return;
-    const load=function(src,done){const existing=document.querySelector('script[src="'+src+'"]');if(existing){if(done)done();return;}const s=document.createElement('script');s.src=src;s.async=false;s.onload=done;s.onerror=function(){};document.head.appendChild(s);};
-    load('js/baa-guide-catalogue.js',function(){load('js/baa-guide-robot.js');});
-  }
+  function installGuideRobot(){if(!document.querySelector('link[data-baa-guide-css]')){const link=document.createElement('link');link.rel='stylesheet';link.href='css/baa-guide-robot.css';link.dataset.baaGuideCss='1';document.head.appendChild(link);}if(window.BAAGuideRobot)return;const load=function(src,done){const existing=document.querySelector('script[src="'+src+'"]');if(existing){if(done)done();return;}const s=document.createElement('script');s.src=src;s.async=false;s.onload=done;s.onerror=function(){};document.head.appendChild(s);};load('js/baa-guide-catalogue.js',function(){load('js/baa-guide-robot.js');});}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installGuideRobot);else installGuideRobot();
+
+  /* M37 — Trust & Privacy Center page gate. The page contains learner-specific
+     controls (export, deletion, appeals), so access is authenticated and role
+     checked by the server before the existing local controls are exposed. */
+  function installTrustPageGate(){
+    const path=window.location.pathname;
+    if(!(path.endsWith('/trust-privacy.html')||path==='/trust-privacy.html'))return;
+    const veil=document.createElement('div');
+    veil.id='baaTrustAccessVeil';
+    veil.style.cssText='position:fixed;inset:0;z-index:100000;background:#0B0F2E;color:#FDF9F0;display:flex;align-items:center;justify-content:center;padding:24px;font:500 15px Inter,Arial,sans-serif;';
+    veil.innerHTML='<div style="max-width:520px;text-align:center"><div style="font-size:32px;margin-bottom:12px">🔒</div><h1 style="font:600 28px Fraunces,serif;margin-bottom:10px">Trust &amp; Privacy Center</h1><p id="baaTrustAccessMessage" style="color:rgba(253,249,240,.7);line-height:1.6">Checking your signed-in account…</p></div>';
+    document.documentElement.appendChild(veil);
+    fetch('/api/m37-trust-access',{credentials:'include',cache:'no-store'}).then(function(r){return r.ok?r.json():Promise.reject({status:r.status});}).then(function(session){
+      if(!session||!session.authenticated){throw {status:403};}
+      veil.remove();
+    }).catch(function(error){
+      const message=document.getElementById('baaTrustAccessMessage');
+      if(message)message.textContent=error&&error.status===401?'Please sign in to open your Trust & Privacy Center.':'This Trust & Privacy Center is only available to authenticated BAA accounts.';
+      const link=document.createElement('a');link.href='account.html?next=trust-privacy.html';link.textContent='Sign in to continue';link.style.cssText='display:inline-flex;margin-top:18px;padding:11px 18px;border-radius:999px;background:#7C5CFC;color:#fff;text-decoration:none;font-weight:700;';veil.querySelector('div').appendChild(link);
+    });
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installTrustPageGate);else installTrustPageGate();
 })();
