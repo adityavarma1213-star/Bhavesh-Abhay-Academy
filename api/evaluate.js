@@ -16,9 +16,6 @@ import { requireAuth } from './_lib/auth.js';
 import { consumeAiRateLimit } from './_lib/ai-rate-limit.js';
 import { issueAssessmentVerdict } from './_lib/assessment-verdict.js';
 
-// Same model as api/chat.js — see that file's comment for why. Section B
-// does not change the model; keeping evaluation and tutoring on the same
-// model also means their behavior/cost profile stays consistent.
 const MODEL = 'gemini-3.5-flash-lite';
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
 const MAX_OUTPUT_TOKENS = 1024;
@@ -30,8 +27,6 @@ const MAX_RETRIES = 2;
 const VALID_QUESTION_TYPES = new Set([
   'short_answer', 'long_answer', 'math', 'step_based', 'written_response',
 ]);
-
-// ---------- Best-effort in-memory rate limiter (see api/chat.js) ----------
 
 function validateBody(body) {
   const { question, studentAnswer } = body || {};
@@ -58,8 +53,7 @@ function buildPrompt(question, studentAnswer) {
     `QUESTION (${question.type}, worth ${question.marks} marks):\n${question.text}\n\n` +
     (question.modelAnswer ? `MODEL ANSWER / MARKING GUIDE:\n${question.modelAnswer}\n\n` : '') +
     `STUDENT'S ANSWER:\n${studentAnswer}\n\n` +
-    `Evaluate the student's answer and respond with ONLY a single JSON object (no markdown fences, no ` +
-    `extra text before or after) with exactly these fields:\n` +
+    `Evaluate the student's answer and respond with ONLY a single JSON object (no markdown fences, no extra text before or after) with exactly these fields:\n` +
     `{\n` +
     `  "score": <number, 0 to ${question.marks}, may be a decimal>,\n` +
     `  "maxScore": ${question.marks},\n` +
@@ -74,16 +68,12 @@ function buildPrompt(question, studentAnswer) {
     `}\n\n` +
     `RULES:\n` +
     `- ${isMath
-        ? 'For math/step-based answers, evaluate METHOD, STEPS, and FINAL ANSWER separately in your reasoning. ' +
-          'A correct method with one small arithmetic slip is "partially_correct" with most of the marks, NOT the same as a wrong method — do not treat them as equivalent.'
+        ? 'For math/step-based answers, evaluate METHOD, STEPS, and FINAL ANSWER separately in your reasoning. A correct method with one small arithmetic slip is "partially_correct" with most of the marks, NOT the same as a wrong method — do not treat them as equivalent.'
         : 'Judge correctness, relevance, completeness, and reasoning quality — not just keyword matching.'}\n` +
     `- Give PARTIAL credit (a score strictly between 0 and ${question.marks}) whenever the answer is partially right. Do not just give full marks or zero unless that is genuinely warranted.\n` +
-    `- If you are not confident in your judgement (ambiguous answer, handwriting-style transcription issues, ` +
-    `a genuinely borderline case), set "confidence" to "low" or "medium" and "humanReviewRequired" to true. ` +
-    `Do not present an uncertain judgement as a guaranteed fact.\n` +
+    `- If you are not confident in your judgement (ambiguous answer, handwriting-style transcription issues, a genuinely borderline case), set "confidence" to "low" or "medium" and "humanReviewRequired" to true. Do not present an uncertain judgement as a guaranteed fact.\n` +
     `- The rubric must break the mark into 1-4 concrete criteria appropriate to the question. Criterion scores must be numeric, non-negative, and never exceed maxScore. Rubric scores should add up to the overall score within a small rounding tolerance. Evidence must point only to what the student actually wrote.\n` +
-    `- If the student's answer contains a genuine spelling or terminology error that matters for academic correctness, list it in "errors" with a short, specific description. Do not invent or nitpick harmless stylistic variations.
-` +
+    `- If the student's answer contains a genuine spelling or terminology error that matters for academic correctness, list it in "errors" with a short, specific description. Do not invent or nitpick harmless stylistic variations.\n` +
     `- Never invent facts about the student or claim history you were not given.\n` +
     `- Keep the tone constructive — a mistake is information, not a failure.\n` +
     `- Respond with ONLY the JSON object.`
@@ -117,9 +107,6 @@ async function callGeminiWithRetry(payload, apiKey, attempt = 0) {
   }
 }
 
-// Extracts the first {...} JSON object from the model's text output.
-// Gemini is instructed to return raw JSON, but we defensively strip any
-// accidental markdown fences before parsing.
 function extractJson(text) {
   const cleaned = text.replace(/```json/gi, '').replace(/```/g, '').trim();
   const start = cleaned.indexOf('{');
@@ -139,42 +126,45 @@ function clampScore(score, maxScore) {
 }
 
 export default async function handler(req) {
+  // Evaluation results contain learner answers, rubric evidence and AI
+  // verdicts. They must never be retained by browser/intermediary caches.
+  const responseHeaders = { 'Cache-Control': 'private, no-store, max-age=0' };
   if (req.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: corsHeaders() });
+    return new Response(null, { status: 204, headers: { ...responseHeaders, ...corsHeaders() } });
   }
   if (req.method !== 'POST') {
-    return jsonError(405, 'Method not allowed');
+    return jsonError(405, 'Method not allowed', responseHeaders);
   }
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    return jsonError(500, 'Server is missing GEMINI_API_KEY');
+    return jsonError(500, 'Server is missing GEMINI_API_KEY', responseHeaders);
   }
 
   let session;
   try { session = await requireAuth(req); } catch (e) {
-    return jsonError(e.status || 401, e.message || 'Authentication required.');
+    return jsonError(e.status || 401, e.message || 'Authentication required.', responseHeaders);
   }
   let rate;
   try { rate = await consumeAiRateLimit('evaluate', session.user_id || getClientIp(req), { windowSeconds: 300, maxRequests: 30 }); }
-  catch { return jsonError(503, 'AI rate-limit service is temporarily unavailable.'); }
-  if (rate.limited) return jsonError(429, 'Too many evaluation requests — please wait a moment and try again.');
+  catch { return jsonError(503, 'AI rate-limit service is temporarily unavailable.', responseHeaders); }
+  if (rate.limited) return jsonError(429, 'Too many evaluation requests — please wait a moment and try again.', responseHeaders);
 
   let body;
   try {
     body = await req.json();
   } catch {
-    return jsonError(400, 'Invalid JSON body');
+    return jsonError(400, 'Invalid JSON body', responseHeaders);
   }
 
   const validated = validateBody(body);
   if (validated.error) {
-    return jsonError(400, validated.error);
+    return jsonError(400, validated.error, responseHeaders);
   }
   const { question, studentAnswer } = validated;
   const attemptId = body?.attemptId;
   const questionId = body?.questionId;
-  if (!attemptId || !questionId) return jsonError(400, 'attemptId and questionId are required for a server-verifiable assessment verdict');
+  if (!attemptId || !questionId) return jsonError(400, 'attemptId and questionId are required for a server-verifiable assessment verdict', responseHeaders);
 
   const payload = {
     contents: [{ role: 'user', parts: [{ text: buildPrompt(question, studentAnswer) }] }],
@@ -192,10 +182,7 @@ export default async function handler(req) {
   try {
     upstream = await callGeminiWithRetry(payload, apiKey);
   } catch (err) {
-    // Evaluation failure -> the frontend flags this question for human
-    // review instead of showing a broken score. See js/baa-assessment.js
-    // gradeWithAI's catch path.
-    return jsonError(502, 'AI evaluation service is temporarily unavailable');
+    return jsonError(502, 'AI evaluation service is temporarily unavailable', responseHeaders);
   }
 
   if (!upstream.ok) {
@@ -205,27 +192,26 @@ export default async function handler(req) {
       const errObj = Array.isArray(errBody) ? errBody[0]?.error : errBody?.error;
       detail = errObj?.message || detail;
     } catch { /* ignore parse failure */ }
-    return jsonError(upstream.status === 429 ? 429 : 502, detail);
+    return jsonError(upstream.status === 429 ? 429 : 502, detail, responseHeaders);
   }
 
   let data;
   try {
     data = await upstream.json();
   } catch {
-    return jsonError(502, 'AI evaluation service returned an unreadable response');
+    return jsonError(502, 'AI evaluation service returned an unreadable response', responseHeaders);
   }
 
   const text = data?.candidates?.[0]?.content?.parts?.map((p) => p.text || '').join('') || '';
   const parsed = extractJson(text);
 
   if (!parsed) {
-    // Do not fabricate a score if we cannot parse the model's output.
     return new Response(JSON.stringify({
       score: null, maxScore: question.marks, correctness: 'uncertain',
       explanation: 'The AI evaluator did not return a readable result for this answer.',
       errors: [], missingConcepts: [], suggestedImprovement: null, confidence: 'low',
       humanReviewRequired: true, verdictToken: null,
-    }), { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders() } });
+    }), { status: 200, headers: { 'Content-Type': 'application/json', ...responseHeaders, ...corsHeaders() } });
   }
 
   const result = {
@@ -261,6 +247,6 @@ export default async function handler(req) {
 
   return new Response(JSON.stringify(result), {
     status: 200,
-    headers: { 'Content-Type': 'application/json', ...corsHeaders() },
+    headers: { 'Content-Type': 'application/json', ...responseHeaders, ...corsHeaders() },
   });
 }
