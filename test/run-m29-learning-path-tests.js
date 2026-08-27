@@ -11,7 +11,9 @@ const checks=[
  ['API preserves evidence priority',/evidence_priority_queue/.test(api)],
  ['API avoids prerequisite claim',/prerequisiteClaim:null/.test(api)],
  ['API limits path size',/clamp\(Number\(req\.query\?\.limit\)/.test(api)],
+ ['API prevents learner-path caching',/Cache-Control['\"]?\s*,?\s*['\"]private, no-store, max-age=0['\"]/.test(api)],
  ['client bridge uses credentials',/credentials:\s*['"]include['"]/.test(bridge)],
+ ['client bridge uses no-store',/cache:\s*['"]no-store['"]/.test(bridge)],
  ['client bridge exports BAAM29Server',/global\.BAAM29Server\s*=/.test(bridge)],
  ['UI renders current node',/CURRENT NODE/.test(ui)],
  ['shared bootstrap loads M29 bridges',/baa-m29-learning-paths-server\.js/.test(catalogue)&&/baa-m29-learning-paths-ui\.js/.test(catalogue)]
