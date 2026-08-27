@@ -34,6 +34,7 @@ function rank(state, preferred){
   return out.filter(x=>!seen.has(x.id)&&seen.add(x.id)).sort((a,b)=>b.score-a.score).slice(0,3);
 }
 export default async function handler(req,res){
+  res.setHeader('Cache-Control','private, no-store, max-age=0');
   if(req.method!=='GET') return json(res,405,{error:{code:'METHOD_NOT_ALLOWED',message:'GET required.'}},{Allow:'GET'});
   try{
     const session=await requireAuth(req);
