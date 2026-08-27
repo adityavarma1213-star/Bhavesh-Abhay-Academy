@@ -68,9 +68,11 @@ export default async function handler(req, res) {
     const session = await requireAuth(req);
     const learnerId = String(req.query?.learnerId || '').trim();
     await requireLearnerAccess(session, learnerId);
+    // Guardian responses contain learner-specific academic evidence and must never be cached.
+    res.setHeader('Cache-Control', 'private, no-store, max-age=0');
 
     if (!['GET', 'POST', 'DELETE'].includes(req.method)) {
-      return json(res, 405, { error: { code: 'METHOD_NOT_ALLOWED', message: 'GET, POST or DELETE required.' } }, { Allow: 'GET, POST, DELETE' });
+      return json(res, 405, { error: { code: 'METHOD_NOT_ALLOWED', message: 'GET, POST or DELETE required.' } }, { Allow: 'GET, POST, DELETE', 'Cache-Control': 'private, no-store, max-age=0' });
     }
 
     if (req.method === 'GET') {
@@ -119,14 +121,14 @@ export default async function handler(req, res) {
     if (req.method === 'POST') {
       const body = req.body || {};
       const alertId = normalizeAlertId(body.alertId);
-      if (!alertId) return json(res, 400, { error: { code: 'INVALID_ALERT_ID', message: 'A valid alertId is required.' } });
+      if (!alertId) return json(res, 400, { error: { code: 'INVALID_ALERT_ID', message: 'A valid alertId is required.' } }, { 'Cache-Control': 'private, no-store, max-age=0' });
       await sql`
         INSERT INTO guardian_alert_acknowledgements(learner_id, alert_id)
         VALUES(${learnerId}, ${alertId})
         ON CONFLICT(learner_id, alert_id)
         DO UPDATE SET acknowledged_at=NOW()
       `;
-      return json(res, 200, { ok: true, alertId, acknowledgedAt: new Date().toISOString() });
+      return json(res, 200, { ok: true, alertId, acknowledgedAt: new Date().toISOString() }, { 'Cache-Control': 'private, no-store, max-age=0' });
     }
 
     const body = req.body || {};
@@ -136,10 +138,11 @@ export default async function handler(req, res) {
     } else {
       await sql`DELETE FROM guardian_alert_acknowledgements WHERE learner_id=${learnerId}`;
     }
-    return json(res, 200, { ok: true, deleted: alertId ? 1 : 'all' });
+    return json(res, 200, { ok: true, deleted: alertId ? 1 : 'all' }, { 'Cache-Control': 'private, no-store, max-age=0' });
   } catch (e) {
+    res.setHeader('Cache-Control', 'private, no-store, max-age=0');
     return json(res, e.status || 500, {
       error: { code: e.code || 'GUARDIAN_API_FAILED', message: e.status ? e.message : 'Guardian service unavailable.' }
-    });
+    }, { 'Cache-Control': 'private, no-store, max-age=0' });
   }
 }
