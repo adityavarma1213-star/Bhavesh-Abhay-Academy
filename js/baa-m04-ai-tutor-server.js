@@ -46,6 +46,10 @@
     }
 
     options.credentials = options.credentials || 'include';
+    options.cache = 'no-store';
+    const headers = new Headers(options.headers || {});
+    if (!headers.has('Accept')) headers.set('Accept', 'application/json');
+    options.headers = headers;
     const target = new URL('/api/m04-ai-tutor', global.location.origin).toString();
     return originalFetch(target, options);
   }
