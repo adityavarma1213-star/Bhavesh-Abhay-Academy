@@ -6,12 +6,12 @@
   const clean=v=>String(v==null?'':v);
   async function load(learnerId){
     if(!learnerId) throw new Error('LEARNER_ID_REQUIRED');
-    const r=await fetch(`${API}?learnerId=${encodeURIComponent(learnerId)}`,{credentials:'include',cache:'no-store'});
+    const r=await fetch(`${API}?learnerId=${encodeURIComponent(learnerId)}`,{credentials:'include',cache:'no-store',headers:{Accept:'application/json'}});
     const data=await r.json().catch(()=>({}));
     if(!r.ok) throw new Error(data?.error?.code||`HTTP_${r.status}`);
     return data;
   }
-  function learnerId(){return clean(global.BAA_LEARNER_ID || document.body?.dataset?.learnerId || localStorage.getItem('BAA_LEARNER_ID'));}
+  function learnerId(){return clean(global.BAA_LEARNER_ID || document.body?.dataset?.learnerId);}
   function clear(node){while(node&&node.firstChild)node.removeChild(node.firstChild);}
   function renderList(node,items,empty,kind){
     if(!node)return; clear(node);
