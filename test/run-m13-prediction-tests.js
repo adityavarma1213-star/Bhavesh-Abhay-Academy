@@ -11,8 +11,12 @@ assert.match(api, /FROM learning_memory/);
 assert.match(api, /FROM learning_evidence/);
 assert.match(api, /insufficient_evidence/);
 assert.match(api, /academic_forecast_only/);
+assert.match(api, /private, no-store, max-age=0/);
+assert.match(api, /function noStore\(res\)/);
 assert.match(client, /getServerPredictionSummary/);
 assert.match(client, /credentials:'include'/);
+assert.match(client, /cache:'no-store'/);
+assert.match(client, /Accept:'application\/json'/);
 assert.match(client, /api\/m13-prediction/);
 
-console.log('M13 server prediction contract: 10/10 checks passed');
+console.log('M13 server prediction contract: 15/15 checks passed');
