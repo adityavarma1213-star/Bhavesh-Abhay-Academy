@@ -3,7 +3,7 @@
   'use strict';
   async function load(classId){
     const url=`/api/m47-institution.js?classId=${encodeURIComponent(classId)}`;
-    const response=await fetch(url,{headers:{Accept:'application/json'}});
+    const response=await fetch(url,{credentials:'include',cache:'no-store',headers:{Accept:'application/json'}});
     const data=await response.json().catch(()=>({ok:false,error:{message:'Invalid analytics response.'}}));
     if(!response.ok) throw Object.assign(new Error(data?.error?.message||'Unable to load analytics'),{status:response.status,code:data?.error?.code});
     return data;
