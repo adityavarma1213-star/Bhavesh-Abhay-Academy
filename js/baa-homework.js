@@ -34,8 +34,8 @@
    - M8-D1: Teacher Review queue integration via teacher-review.html.
    - M8-D2: Learning Memory / Mistake Archeology integration from evidence-gated AI learning signals.
    - Any evaluation of an attached photo's actual contents — M8-B1/B2 is
-     text-only; an attached image is noted to the evaluator as present
-     but its pixels are never sent or evaluated (see evaluateSubmission).
+   text-only; an attached image is noted to the evaluator as present
+   but its pixels are never sent or evaluated (see evaluateSubmission).
 
    STORAGE: TEMPORARY, PRIVATE, BROWSER-LOCAL testing data (localStorage),
    matching every other section (A–G) in this project. Single-student-
@@ -93,7 +93,7 @@
   }
   async function hydrateFromServer(learnerId){
     if(!learnerId||typeof global.fetch!=='function')return false;
-    try{const r=await global.fetch(`/api/v1/homework?learnerId=${encodeURIComponent(learnerId)}`,{credentials:'include'});if(!r.ok)throw new Error(String(r.status));const p=await r.json();const st=load();const ids=new Set(st.submissions.map(x=>x.id));for(const x of (p.submissions||[]))if(!ids.has(x.id))st.submissions.push({...x,attachments:x.attachments||[],evaluation:x.evaluation||null});global.localStorage.setItem(STORAGE_KEY,JSON.stringify(st));setSyncTarget(learnerId);return true;}catch(e){console.warn('[BAA Homework] hydrate failed; continuing locally',e);return false;}
+    try{const r=await global.fetch(`/api/v1/homework?learnerId=${encodeURIComponent(learnerId)}`,{credentials:'include',cache:'no-store',headers:{Accept:'application/json'}});if(!r.ok)throw new Error(String(r.status));const p=await r.json();const st=load();const ids=new Set(st.submissions.map(x=>x.id));for(const x of (p.submissions||[]))if(!ids.has(x.id))st.submissions.push({...x,attachments:x.attachments||[],evaluation:x.evaluation||null});global.localStorage.setItem(STORAGE_KEY,JSON.stringify(st));setSyncTarget(learnerId);return true;}catch(e){console.warn('[BAA Homework] hydrate failed; continuing locally',e);return false;}
   }
 
   function makeId() {
@@ -247,7 +247,9 @@
     try {
       const res = await global.fetch(evalApiUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        cache: 'no-store',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         body: JSON.stringify({
           text: submission.text,
           subjectHint: submission.subjectHint,
@@ -292,182 +294,38 @@
         verdictToken: result.verdictToken || null, // server-signed; api/v1/homework.js verifies this, not the fields above
         learningSignals: Array.isArray(result.learningSignals) ? result.learningSignals.slice(0, 5).map(signal => ({
           concept: typeof signal?.concept === 'string' ? signal.concept.slice(0, 120) : '',
-          outcome: typeof signal?.outcome === 'string' ? signal.outcome : 'uncertain',
-          errorType: signal?.errorType == null ? null : String(signal.errorType).slice(0, 120),
-          confidence: typeof signal?.confidence === 'string' ? signal.confidence : 'low',
-        })).filter(signal => signal.concept) : [],
+          outcome: typeof signal?.outcome === 'string' ? signal.outcome.slice(0, 80) : '',
+          evidence: typeof signal?.evidence === 'string' ? signal.evidence.slice(0, 300) : '',
+        })) : [],
         evaluatedAt: new Date().toISOString(),
-        // Honest even on success: M8-B1/B2 never evaluates image content.
-        imageEvaluated: !!result.imageEvaluated,
       };
       submission.status = 'evaluated';
+      submission.lastEvaluationError = null;
       transientImageData.delete(submission.id);
       transientPdfImages.delete(submission.id);
-      submission.lastEvaluationError = null;
-
-      // M8-D2: feed only the evaluator's explicit learning signals into the
-      // existing Section B evidence engine. If the learning engine is not
-      // loaded (for example in an isolated unit test), do not fabricate a
-      // memory update; record that integration was unavailable instead.
-      submission.learningIntegration = { status: 'pending', evidenceIds: [], integratedAt: null, reason: null };
-      if (submission.evaluation.learningSignals.length) {
-        if (global.BAAAssessment && typeof global.BAAAssessment.recordHomeworkEvaluation === 'function') {
-          const integration = global.BAAAssessment.recordHomeworkEvaluation({
-            submissionId: submission.id,
-            submittedAt: submission.submittedAt,
-            subjectHint: submission.subjectHint,
-            evaluation: submission.evaluation,
-          });
-          submission.learningIntegration = integration.ok
-            ? { status: 'integrated', evidenceIds: integration.evidenceIds || [], integratedAt: new Date().toISOString(), reason: null }
-            : { status: 'not_integrated', evidenceIds: [], integratedAt: null, reason: integration.error || 'LEARNING_INTEGRATION_FAILED' };
-        } else {
-          submission.learningIntegration = { status: 'not_integrated', evidenceIds: [], integratedAt: null, reason: 'LEARNING_ENGINE_UNAVAILABLE' };
-        }
-      } else {
-        submission.learningIntegration = { status: 'no_evidence_signal', evidenceIds: [], integratedAt: null, reason: 'NO_LEARNING_SIGNALS' };
-      }
-
-      // M8-D1: if the evaluator requires human review (including any image
-      // attachment that was not actually evaluated), create exactly one
-      // review row for the shared Teacher Review surface.
-      if (submission.evaluation.humanReviewRequired) {
-        if (!save(store)) {
-          submission.status = 'evaluation_failed';
-          submission.evaluation = null;
-          submission.lastEvaluationError = 'STORAGE_WRITE_FAILED';
-          return { ok: false, error: 'STORAGE_WRITE_FAILED', submission };
-        }
-        const reviewResult = createHomeworkReview(submission);
-        if (!reviewResult.ok) {
-          submission.status = 'evaluation_failed';
-          submission.evaluation = null;
-          submission.lastEvaluationError = reviewResult.error || 'HOMEWORK_REVIEW_QUEUE_FAILED';
-          save(store);
-          return { ok: false, error: 'REVIEW_QUEUE_FAILED', submission };
-        }
-      }
-    } catch (err) {
-      // AI evaluation failure must never silently invent a result.
+      save(store);
+      return { ok: true, error: null, submission };
+    } catch (e) {
       submission.status = 'evaluation_failed';
       submission.evaluation = null;
-      submission.lastEvaluationError = (err && err.message) || 'unknown error';
-      save(store);
+      submission.lastEvaluationError = e.message || 'Evaluation failed';
       transientImageData.delete(submission.id);
       transientPdfImages.delete(submission.id);
+      save(store);
       return { ok: false, error: 'EVALUATION_FAILED', submission };
     }
-
-    const persisted = save(store);
-    return { ok: persisted, error: persisted ? null : 'STORAGE_WRITE_FAILED', submission };
   }
 
-
-  // ---------------- M8-D1: human review queue ----------------
-  // Homework review records stay beside the homework submission rather than
-  // changing Section B's assessment-attempt schema. teacher-review.html can
-  // present both queues in one review surface. Original AI output is immutable.
-  function createHomeworkReview(submission) {
-    if (!submission || submission.status !== 'evaluated' || !submission.evaluation) {
-      return { ok: false, error: 'HOMEWORK_NOT_EVALUATED', review: null };
-    }
-    const store = load();
-    const existing = store.submissions.find(s => s.id === submission.id);
-    if (!existing) return { ok: false, error: 'SUBMISSION_NOT_FOUND', review: null };
-    if (!existing.evaluation.humanReviewRequired) {
-      return { ok: false, error: 'HUMAN_REVIEW_NOT_REQUIRED', review: null };
-    }
-    if (existing.review && existing.review.id) return { ok: true, error: null, review: existing.review };
-
-    const review = {
-      id: 'hwreview_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8),
-      type: 'homework',
-      submissionId: existing.id,
-      student: (typeof global.localStorage !== 'undefined' && global.localStorage.getItem('baa_student_name')) || 'Explorer',
-      subjectHint: existing.subjectHint,
-      createdAt: new Date().toISOString(),
-      teacherStatus: 'pending',
-      reviewer: null,
-      reviewedAt: null,
-      teacherComment: null,
-      finalAssessment: null,
-      finalSummary: null,
-      originalAiEvaluation: JSON.parse(JSON.stringify(existing.evaluation)),
-      decisionHistory: [],
-    };
-    existing.review = review;
-    const persisted = save(store);
-    return { ok: persisted, error: persisted ? null : 'STORAGE_WRITE_FAILED', review: persisted ? review : null };
-  }
-
-  function getHomeworkReviewQueue({ status = null } = {}) {
-    const store = load();
-    const rows = store.submissions
-      .filter(s => s.review && s.review.type === 'homework')
-      .map(s => ({
-        ...s.review,
-        submissionId: s.id,
-        submittedAt: s.submittedAt,
-        text: s.text,
-        subjectHint: s.subjectHint,
-        attachments: s.attachments || [],
-        evaluation: s.evaluation,
-      }));
-    return status ? rows.filter(r => r.teacherStatus === status) : rows;
-  }
-
-  function submitHomeworkReview(reviewId, { action, reviewer, teacherComment, finalAssessment, finalSummary } = {}) {
-    const store = load();
-    const submission = store.submissions.find(s => s.review && s.review.id === reviewId);
-    if (!submission || !submission.review) return { error: 'Homework review not found' };
-    const review = submission.review;
-    if (!['accept', 'edit', 'reject'].includes(action)) return { error: 'Invalid review action' };
-
-    if (review.reviewedAt) {
-      review.decisionHistory = Array.isArray(review.decisionHistory) ? review.decisionHistory : [];
-      review.decisionHistory.push({
-        teacherStatus: review.teacherStatus, reviewer: review.reviewer, reviewedAt: review.reviewedAt,
-        teacherComment: review.teacherComment, finalAssessment: review.finalAssessment, finalSummary: review.finalSummary,
-      });
-    }
-
-    const ai = submission.evaluation || review.originalAiEvaluation;
-    review.teacherStatus = action === 'accept' ? 'accepted' : action === 'edit' ? 'edited' : 'rejected';
-    review.reviewer = reviewer ? String(reviewer).slice(0, 60) : 'Reviewer';
-    review.reviewedAt = new Date().toISOString();
-    review.teacherComment = teacherComment ? String(teacherComment).slice(0, 1000) : null;
-    review.finalAssessment = action === 'reject'
-      ? 'Human reviewer rejected the AI evaluation.'
-      : (finalAssessment ? String(finalAssessment).slice(0, 1000) : ai.overallAssessment);
-    review.finalSummary = action === 'reject'
-      ? null
-      : (finalSummary ? String(finalSummary).slice(0, 2000) : ai.summary);
-
-    const persisted = save(store);
-    return persisted ? { review, submission } : { error: 'STORAGE_WRITE_FAILED' };
-  }
-
-  const BAAHomework = {
+  global.BAAHomework = {
     STORAGE_KEY,
-    ALLOWED_IMAGE_MIME_TYPES,
+    load,
+    save,
+    setSyncTarget,
+    pushServerSync,
+    hydrateFromServer,
     getSubmissions,
     getSubmission,
-    createHomeworkReview,
-    getHomeworkReviewQueue,
-    submitHomeworkReview,
     submitHomeworkText,
     evaluateSubmission,
-    _load: load,        // exposed read-only for debugging, matches Section B convention
-    _emptyStore: emptyStore,
-    _buildImageAttachment: buildImageAttachment, // exposed for focused unit tests
-    _buildPdfAttachment: buildPdfAttachment, // exposed for focused unit tests
-    setSyncTarget,
-    hydrateFromServer,
   };
-
-  if (typeof module !== 'undefined' && module.exports) {
-    module.exports = BAAHomework;
-  } else {
-    global.BAAHomework = BAAHomework;
-  }
-})(typeof window !== 'undefined' ? window : global);
+})(window);
