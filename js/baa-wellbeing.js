@@ -31,6 +31,62 @@
 (function (global) {
   'use strict';
 
+  /* M37 page-level Trust Center gate.
+     trust-privacy.html already loads this script near the end of body,
+     so the check runs before the browser gets a normal post-script paint.
+     The server, not local role/session state, decides whether the page is
+     exposed. Other pages are completely untouched. */
+  function installTrustCenterGate() {
+    const path = global.location && global.location.pathname || '';
+    if (!(path.endsWith('/trust-privacy.html') || path === '/trust-privacy.html')) return;
+    if (!global.document || !global.document.body) return;
+
+    const body = global.document.body;
+    body.style.visibility = 'hidden';
+    body.setAttribute('aria-busy', 'true');
+
+    const veil = global.document.createElement('div');
+    veil.id = 'baaTrustEarlyGate';
+    veil.setAttribute('role', 'status');
+    veil.style.cssText = 'position:fixed;inset:0;z-index:100000;background:#0B0F2E;color:#FDF9F0;display:flex;align-items:center;justify-content:center;padding:24px;font:500 15px Inter,Arial,sans-serif;visibility:visible;';
+    veil.innerHTML = '<div style="max-width:520px;text-align:center"><div style="font-size:32px;margin-bottom:12px">🔒</div><h1 style="font:600 28px Fraunces,serif;margin-bottom:10px">Trust &amp; Privacy Center</h1><p id="baaTrustEarlyMessage" style="color:rgba(253,249,240,.7);line-height:1.6">Checking your signed-in account…</p></div>';
+    body.appendChild(veil);
+
+    const reveal = function () {
+      body.style.visibility = '';
+      body.removeAttribute('aria-busy');
+      veil.remove();
+    };
+    const deny = function (status) {
+      const message = global.document.getElementById('baaTrustEarlyMessage');
+      if (message) {
+        message.textContent = status === 401
+          ? 'Please sign in to open your Trust & Privacy Center.'
+          : 'This Trust & Privacy Center is only available to authenticated BAA accounts.';
+      }
+      const link = global.document.createElement('a');
+      link.href = 'account.html?next=trust-privacy.html';
+      link.textContent = 'Sign in to continue';
+      link.style.cssText = 'display:inline-flex;margin-top:18px;padding:11px 18px;border-radius:999px;background:#7C5CFC;color:#fff;text-decoration:none;font-weight:700;';
+      veil.querySelector('div').appendChild(link);
+      veil.setAttribute('role', 'alert');
+    };
+
+    global.fetch('/api/m37-trust-access', { credentials: 'include', cache: 'no-store', headers: { Accept: 'application/json' } })
+      .then(function (response) {
+        if (!response.ok) throw { status: response.status };
+        return response.json();
+      })
+      .then(function (session) {
+        if (!session || session.authenticated !== true) throw { status: 403 };
+        reveal();
+      })
+      .catch(function (error) {
+        deny(Number(error && error.status) || 500);
+      });
+  }
+  installTrustCenterGate();
+
   const PREF_KEY = 'baa_section_e_wellbeing_prefs_v1';
   const SESSION_FLAG_KEY = 'baa_section_e_wellbeing_session_v1'; // sessionStorage — resets per tab
 
