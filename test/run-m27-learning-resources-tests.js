@@ -4,6 +4,8 @@ const vm = require('vm');
 const assert = require('assert');
 
 const source = fs.readFileSync('js/baa-learning-resources.js', 'utf8');
+const serverBridge = fs.readFileSync('js/baa-m27-learning-resources-server.js', 'utf8');
+const endpoint = fs.readFileSync('api/m27-learning-resources.js', 'utf8');
 const store = new Map();
 const context = {
   window: {},
@@ -54,5 +56,8 @@ t('M27 encodes external search query safely', () => {
   context.window.BAAAssessment.getAcademicProfile = original;
 });
 t('M27 does not claim psychological learning styles', () => assert.ok(!source.includes('learning style')));
-console.log(`\nM27: ${n}/7 PASS`);
+t('M27 server endpoint prevents caching learner recommendations', () => assert.ok(endpoint.includes("Cache-Control','private, no-store, max-age=0")));
+t('M27 server endpoint requires learner ownership', () => assert.ok(endpoint.includes('requireLearnerAccess')));
+t('M27 server bridge sends authenticated fresh requests', () => assert.ok(serverBridge.includes("credentials:'include'") && serverBridge.includes("cache:'no-store'")));
+console.log(`\nM27: ${n}/10 PASS`);
 if (process.exitCode) process.exit(process.exitCode);
