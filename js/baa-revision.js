@@ -18,7 +18,7 @@ async function loadServerPlan(learnerId){
  const id=String(learnerId||global.BAA_LEARNER_ID||'').trim();
  if(!id)return {ok:false,error:{code:'LEARNER_REQUIRED',message:'A learner context is required.'}};
  try{
-  const response=await fetch(`/api/m24-revision?learnerId=${encodeURIComponent(id)}`,{credentials:'include',headers:{Accept:'application/json'}});
+  const response=await fetch(`/api/m24-revision?learnerId=${encodeURIComponent(id)}`,{credentials:'include',cache:'no-store',headers:{Accept:'application/json'}});
   const data=await response.json().catch(()=>null);
   if(!response.ok)return {ok:false,error:data?.error||{code:'REVISION_LOAD_FAILED',message:'Revision schedule could not be loaded.'}};
   return {ok:true,plan:Array.isArray(data?.plan)?data.plan:[],source:data?.source||'server_learning_evidence',limitation:data?.limitation||''};
