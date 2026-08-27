@@ -56,7 +56,10 @@ async function loadLearningContext(learnerId) {
   };
 }
 
+function noStore(res) { res.setHeader('Cache-Control', 'private, no-store, max-age=0'); }
+
 export default async function handler(req, res) {
+  noStore(res);
   try {
     const session = await requireAuth(req);
     if (!hasRole(session, 'parent')) return json(res, 403, { error: { code: 'FORBIDDEN', message: 'Parent role required.' } });
@@ -69,11 +72,10 @@ export default async function handler(req, res) {
     }
     if (req.method !== 'POST') return json(res, 405, { error: { code: 'METHOD_NOT_ALLOWED', message: 'GET or POST required.' } }, { Allow: 'GET, POST' });
     const learnerId = clean(req.body?.learnerId, 128);
-    const requestedTopic = clean(req.body?.topic, 160);
     if (!learnerId) return json(res, 400, { error: { code: 'INVALID_LEARNER', message: 'learnerId is required.' } });
     if (!await requireParentLearner(session, learnerId)) return json(res, 403, { error: { code: 'LEARNER_ACCESS_DENIED', message: 'Parent is not linked to this learner.' } });
     const context = await loadLearningContext(learnerId);
-    const topic = requestedTopic || context.topic;
+    const topic = context.topic;
     const state = context.state;
     const prompts = buildPrompts(topic, state);
     const conversationId = id('parentconv');
