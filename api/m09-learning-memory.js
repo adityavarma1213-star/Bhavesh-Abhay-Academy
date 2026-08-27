@@ -26,7 +26,7 @@ function deriveState(rows) {
 }
 
 export default async function handler(req, res) {
-  if (req.method !== 'GET') return json(res, 405, { error: { code: 'METHOD_NOT_ALLOWED', message: 'GET required.' } }, { Allow: 'GET' });
+  if (req.method !== 'GET') return json(res, 405, { error: { code: 'METHOD_NOT_ALLOWED', message: 'GET required.' } }, { Allow: 'GET', 'Cache-Control': 'no-store' });
   try {
     const session = await requireAuth(req);
     const learnerId = clean(req.query?.learnerId, 120);
@@ -54,7 +54,8 @@ export default async function handler(req, res) {
       const reviewFlag = evidence.some(r => ['low', 'human_review_required'].includes(r.confidence));
       const conf = confidence(evidence.length, reviewFlag);
       const recent = evidence.slice(0, 5);
-      const rate = recent.length ? Math.round((recent.filter(r => r.correctness === 'correct').length / recent.length) * 100) : null;
+      const recentCorrect = recent.filter(r => r.correctness === 'correct').length;
+      const rate = recent.length ? Math.round((recentCorrect / recent.length) * 100) : null;
       const errorTypes = [...new Set(recent.map(r => clean(r.error_type, 80)).filter(Boolean))].slice(0, 4);
       return {
         concept,
@@ -70,7 +71,7 @@ export default async function handler(req, res) {
         lastUpdated: evidence[0]?.created_at || null,
         explanation: evidence.length < 3
           ? `Only ${evidence.length} recorded evidence item${evidence.length === 1 ? '' : 's'} exists for this concept; BAA will not draw a firm conclusion yet.`
-          : `The current ${recent.length} most recent evidence items show ${correct}/${evidence.length} correct overall, with ${rate}% correctness across the recent window.`
+          : `The ${recent.length} most recent evidence items show ${recentCorrect}/${recent.length} correct (${rate}%). Across all ${evidence.length} recorded items, ${correct} are correct.`
       };
     }).sort((a, b) => String(b.lastUpdated || '').localeCompare(String(a.lastUpdated || '')));
 
@@ -96,8 +97,8 @@ export default async function handler(req, res) {
         'Question-level evidence is included only when the corresponding server evidence rows exist.',
         'This endpoint does not claim that a production database is provisioned merely because the source path exists.'
       ]
-    });
+    }, { 'Cache-Control': 'no-store' });
   } catch (e) {
-    return json(res, e.status || 500, { error: { code: e.code || 'LEARNING_MEMORY_FAILED', message: e.status ? e.message : 'Unable to load learning memory.' } });
+    return json(res, e.status || 500, { error: { code: e.code || 'LEARNING_MEMORY_FAILED', message: e.status ? e.message : 'Unable to load learning memory.' } }, { 'Cache-Control': 'no-store' });
   }
 }
