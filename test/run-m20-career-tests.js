@@ -32,4 +32,9 @@ if(!explanation||!explanation.headline||!Array.isArray(explanation.evidence)) th
 if(explanation.evidence.find(x=>x.skill==='coding')?.evidenceIds?.[0]!=='ev-1') throw new Error('M20 explanation lost evidence linkage');
 if(!Array.isArray(explanation.nextSteps)||explanation.nextSteps.length===0) throw new Error('M20 explanation next steps are missing');
 if(!explanation.disclaimer) throw new Error('M20 explanation disclaimer is missing');
+const renderedSource=source;
+if(!renderedSource.includes('data-career-explain')) throw new Error('M20 visible explanation control is missing');
+if(!renderedSource.includes('Why this guidance?')) throw new Error('M20 explanation label is missing');
+if(!renderedSource.includes('decisionBasis')) throw new Error('M20 visible decision basis is missing');
+if(!renderedSource.includes('evidenceCount')) throw new Error('M20 visible evidence count is missing');
 console.log('M20 career explainability gate: PASS');
