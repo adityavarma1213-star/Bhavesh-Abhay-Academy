@@ -69,7 +69,7 @@
   async function getServerPredictionSummary(learnerId){
     if(!learnerId) return {status:'unavailable',error:'LEARNER_ID_REQUIRED'};
     try{
-      const response=await fetch(`/api/m13-prediction?learnerId=${encodeURIComponent(learnerId)}`,{credentials:'include'});
+      const response=await fetch(`/api/m13-prediction?learnerId=${encodeURIComponent(learnerId)}`,{credentials:'include',cache:'no-store',headers:{Accept:'application/json'}});
       const data=await response.json().catch(()=>({}));
       if(!response.ok) return {status:'unavailable',error:data?.error?.code||'PREDICTION_SERVER_UNAVAILABLE',httpStatus:response.status};
       return data;
