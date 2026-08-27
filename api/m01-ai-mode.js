@@ -30,11 +30,16 @@ function confidenceFor(count) {
   return 'insufficient_evidence';
 }
 
+function noStore(res) {
+  res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+}
+
 export default async function handler(req, res) {
   try {
     const session = await requireAuth(req);
     const learnerId = cleanText(req.query?.learnerId, 100);
     await requireLearnerAccess(session, learnerId);
+    noStore(res);
 
     const [memoryResult, goalsResult, prefsResult, assessmentsResult] = await Promise.all([
       sql`
@@ -89,6 +94,7 @@ export default async function handler(req, res) {
     req.json = async () => authoritativeBody;
     return baseHandler(req, res);
   } catch (e) {
+    noStore(res);
     return json(res, e.status || 500, { error: { code: e.code || 'AI_MODE_EVIDENCE_API_FAILED', message: e.status ? e.message : 'AI Mode evidence service unavailable.' } });
   }
 }
