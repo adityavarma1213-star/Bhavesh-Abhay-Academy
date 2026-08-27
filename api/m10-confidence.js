@@ -7,7 +7,7 @@ export const config = { runtime: 'nodejs' };
 export default async function handler(req, res) {
   try {
     if (req.method !== 'GET') {
-      return json(res, 405, { error: { code: 'METHOD_NOT_ALLOWED', message: 'GET required.' } }, { Allow: 'GET' });
+      return json(res, 405, { error: { code: 'METHOD_NOT_ALLOWED', message: 'GET required.' } }, { Allow: 'GET', 'Cache-Control': 'no-store' });
     }
     const session = await requireAuth(req);
     const learnerId = String(req.query?.learnerId || '').trim();
@@ -53,10 +53,10 @@ export default async function handler(req, res) {
           : band === 'medium'
             ? 'Tracked concepts have enough evidence to judge, but some still have fewer than 6 evidence rows.'
             : 'Most tracked concepts have at least 6 evidence rows and no low-confidence AI evidence.'
-    });
+    }, { 'Cache-Control': 'no-store' });
   } catch (e) {
     return json(res, e.status || 500, {
       error: { code: e.code || 'CONFIDENCE_API_FAILED', message: e.status ? e.message : 'Confidence service unavailable.' }
-    });
+    }, { 'Cache-Control': 'no-store' });
   }
 }
