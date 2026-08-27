@@ -11,6 +11,8 @@ const checks = [
   ['M09 API groups evidence by concept', /grouped = new Map/.test(api)],
   ['M09 API uses minimum-evidence gate', /rows\.length < 3/.test(api)],
   ['M09 API returns explicit limitations', /limitations: \[/.test(api)],
+  ['M09 API prevents caching learner evidence', /Cache-Control.*no-store/.test(api)],
+  ['M09 explanation distinguishes recent from total evidence', /most recent evidence items show.*recentCorrect.*recent\.length.*Across all/.test(api)],
   ['M09 client sends authenticated credentials', /credentials: 'include'/.test(ui)],
   ['M09 client calls server endpoint', /\/api\/m09-learning-memory/.test(ui)],
   ['M09 client avoids local-data substitution', /No browser-local profile is substituted/.test(ui)],
