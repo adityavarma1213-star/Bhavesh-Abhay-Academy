@@ -43,10 +43,11 @@ function freshHomework(ls, fetchImpl) {
   return require(path.join(ROOT, 'js/baa-homework.js'));
 }
 
-function jsonResponse(status, body) {
+function jsonResponse(status, body, headers = {}) {
   return Promise.resolve({
     ok: status >= 200 && status < 300,
     status,
+    headers: { get: (name) => headers[name] || headers[name.toLowerCase()] || null },
     json: () => Promise.resolve(body),
   });
 }
@@ -65,19 +66,23 @@ async function testUnknownSubmissionRejected() {
 }
 
 async function testSuccessfulEvaluationRecorded() {
-  const fetchImpl = () => jsonResponse(200, {
-    schemaVersion: 1,
-    evaluationType: 'image_or_text',
-    overallAssessment: 'good',
-    summary: 'Solid attempt with one small gap.',
-    strengths: ['Correct method'],
-    mistakes: ['Missed the final simplification step'],
-    suggestions: ['Double-check the last line'],
-    confidence: 'high',
-    humanReviewRequired: false,
-    humanReviewReasons: [],
-    imageEvaluated: false,
-  });
+  let capturedOptions = null;
+  const fetchImpl = (url, opts) => {
+    capturedOptions = opts;
+    return jsonResponse(200, {
+      schemaVersion: 1,
+      evaluationType: 'image_or_text',
+      overallAssessment: 'good',
+      summary: 'Solid attempt with one small gap.',
+      strengths: ['Correct method'],
+      mistakes: ['Missed the final simplification step'],
+      suggestions: ['Double-check the last line'],
+      confidence: 'high',
+      humanReviewRequired: false,
+      humanReviewReasons: [],
+      imageEvaluated: false,
+    });
+  };
   const BAAHomework = freshHomework(makeLocalStorage(), fetchImpl);
   const submitRes = BAAHomework.submitHomeworkText({ text: 'My worked answer to Q3...' });
   const res = await BAAHomework.evaluateSubmission(submitRes.submission.id, 'https://example.test/api/evaluate-homework');
@@ -87,10 +92,12 @@ async function testSuccessfulEvaluationRecorded() {
   assert(res.submission.evaluation && res.submission.evaluation.overallAssessment === 'good', 'B5: evaluation result is recorded on the submission');
   assert(res.submission.evaluation.imageEvaluated === false, 'B6: text-only submission honestly marks imageEvaluated:false');
   assert(res.submission.lastEvaluationError === null, 'B7: no error recorded on a successful evaluation');
+  assert(capturedOptions?.credentials === 'include', 'B8: evaluation request includes the authenticated session credentials');
+  assert(capturedOptions?.cache === 'no-store', 'B9: learner homework evaluation request disables caching');
+  assert(capturedOptions?.headers?.Accept === 'application/json', 'B10: evaluation request explicitly requests JSON');
 
-  // Regression: fetch must never receive image bytes, only a boolean flag.
   const stored = BAAHomework.getSubmission(submitRes.submission.id);
-  assert(stored.status === 'evaluated', 'B8: persisted store reflects the evaluated status (not just the in-memory return value)');
+  assert(stored.status === 'evaluated', 'B11: persisted store reflects the evaluated status (not just the in-memory return value)');
 }
 
 async function testImageAttachedIsSentTransiently() {
@@ -110,12 +117,11 @@ async function testImageAttachedIsSentTransiently() {
   });
   await BAAHomework.evaluateSubmission(submitRes.submission.id, 'https://example.test/api/evaluate-homework');
 
-  assert(capturedBody.imageAttached === true, 'B9: request body flags imageAttached:true');
-  assert(typeof capturedBody.imageDataUrl === 'string' && capturedBody.imageDataUrl.startsWith('data:image/jpeg;base64,'), 'B10: request body carries the transient compressed image data URL for evaluation');
-  assert(!capturedBody.imageDataUrl.includes('hw.jpg'), 'B11: raw request contains only image bytes, not the local filename');
-  assert(Object.keys(capturedBody).sort().join(',') === 'imageAttached,imageDataUrl,subjectHint,submissionId,text', 'B12: request body contains only the expected evaluation fields (submissionId added so the server can bind a signed verdict to this exact submission)');
+  assert(capturedBody.imageAttached === true, 'B12: request body flags imageAttached:true');
+  assert(typeof capturedBody.imageDataUrl === 'string' && capturedBody.imageDataUrl.startsWith('data:image/jpeg;base64,'), 'B13: request body carries the transient compressed image data URL for evaluation');
+  assert(!capturedBody.imageDataUrl.includes('hw.jpg'), 'B14: raw request contains only image bytes, not the local filename');
+  assert(Object.keys(capturedBody).sort().join(',') === 'imageAttached,imageDataUrl,subjectHint,submissionId,text', 'B15: request body contains only the expected evaluation fields (submissionId added so the server can bind a signed verdict to this exact submission)');
 }
-
 
 async function testUpstreamErrorNeverFabricatesResult() {
   const fetchImpl = () => jsonResponse(502, { error: 'AI evaluation service is temporarily unavailable' });
@@ -123,10 +129,10 @@ async function testUpstreamErrorNeverFabricatesResult() {
   const submitRes = BAAHomework.submitHomeworkText({ text: 'Some homework text here.' });
   const res = await BAAHomework.evaluateSubmission(submitRes.submission.id, 'https://example.test/api/evaluate-homework');
 
-  assert(res.ok === false && res.error === 'EVALUATION_FAILED', 'B12: upstream error is reported as an honest failure');
-  assert(res.submission.status === 'evaluation_failed', 'B13: status becomes "evaluation_failed", never a fake "evaluated"');
-  assert(res.submission.evaluation === null, 'B14: evaluation stays null on failure — nothing fabricated');
-  assert(typeof res.submission.lastEvaluationError === 'string' && res.submission.lastEvaluationError.length > 0, 'B15: a human-readable error reason is recorded');
+  assert(res.ok === false && res.error === 'EVALUATION_FAILED', 'B16: upstream error is reported as an honest failure');
+  assert(res.submission.status === 'evaluation_failed', 'B17: status becomes "evaluation_failed", never a fake "evaluated"');
+  assert(res.submission.evaluation === null, 'B18: evaluation stays null on failure — nothing fabricated');
+  assert(typeof res.submission.lastEvaluationError === 'string' && res.submission.lastEvaluationError.length > 0, 'B19: a human-readable error reason is recorded');
 }
 
 async function testNetworkExceptionNeverFabricatesResult() {
@@ -135,17 +141,15 @@ async function testNetworkExceptionNeverFabricatesResult() {
   const submitRes = BAAHomework.submitHomeworkText({ text: 'Some more homework text here.' });
   const res = await BAAHomework.evaluateSubmission(submitRes.submission.id, 'https://example.test/api/evaluate-homework');
 
-  assert(res.ok === false && res.error === 'EVALUATION_FAILED', 'B16: a thrown network exception is caught and reported as an honest failure');
-  assert(res.submission.status === 'evaluation_failed', 'B17: status becomes "evaluation_failed" on a network exception too');
-  assert(res.submission.evaluation === null, 'B18: evaluation stays null on a network exception — nothing fabricated');
+  assert(res.ok === false && res.error === 'EVALUATION_FAILED', 'B20: a thrown network exception is caught and reported as an honest failure');
+  assert(res.submission.status === 'evaluation_failed', 'B21: status becomes "evaluation_failed" on a network exception too');
+  assert(res.submission.evaluation === null, 'B22: evaluation stays null on a network exception — nothing fabricated');
 }
 
 async function testM8A2RegressionStillHolds() {
-  // Re-run the exact M8-A2 honesty invariant to confirm evaluateSubmission
-  // did not change submitHomeworkText's own behavior.
   const BAAHomework = freshHomework(makeLocalStorage(), () => { throw new Error('should not be called'); });
   const res = BAAHomework.submitHomeworkText({ text: 'Regression check text.' });
-  assert(res.submission.status === 'received' && res.submission.evaluation === null, 'B19: submitting still leaves status "received"/evaluation null until evaluateSubmission is explicitly called (M8-A2 preserved)');
+  assert(res.submission.status === 'received' && res.submission.evaluation === null, 'B23: submitting still leaves status "received"/evaluation null until evaluateSubmission is explicitly called (M8-A2 preserved)');
 }
 
 async function main() {
