@@ -28,13 +28,13 @@ async function enforceRole(){
   return session;
 }
 async function getLearners(){
-  const r=await fetch('/api/v1/my-learners',{credentials:'include'});
+  const r=await fetch('/api/v1/my-learners',{credentials:'include',cache:'no-store',headers:{Accept:'application/json'}});
   if(!r.ok) throw new Error(`AUTH_${r.status}`);
   const p=await r.json();
   return Array.isArray(p.learners)?p.learners:[];
 }
 async function getOverview(learnerId){
-  const r=await fetch(`/api/v1/learner-overview?learnerId=${encodeURIComponent(learnerId)}`,{credentials:'include'});
+  const r=await fetch(`/api/v1/learner-overview?learnerId=${encodeURIComponent(learnerId)}`,{credentials:'include',cache:'no-store',headers:{Accept:'application/json'}});
   if(!r.ok) throw new Error(`OVERVIEW_${r.status}`);
   const p=await r.json();
   if(!p.ok||!p.snapshot) throw new Error('OVERVIEW_INVALID');
