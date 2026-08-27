@@ -55,6 +55,7 @@ function toPolicy(row) {
 }
 
 export default async function handler(req, res) {
+  res.setHeader('Cache-Control', 'private, no-store, max-age=0');
   try {
     const session = await requireAuth(req);
     if (!['GET', 'POST'].includes(req.method)) {
