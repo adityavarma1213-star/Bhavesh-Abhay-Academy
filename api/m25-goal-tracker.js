@@ -52,7 +52,7 @@ function goalProgress(goalText, evidenceRows) {
 
 async function handler(req, res) {
   if (req.method !== 'GET') {
-    return json(res, 405, { error: { code: 'METHOD_NOT_ALLOWED', message: 'GET required.' } }, { Allow: 'GET' });
+    return json(res, 405, { error: { code: 'METHOD_NOT_ALLOWED', message: 'GET required.' } }, { Allow: 'GET', 'Cache-Control': 'no-store' });
   }
 
   try {
@@ -98,14 +98,14 @@ async function handler(req, res) {
       evidencePoints: evidence.rows.length,
       source: 'server_planner_goals_and_learning_evidence',
       limitations: ['Goal progress is an evidence-linked academic heuristic; it does not claim to predict outcomes or measure motivation.'],
-    });
+    }, { 'Cache-Control': 'no-store' });
   } catch (error) {
     return json(res, error.status || 500, {
       error: {
         code: error.code || 'GOAL_TRACKER_FAILED',
         message: error.status ? error.message : 'Unable to load goal progress.',
       },
-    });
+    }, { 'Cache-Control': 'no-store' });
   }
 }
 
