@@ -13,7 +13,12 @@ function confidenceBand(evidenceCount, conceptCount) {
   return 'high';
 }
 
+function noStore(res) {
+  res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+}
+
 export default async function handler(req, res) {
+  noStore(res);
   try {
     const session = await requireAuth(req);
     const learnerId = String(req.query?.learnerId || '').trim();
