@@ -32,7 +32,8 @@
     const response=await fetch(API+'?learnerId='+encodeURIComponent(id),{
       method,
       credentials:'include',
-      headers:{'Content-Type':'application/json'},
+      cache:'no-store',
+      headers:{'Accept':'application/json','Content-Type':'application/json'},
       body:body ? JSON.stringify(Object.assign({learnerId:id},body)) : undefined
     });
     const data=await response.json().catch(function(){return {};});
