@@ -21,7 +21,7 @@
     {id:'demo',title:'BAA Demo',icon:'▶️',roles:['student','parent','teacher','admin'],description:'Open the product demonstration experience.',route:'demo.html'}
   ];
   function clone(){return FEATURES.map(function(f){return Object.assign({},f,{roles:f.roles.slice()});});}
-  global.BAAGuideCatalogue={version:'m63.12',features:FEATURES.slice(),getFeatures:clone,getFeature:function(id){return FEATURES.find(function(f){return f.id===id;})||null;}};
+  global.BAAGuideCatalogue={version:'m63.13',features:FEATURES.slice(),getFeatures:clone,getFeature:function(id){return FEATURES.find(function(f){return f.id===id;})||null;}};
 
   function loadScript(src,attribute){
     if(document.querySelector('script['+attribute+']')) return;
@@ -41,7 +41,7 @@
     loadScript('js/baa-m27-learning-resources-server.js','data-baa-m27-server');loadScript('js/baa-m27-learning-resources-ui.js','data-baa-m27-ui');loadScript('js/baa-m29-learning-paths-server.js','data-baa-m29-server');loadScript('js/baa-m29-learning-paths-ui.js','data-baa-m29-ui');
     loadScript('js/baa-m30-rewards-server-ui.js','data-baa-m30-rewards-ui');loadScript('js/baa-m36-insights-server-ui.js','data-baa-m36-insights-server-ui');loadScript('js/baa-m48-collaboration-server.js','data-baa-m48-server');
     loadScript('js/baa-m04-ai-tutor-server.js','data-baa-m04-tutor-server');loadScript('js/baa-m52-mistake-server-ui.js','data-baa-m52-mistake-server-ui');loadScript('js/baa-server-learner-view.js','data-baa-server-learner-view');loadScript('js/baa-teacher-server-dashboard.js','data-baa-teacher-server-dashboard');
-    loadScript('js/baa-m58-teacher-diagnostic-ui.js','data-baa-m58-teacher-diagnostic-ui');
+    loadScript('js/baa-m58-teacher-diagnostic-ui.js','data-baa-m58-teacher-diagnostic-ui');loadScript('js/baa-m51-pedagogy-server-ui.js','data-baa-m51-pedagogy-server-ui');
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',startBridges);else startBridges();
 })(window);
