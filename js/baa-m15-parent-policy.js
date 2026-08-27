@@ -11,6 +11,7 @@
     try {
       const response = await fetch(`/api/m15-parent-policy?learnerId=${encodeURIComponent(id)}`, {
         credentials: 'include',
+        cache: 'no-store',
         headers: { Accept: 'application/json' },
       });
       const data = await response.json().catch(() => null);
@@ -27,6 +28,7 @@
       const response = await fetch('/api/m15-parent-policy', {
         method: 'POST',
         credentials: 'include',
+        cache: 'no-store',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         body: JSON.stringify({ learnerId: id, ...(policy || {}) }),
       });
