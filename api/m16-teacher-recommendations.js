@@ -4,16 +4,17 @@ import { sql } from './_lib/db.js';
 
 export const config = { runtime: 'nodejs' };
 const clean = (v, max = 160) => String(v ?? '').trim().slice(0, max);
+const noStore = { 'Cache-Control': 'private, no-store, max-age=0' };
 
 export default async function handler(req, res) {
-  if (req.method !== 'GET') return json(res, 405, { error: { code: 'METHOD_NOT_ALLOWED', message: 'GET required.' } }, { Allow: 'GET' });
+  if (req.method !== 'GET') return json(res, 405, { error: { code: 'METHOD_NOT_ALLOWED', message: 'GET required.' } }, { Allow: 'GET', ...noStore });
   try {
     const session = await requireAuth(req);
     const isAdmin = hasRole(session, 'admin');
     const isTeacher = hasRole(session, 'teacher');
-    if (!isTeacher && !isAdmin) return json(res, 403, { error: { code: 'FORBIDDEN', message: 'Teacher or administrator role required.' } });
+    if (!isTeacher && !isAdmin) return json(res, 403, { error: { code: 'FORBIDDEN', message: 'Teacher or administrator role required.' } }, noStore);
     const learnerId = clean(req.query?.learnerId, 120);
-    if (!learnerId) return json(res, 400, { error: { code: 'INVALID_LEARNER', message: 'learnerId is required.' } });
+    if (!learnerId) return json(res, 400, { error: { code: 'INVALID_LEARNER', message: 'learnerId is required.' } }, noStore);
 
     const accessRows = isAdmin
       ? await sql`SELECT l.id FROM learners l WHERE l.id=${learnerId} LIMIT 1`
@@ -26,7 +27,7 @@ export default async function handler(req, res) {
             AND c.teacher_user_id=${session.user_id}
             AND c.archived_at IS NULL
           LIMIT 1`;
-    if (!accessRows.rows.length) return json(res, 404, { error: { code: 'LEARNER_NOT_FOUND', message: 'Learner not found or not accessible.' } });
+    if (!accessRows.rows.length) return json(res, 404, { error: { code: 'LEARNER_NOT_FOUND', message: 'Learner not found or not accessible.' } }, noStore);
 
     const rows = await sql`
       SELECT le.subject, le.chapter, le.concept,
@@ -52,7 +53,7 @@ export default async function handler(req, res) {
         concept: r.concept || 'Unspecified concept',
         priority,
         assignmentType: priority === 'high' ? 'targeted_remediation' : 'targeted_practice',
-        reason: `${incorrect} incorrect and ${Number(r.partial_count || 0)} partially-correct recorded evidence item(s) across ${evidence} recent evidence item(s).`,
+        reason: `${incorrect} incorrect and ${Number(r.partial_count || 0)} partially-correct recorded evidence item(s) across ${evidence} recorded evidence item(s).`,
         evidenceCount: evidence,
         lastSeen: r.last_seen,
         rank: index + 1,
@@ -67,8 +68,8 @@ export default async function handler(req, res) {
       recommendations,
       source: 'server_learning_evidence',
       limitation: 'Recommendations are evidence-based instructional suggestions, not diagnoses or automatic assignments.'
-    });
+    }, noStore);
   } catch (e) {
-    return json(res, e.status || 500, { error: { code: e.code || 'TEACHER_RECOMMENDATIONS_FAILED', message: e.status ? e.message : 'Unable to load teacher recommendations.' } });
+    return json(res, e.status || 500, { error: { code: e.code || 'TEACHER_RECOMMENDATIONS_FAILED', message: e.status ? e.message : 'Unable to load teacher recommendations.' } }, noStore);
   }
 }
