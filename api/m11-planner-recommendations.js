@@ -5,6 +5,7 @@ import { sql } from './_lib/db.js';
 export const config = { runtime: 'nodejs' };
 
 const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
+const NO_STORE = { 'Cache-Control': 'no-store' };
 
 function stateForEvidence(rows) {
   const grouped = new Map();
@@ -33,7 +34,7 @@ function stateForEvidence(rows) {
 
 async function handler(req, res) {
   if (req.method !== 'GET') {
-    return json(res, 405, { error: { code: 'METHOD_NOT_ALLOWED', message: 'GET required.' } }, { Allow: 'GET' });
+    return json(res, 405, { error: { code: 'METHOD_NOT_ALLOWED', message: 'GET required.' } }, { Allow: 'GET', ...NO_STORE });
   }
 
   try {
@@ -92,14 +93,14 @@ async function handler(req, res) {
       evidencePoints: evidence.rows.length,
       source: 'server_learning_evidence',
       limitations: ['Recommendations are evidence-based study guidance, not diagnosis or prediction of outcomes.'],
-    });
+    }, NO_STORE);
   } catch (error) {
     return json(res, error.status || 500, {
       error: {
         code: error.code || 'PLANNER_RECOMMENDATIONS_FAILED',
         message: error.status ? error.message : 'Unable to generate planner recommendations.',
       },
-    });
+    }, NO_STORE);
   }
 }
 
