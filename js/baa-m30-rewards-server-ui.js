@@ -11,7 +11,7 @@
   async function load(){
     const id=learnerId();
     if(!id || !global.fetch) return {ok:false,reason:'NO_AUTHENTICATED_LEARNER'};
-    const r=await fetch('/api/v1/rewards?learnerId='+encodeURIComponent(id),{credentials:'include',cache:'no-store'});
+    const r=await fetch('/api/v1/rewards?learnerId='+encodeURIComponent(id),{credentials:'include',cache:'no-store',headers:{Accept:'application/json'}});
     if(!r.ok) return {ok:false,reason:'SERVER_'+r.status};
     const p=await r.json();
     const rewards=p && p.rewards ? p.rewards : {};
@@ -47,11 +47,22 @@
       <div style="margin-top:14px;font-size:.8rem;"><b>Earned badges</b><div style="margin-top:7px;color:rgba(253,249,240,.7);">${badges.length?badges.map(esc).join(' · '):'No server-recorded badges yet.'}</div></div>
     </div>`;
     const btn=document.getElementById('baa-m30-refresh');
-    if(btn) btn.addEventListener('click',async()=>{btn.disabled=true;btn.textContent='Loading…';try{render(await load());}finally{}});
+    if(btn) btn.addEventListener('click',async()=>{
+      btn.disabled=true;
+      btn.textContent='Loading…';
+      try{
+        render(await load());
+      }catch(e){
+        render({ok:false,reason:'SERVER_REQUEST_FAILED'});
+      }finally{
+        const refreshed=document.getElementById('baa-m30-refresh');
+        if(refreshed){ refreshed.disabled=false; refreshed.textContent='Refresh'; }
+      }
+    });
   }
   async function init(){
     if(!String(global.location.pathname||'').endsWith('/student-os.html')) return;
-    render(await load());
+    try{ render(await load()); }catch(e){ render({ok:false,reason:'SERVER_REQUEST_FAILED'}); }
   }
   global.BAAM30RewardsServerUI={load,render,init};
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init,{once:true});
