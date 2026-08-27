@@ -21,7 +21,7 @@
     {id:'demo',title:'BAA Demo',icon:'▶️',roles:['student','parent','teacher','admin'],description:'Open the product demonstration experience.',route:'demo.html'}
   ];
   function clone(){return FEATURES.map(function(f){return Object.assign({},f,{roles:f.roles.slice()});});}
-  global.BAAGuideCatalogue={version:'m63.16',features:FEATURES.slice(),getFeatures:clone,getFeature:function(id){return FEATURES.find(function(f){return f.id===id;})||null;}};
+  global.BAAGuideCatalogue={version:'m63.17',features:FEATURES.slice(),getFeatures:clone,getFeature:function(id){return FEATURES.find(function(f){return f.id===id;})||null;}};
 
   function loadScript(src,attribute){
     if(document.querySelector('script['+attribute+']')) return;
@@ -34,6 +34,7 @@
   function startBridges(){
     loadStyle('css/baa-guide-robot.css','data-baa-m63-style');loadScript('js/baa-guide-robot.js','data-baa-m63-robot');
     loadScript('js/baa-m02-custom-mode-server-sync.js','data-baa-m02-server-sync');
+    loadScript('js/baa-m03-hybrid-mode-server-sync.js','data-baa-m03-server-sync');
     loadScript('js/baa-m09-learning-memory-server-ui.js','data-baa-m09-server-ui');
     loadScript('js/baa-m10-confidence-integration.js','data-baa-m10-integration');loadScript('js/baa-m10-confidence-ui.js','data-baa-m10-ui');
     loadScript('js/baa-m11-planner-integration.js','data-baa-m11-integration');loadScript('js/baa-planner-server-recommendations.js','data-baa-m11-server-recommendations');loadScript('js/baa-m11-planner-server-ui.js','data-baa-m11-server-ui');
