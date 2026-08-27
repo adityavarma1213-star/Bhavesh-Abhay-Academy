@@ -10,12 +10,15 @@ const checks = [
   ['Parent/admin role gate', api.includes("hasRole(session, 'parent')") && api.includes("hasRole(session, 'admin')"), 'only parent/admin can mutate policy'],
   ['Parent learner ownership', api.includes('FROM parent_learner') && api.includes("status='active'"), 'parent must be actively linked to learner'],
   ['Server persistence', api.includes('parent_ai_policies'), 'policy is stored server-side'],
+  ['Server no-store policy', api.includes("res.setHeader('Cache-Control', 'private, no-store, max-age=0')"), 'learner policy responses cannot be cached'],
   ['Tutor control', migration.includes('tutor_enabled BOOLEAN'), 'Tutor enable/disable is persisted'],
   ['Mentor control', migration.includes('mentor_enabled BOOLEAN'), 'Mentor enable/disable is persisted'],
   ['Planner control', migration.includes('planner_enabled BOOLEAN'), 'Planner enable/disable is persisted'],
   ['Planner minute cap', migration.includes('planner_daily_minutes INTEGER') && migration.includes('BETWEEN 0 AND 480'), 'server bounds daily planner minutes'],
   ['Credentialed client GET', client.includes("credentials: 'include'") && client.includes('/api/m15-parent-policy?learnerId='), 'client reads server policy with session credentials'],
+  ['Fresh client GET', client.includes("cache: 'no-store'") && client.includes('Accept: \'application/json\''), 'client reads a fresh policy snapshot'],
   ['Credentialed client POST', client.includes("method: 'POST'") && client.includes("credentials: 'include'") && client.includes('/api/m15-parent-policy'), 'client writes server policy with session credentials'],
+  ['Fresh client POST', client.includes("method: 'POST'") && client.includes("cache: 'no-store'"), 'policy mutations are not cached'],
 ];
 
 let failed = 0;
