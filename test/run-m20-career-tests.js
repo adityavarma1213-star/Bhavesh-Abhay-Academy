@@ -37,4 +37,9 @@ if(!renderedSource.includes('data-career-explain')) throw new Error('M20 visible
 if(!renderedSource.includes('Why this guidance?')) throw new Error('M20 explanation label is missing');
 if(!renderedSource.includes('decisionBasis')) throw new Error('M20 visible decision basis is missing');
 if(!renderedSource.includes('evidenceCount')) throw new Error('M20 visible evidence count is missing');
-console.log('M20 career explainability gate: PASS');
+if(!renderedSource.includes("credentials:'include'")) throw new Error('M20 authenticated career request is missing');
+if(!renderedSource.includes("cache:'no-store'")) throw new Error('M20 fresh career request is missing');
+if(!renderedSource.includes("Accept:'application/json'")) throw new Error('M20 JSON career request contract is missing');
+const security=fs.readFileSync(path.join(__dirname,'..','api','_lib','security.js'),'utf8');
+if(!security.includes("'Cache-Control': 'no-store'")) throw new Error('M20 shared server no-store boundary is missing');
+console.log('M20 career explainability and transport gate: PASS');
