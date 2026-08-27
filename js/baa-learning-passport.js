@@ -15,14 +15,15 @@
     const store=a._load(),memory=Object.values(store.learningMemory||{});
     const competencies=memory.filter(m=>m.status==='mastered'||m.status==='strong').map(m=>({concept:m.concept,subject:m.subject,topic:m.topic,status:m.status,evidenceCount:m.evidenceCount,correctCount:m.correctCount,verifiedByEvidence:true,lastUpdated:m.lastUpdated}));
     const attempts=(store.attempts||[]).filter(x=>x.status!=='in_progress');
-    return {schemaVersion:1,student:a.getStudentName(),issuedAt:new Date().toISOString(),status:'local_testing_record',competencies,assessments:attempts.slice(0,20).map(x=>({id:x.id,title:x.assessmentTitle,score:x.score,maxScore:x.maxScore,status:x.status,completedAt:x.endTime})),evidenceCount:(store.evidence||[]).length};
+    return {schemaVersion:SCHEMA_VERSION,student:a.getStudentName(),issuedAt:new Date().toISOString(),status:'local_testing_record',competencies,assessments:attempts.slice(0,20).map(x=>({id:x.id,title:x.assessmentTitle,score:x.score,maxScore:x.maxScore,status:x.status,completedAt:x.endTime})),evidenceCount:(store.evidence||[]).length};
   }
   async function load(learnerId){
     const id=String(learnerId||global.BAA_LEARNER_ID||'').trim();
     if(!id)throw new Error('learnerId is required.');
-    const response=await fetch('/api/m19-passport?learnerId='+encodeURIComponent(id),{credentials:'include'});
+    const response=await fetch('/api/m19-passport?learnerId='+encodeURIComponent(id),{credentials:'include',cache:'no-store',headers:{Accept:'application/json'}});
     const body=await response.json().catch(()=>({}));
     if(!response.ok)throw Object.assign(new Error(body?.error?.message||'Unable to load learning passport.'),{status:response.status,code:body?.error?.code});
+    if(body?.schemaVersion!==SCHEMA_VERSION)throw new Error('Unsupported learning passport schema.');
     serverRecord=body;
     global.dispatchEvent(new CustomEvent('baa:m19-passport-loaded',{detail:body}));
     return body;
