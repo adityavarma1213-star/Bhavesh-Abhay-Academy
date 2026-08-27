@@ -37,8 +37,7 @@ export default async function handler(req, res) {
         LIMIT ${limit}`,
       sql`
         SELECT id, subject, chapter, topic, concept, difficulty, type, marks,
-               time_estimate_sec AS "timeEstimateSec", text, options,
-               correct_answer AS "correctAnswer", explanation
+               time_estimate_sec AS "timeEstimateSec", text, options
         FROM questions
         ORDER BY subject, chapter, concept, id
         LIMIT 1000`
@@ -54,6 +53,8 @@ export default async function handler(req, res) {
       .sort((a,b) => a.accuracy-b.accuracy || b.evidenceCount-a.evidenceCount)
       .map(x => ({ subject: x.subject, concept: x.concept, accuracy: x.accuracy, evidenceCount: x.evidenceCount }));
     const rank = new Map(prioritizedConcepts.map((x,i) => [`${x.subject || 'Unknown'}::${x.concept}`, i]));
+    // Never expose answer keys or canonical explanations to the browser. M21 practice
+    // selection is a server-side prioritization service; grading remains authoritative.
     const practiceQuestions = questionResult.rows
       .filter(q => rank.has(`${q.subject || 'Unknown'}::${q.concept}`))
       .sort((a,b) => rank.get(`${a.subject || 'Unknown'}::${a.concept}`) - rank.get(`${b.subject || 'Unknown'}::${b.concept}`) || String(a.id).localeCompare(String(b.id)))
