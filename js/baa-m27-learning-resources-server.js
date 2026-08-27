@@ -7,7 +7,7 @@ async function getServerRecommendations(format,limit){
   if(!id)return {ok:false,error:'LEARNER_ID_REQUIRED',recommendations:[]};
   const params=new URLSearchParams({learnerId:id});
   if(format)params.set('format',String(format));
-  const response=await fetch('/api/m27-learning-resources?'+params.toString(),{credentials:'include',headers:{Accept:'application/json'}});
+  const response=await fetch('/api/m27-learning-resources?'+params.toString(),{credentials:'include',cache:'no-store',headers:{Accept:'application/json'}});
   let body={};
   try{body=await response.json();}catch(_){body={};}
   if(!response.ok)return {ok:false,error:body?.error?.code||'LEARNING_RESOURCES_FAILED',recommendations:[]};
