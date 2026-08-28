@@ -8,7 +8,7 @@
   async function load(classId){
     const id=String(classId||'').trim();
     if(!id) throw new Error('Select a class before loading Teacher Diagnostic.');
-    const response=await fetch(`/api/m58-teacher-diagnostic.js?classId=${encodeURIComponent(id)}`,{credentials:'include',headers:{Accept:'application/json'}});
+    const response=await fetch(`/api/m58-teacher-diagnostic.js?classId=${encodeURIComponent(id)}`,{credentials:'include',cache:'no-store',headers:{Accept:'application/json'}});
     const data=await response.json().catch(()=>({ok:false,error:{message:'Invalid diagnostic response.'}}));
     if(!response.ok) throw Object.assign(new Error(data?.error?.message||'Unable to load Teacher Diagnostic.'),{status:response.status,code:data?.error?.code});
     return data;
