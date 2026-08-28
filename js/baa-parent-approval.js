@@ -55,7 +55,7 @@
     const learnerId=String(id||global.BAA_LEARNER_ID||'').trim();
     if(!learnerId)return {ok:false,error:{code:'LEARNER_REQUIRED',message:'A learner context is required.'}};
     try{
-      const response=await fetch(`/api/m15-parent-policy?learnerId=${encodeURIComponent(learnerId)}`,{credentials:'include',headers:{Accept:'application/json'}});
+      const response=await fetch(`/api/m15-parent-policy?learnerId=${encodeURIComponent(learnerId)}`,{credentials:'include',cache:'no-store',headers:{Accept:'application/json'}});
       const data=await response.json().catch(()=>null);
       if(!response.ok)return {ok:false,error:data?.error||{code:'POLICY_LOAD_FAILED',message:'Parent policy could not be loaded.'}};
       return {ok:true,learnerId,policy:data.policy};
@@ -66,7 +66,7 @@
     const learnerId=String(id||global.BAA_LEARNER_ID||'').trim();
     if(!learnerId)return {ok:false,error:{code:'LEARNER_REQUIRED',message:'A learner context is required.'}};
     try{
-      const response=await fetch('/api/m15-parent-policy',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({learnerId,...(policy||{})})});
+      const response=await fetch('/api/m15-parent-policy',{method:'POST',credentials:'include',cache:'no-store',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({learnerId,...(policy||{})})});
       const data=await response.json().catch(()=>null);
       if(!response.ok)return {ok:false,error:data?.error||{code:'POLICY_SAVE_FAILED',message:'Parent policy could not be saved.'}};
       return {ok:true,learnerId,policy:data.policy};
