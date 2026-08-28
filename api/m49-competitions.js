@@ -6,6 +6,11 @@ export const config = { runtime: 'nodejs' };
 const PROVIDER_URL = String(process.env.BAA_COMPETITIONS_PROVIDER_URL || '').trim();
 const PROVIDER_TOKEN = String(process.env.BAA_COMPETITIONS_PROVIDER_TOKEN || '').trim();
 const TIMEOUT_MS = 8000;
+const MAX_RESULTS = 100;
+
+function noStore(res) {
+  res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+}
 
 function cleanText(value, max = 240) {
   return String(value ?? '').trim().slice(0, max);
@@ -55,7 +60,7 @@ async function fetchProvider(req) {
     }
     const body = await response.json();
     const source = Array.isArray(body) ? body : Array.isArray(body?.results) ? body.results : Array.isArray(body?.competitions) ? body.competitions : [];
-    const results = source.map(normalizeCompetition).filter(Boolean).filter(x => x.name && x.url);
+    const results = source.map(normalizeCompetition).filter(Boolean).filter(x => x.name && x.url).slice(0, MAX_RESULTS);
     return { configured: true, results, message: null };
   } catch (error) {
     return {
@@ -69,6 +74,7 @@ async function fetchProvider(req) {
 }
 
 export default async function handler(req, res) {
+  noStore(res);
   if (req.method !== 'GET') {
     return json(res, 405, { error: { code: 'METHOD_NOT_ALLOWED', message: 'GET required.' } }, { Allow: 'GET' });
   }
