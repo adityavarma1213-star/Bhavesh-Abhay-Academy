@@ -14,6 +14,17 @@ function build(){
  const weak=paths&&paths.nodes?paths.nodes.filter(n=>['needs_revision','struggling'].includes(n.state)).length:null;
  return {ok:true,error:null,metrics:{completedAssessments:completed,answeredQuestions:evidence.length,accuracyPercent:accuracy,weakConceptCount:weak,xp:rewards&&rewards.xp!=null?number(rewards.xp):null},evidenceQuality:evidence.length?'measured':'insufficient_evidence'};
 }
-async function load(learnerId){const id=String(learnerId||'').trim();if(!id)throw new Error('learnerId is required.');const response=await fetch('/api/m36-insights?learnerId='+encodeURIComponent(id),{credentials:'include'});const body=await response.json().catch(()=>({}));if(!response.ok)throw Object.assign(new Error(body?.error?.message||'Unable to load insights.'),{status:response.status,code:body?.error?.code});return body;}
+async function load(learnerId){
+ const id=String(learnerId||'').trim();
+ if(!id)throw new Error('learnerId is required.');
+ const response=await fetch('/api/m36-insights?learnerId='+encodeURIComponent(id),{
+   credentials:'include',
+   cache:'no-store',
+   headers:{Accept:'application/json'}
+ });
+ const body=await response.json().catch(()=>({}));
+ if(!response.ok)throw Object.assign(new Error(body?.error?.message||'Unable to load insights.'),{status:response.status,code:body?.error?.code});
+ return body;
+}
 global.BAAInsights={build,load};
 })(window);
