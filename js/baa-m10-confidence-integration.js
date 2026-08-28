@@ -4,7 +4,11 @@
   async function load(learnerId){
     if(!learnerId) return {status:'unavailable',error:'LEARNER_ID_REQUIRED'};
     try{
-      const response=await fetch(`/api/m10-confidence?learnerId=${encodeURIComponent(learnerId)}`,{credentials:'include'});
+      const response=await fetch(`/api/m10-confidence?learnerId=${encodeURIComponent(learnerId)}`,{
+        credentials:'include',
+        cache:'no-store',
+        headers:{Accept:'application/json'}
+      });
       const data=await response.json().catch(()=>({}));
       if(!response.ok) return {status:'unavailable',error:data?.error?.code||'CONFIDENCE_SERVER_UNAVAILABLE',httpStatus:response.status};
       return {status:'ready',...data};
