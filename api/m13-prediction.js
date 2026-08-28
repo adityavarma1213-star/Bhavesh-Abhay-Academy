@@ -17,6 +17,95 @@ function noStore(res) {
   res.setHeader('Cache-Control', 'private, no-store, max-age=0');
 }
 
+function forecastWarning(predicted) {
+  if (predicted < 60) return 'high';
+  if (predicted < 75) return 'medium';
+  return 'low';
+}
+
+async function upcomingForecasts(learnerId) {
+  const catalog = await sql`
+    SELECT a.id, a.title, a.subject, a.chapter, a.total_marks,
+           COUNT(aq.question_id)::int AS question_count
+    FROM assessments a
+    JOIN assessment_questions aq ON aq.assessment_id=a.id
+    WHERE NOT EXISTS (
+      SELECT 1 FROM assessment_attempts aa
+      WHERE aa.learner_id=${learnerId}
+        AND aa.assessment_id=a.id
+        AND aa.status IN ('submitted','evaluated')
+    )
+    GROUP BY a.id
+    ORDER BY a.subject NULLS LAST, a.chapter NULLS LAST, a.title
+    LIMIT 20
+  `;
+  if (!catalog.rows.length) return [];
+
+  const questions = await sql`
+    SELECT aq.assessment_id, q.id AS question_id, q.concept,
+           q.marks, q.subject, q.chapter, lm.evidence_count, lm.correct_count, lm.status
+    FROM assessment_questions aq
+    JOIN questions q ON q.id=aq.question_id
+    LEFT JOIN learning_memory lm
+      ON lm.learner_id=${learnerId} AND lm.concept=q.concept
+    WHERE aq.assessment_id = ANY(${catalog.rows.map(row => row.id)})
+  `;
+
+  const byAssessment = new Map();
+  for (const row of questions.rows) {
+    if (!byAssessment.has(row.assessment_id)) byAssessment.set(row.assessment_id, []);
+    byAssessment.get(row.assessment_id).push(row);
+  }
+
+  return catalog.rows.map(assessment => {
+    const rows = byAssessment.get(assessment.id) || [];
+    const known = rows.filter(row => Number(row.evidence_count || 0) >= 1);
+    if (!known.length || known.length < Math.max(1, Math.ceil(rows.length * 0.5))) {
+      return {
+        assessmentId: assessment.id,
+        title: assessment.title,
+        subject: assessment.subject,
+        chapter: assessment.chapter,
+        status: 'insufficient_evidence',
+        predictedPercentage: null,
+        predictedRange: null,
+        warningLevel: 'insufficient_evidence',
+        evidence: { questions: rows.length, evidenceBackedQuestions: known.length },
+        message: 'Not enough concept evidence to forecast this assessment yet.'
+      };
+    }
+
+    const weighted = known.reduce((sum, row) => {
+      const accuracy = Number(row.correct_count || 0) / Number(row.evidence_count || 1);
+      const weight = Math.max(1, Number(row.marks || 1));
+      return sum + clamp(accuracy, 0, 1) * weight;
+    }, 0);
+    const weightTotal = known.reduce((sum, row) => sum + Math.max(1, Number(row.marks || 1)), 0);
+    const predicted = clamp((weighted / Math.max(1, weightTotal)) * 100, 0, 100);
+    const band = confidenceBand(
+      known.reduce((sum, row) => sum + Number(row.evidence_count || 0), 0),
+      new Set(known.map(row => row.concept)).size
+    );
+    const margin = band === 'high' ? 5 : band === 'medium' ? 10 : 15;
+    return {
+      assessmentId: assessment.id,
+      title: assessment.title,
+      subject: assessment.subject,
+      chapter: assessment.chapter,
+      status: 'forecast',
+      predictedPercentage: Math.round(predicted * 10) / 10,
+      predictedRange: {
+        low: Math.round(clamp(predicted - margin, 0, 100) * 10) / 10,
+        high: Math.round(clamp(predicted + margin, 0, 100) * 10) / 10
+      },
+      warningLevel: forecastWarning(predicted),
+      confidence: band,
+      evidence: { questions: rows.length, evidenceBackedQuestions: known.length, concepts: new Set(known.map(row => row.concept)).size },
+      scope: 'academic_forecast_only'
+    };
+  });
+}
+
 export default async function handler(req, res) {
   noStore(res);
   try {
@@ -54,6 +143,10 @@ export default async function handler(req, res) {
     const evidenceCount = Number(evidence.rows[0]?.count || 0);
     const conceptRows = memory.rows;
     const band = confidenceBand(evidenceCount, conceptRows.length);
+    const upcoming = String(req.query?.includeUpcoming || '').toLowerCase() === 'true'
+      ? await upcomingForecasts(learnerId)
+      : [];
+
     if (attempts.rows.length < 2 || conceptRows.length < 2 || band === 'insufficient_evidence') {
       return json(res, 200, {
         ok: true,
@@ -65,6 +158,7 @@ export default async function handler(req, res) {
         milestone: null,
         confidence: band,
         evidence: { assessments: attempts.rows.length, trackedConcepts: conceptRows.length, rawEvidence: evidenceCount },
+        upcomingForecasts: upcoming,
         scope: 'academic_forecast_only',
       });
     }
@@ -107,6 +201,7 @@ export default async function handler(req, res) {
         needsRevision,
         rawEvidence: evidenceCount,
       },
+      upcomingForecasts: upcoming,
       scope: 'academic_forecast_only',
       limitation: 'This is an evidence-based academic estimate, not a diagnosis or guarantee of future outcomes.',
     });
