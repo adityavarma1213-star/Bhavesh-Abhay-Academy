@@ -66,10 +66,12 @@
     };
   }
 
-  async function getServerPredictionSummary(learnerId){
+  async function getServerPredictionSummary(learnerId, options){
     if(!learnerId) return {status:'unavailable',error:'LEARNER_ID_REQUIRED'};
     try{
-      const response=await fetch(`/api/m13-prediction?learnerId=${encodeURIComponent(learnerId)}`,{credentials:'include',cache:'no-store',headers:{Accept:'application/json'}});
+      const includeUpcoming=options?.includeUpcoming===true;
+      const query=`learnerId=${encodeURIComponent(learnerId)}${includeUpcoming?'&includeUpcoming=true':''}`;
+      const response=await fetch(`/api/m13-prediction?${query}`,{credentials:'include',cache:'no-store',headers:{Accept:'application/json'}});
       const data=await response.json().catch(()=>({}));
       if(!response.ok) return {status:'unavailable',error:data?.error?.code||'PREDICTION_SERVER_UNAVAILABLE',httpStatus:response.status};
       return data;
