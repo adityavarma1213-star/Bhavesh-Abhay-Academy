@@ -4,7 +4,12 @@ import { sql } from './_lib/db.js';
 
 export const config = { runtime: 'nodejs' };
 
+function noStore(res) {
+  if (typeof res?.setHeader === 'function') res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+}
+
 export default async function handler(req, res) {
+  noStore(res);
   try {
     const session = await requireAuth(req);
     const isAdmin = hasRole(session, 'admin');
