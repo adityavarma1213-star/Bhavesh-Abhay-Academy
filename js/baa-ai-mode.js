@@ -52,7 +52,11 @@
       response = await fetch(`/api/m01-ai-mode?learnerId=${encodeURIComponent(input.learnerId)}`, {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        cache: 'no-store',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
         body: JSON.stringify({ goal: finalGoal, previousPlan }),
       });
     } catch {
