@@ -30,7 +30,7 @@ function portfolioSummary(candidate){
  const skills=checked.profile.skills,projects=checked.profile.projects;
  return {ok:true,error:null,summary:{goal:checked.profile.goal,skills,projectCount:projects.length,projectsWithEvidence:projects.filter(p=>p.evidenceIds.length>0).length,projectTitles:projects.map(p=>p.title).filter(Boolean)}};
 }
-async function api(path,options){const response=await fetch(path,{credentials:'include',headers:{'Content-Type':'application/json',...(options&&options.headers||{})},...(options||{})});const body=await response.json().catch(()=>({}));if(!response.ok)throw Object.assign(new Error(body?.error?.message||'Career preparation request failed.'),{status:response.status,code:body?.error?.code});return body;}
+async function api(path,options){const response=await fetch(path,{credentials:'include',cache:'no-store',headers:{'Content-Type':'application/json',Accept:'application/json',...(options&&options.headers||{})},...(options||{})});const body=await response.json().catch(()=>({}));if(!response.ok)throw Object.assign(new Error(body?.error?.message||'Career preparation request failed.'),{status:response.status,code:body?.error?.code});return body;}
 async function load(learnerId){const id=clean(learnerId,120);if(!id)throw new Error('learnerId is required.');return api('/api/m44-career-prep?learnerId='+encodeURIComponent(id));}
 async function save(learnerId,input){const id=clean(learnerId,120),checked=profile(input);if(!id)throw new Error('learnerId is required.');if(!checked.ok)throw new Error(checked.error);return api('/api/m44-career-prep?learnerId='+encodeURIComponent(id),{method:'PUT',body:JSON.stringify(checked.profile)});}
 global.BAACareerPrep={profile,gap,readiness,portfolioSummary,load,save};
