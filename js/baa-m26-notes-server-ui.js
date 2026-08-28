@@ -11,17 +11,27 @@
     if(!r.ok) throw new Error(d?.error?.message||'Teacher note draft could not be loaded.');
     return d;
   }
+  async function generateAi(learnerId){
+    const id=String(learnerId||getLearnerId()).trim();
+    if(!id) throw new Error('Select an authorized learner to generate a teacher note draft.');
+    const r=await fetch('/api/m26-ai-notes',{method:'POST',credentials:'include',cache:'no-store',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({learnerId:id})});
+    const d=await r.json().catch(()=>null);
+    if(!r.ok) throw new Error(d?.error?.message||'AI teacher note could not be generated.');
+    return d;
+  }
   function mount(root,opts){
     if(!root||document.getElementById('baa-m26-notes-panel'))return;
     const panel=document.createElement('section');panel.id='baa-m26-notes-panel';panel.className='card';
-    panel.innerHTML='<h2 class="section-h" style="margin-top:0">📝 Evidence-backed Teacher Note</h2><p data-m26-status style="color:var(--dim);line-height:1.5">Generate a factual draft from the learner’s persisted academic evidence.</p><button type="button" data-m26-generate>Generate draft</button><div data-m26-draft style="margin-top:12px"></div><small data-m26-limit style="display:block;margin-top:12px;color:var(--dim)">Teacher review is required before saving or sharing. This is an academic evidence summary, not a diagnosis.</small>';
+    panel.innerHTML='<h2 class="section-h" style="margin-top:0">📝 Evidence-backed Teacher Note</h2><p data-m26-status style="color:var(--dim);line-height:1.5">Generate a factual draft from the learner’s persisted academic evidence.</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" data-m26-generate>Generate evidence draft</button><button type="button" data-m26-ai>Generate AI draft</button></div><div data-m26-draft style="margin-top:12px"></div><small data-m26-limit style="display:block;margin-top:12px;color:var(--dim)">Teacher review is required before saving or sharing. AI output is grounded only in recorded academic evidence and is not a diagnosis.</small>';
     root.insertBefore(panel,root.firstChild);
-    const status=panel.querySelector('[data-m26-status]'),draft=panel.querySelector('[data-m26-draft]'),button=panel.querySelector('[data-m26-generate]');
-    const render=d=>{status.textContent=`Evidence reviewed: ${Number(d.evidenceCount||0)} item(s)${d.assessmentCount!=null?` · ${Number(d.assessmentCount)} recent assessment(s)`:''}.`;draft.innerHTML=`<div style="padding:14px;border:1px solid rgba(255,255,255,.12);border-radius:12px;line-height:1.6;white-space:normal">${esc(d.draft||'No draft available.')}</div>`;};
-    const refresh=async()=>{button.disabled=true;status.textContent='Loading server-backed evidence…';draft.textContent='';try{render(await load(opts?.learnerId));}catch(e){status.textContent=e.message;draft.textContent='';}finally{button.disabled=false;}};
-    button.addEventListener('click',refresh);if(opts?.autoLoad!==false)refresh();
+    const status=panel.querySelector('[data-m26-status]'),draft=panel.querySelector('[data-m26-draft]'),button=panel.querySelector('[data-m26-generate]'),aiButton=panel.querySelector('[data-m26-ai]');
+    const render=d=>{status.textContent=`${d.generated?'AI draft':'Evidence draft'} · Evidence reviewed: ${Number(d.evidenceCount||0)} item(s)${d.assessmentCount!=null?` · ${Number(d.assessmentCount)} recent assessment(s)`:''}.`;draft.innerHTML=`<div style="padding:14px;border:1px solid rgba(255,255,255,.12);border-radius:12px;line-height:1.6;white-space:normal">${esc(d.draft||'No draft available.')}</div>`;};
+    const run=async(fn,label,btn)=>{button.disabled=true;aiButton.disabled=true;status.textContent=label;draft.textContent='';try{render(await fn());}catch(e){status.textContent=e.message;draft.textContent='';}finally{button.disabled=false;aiButton.disabled=false;}};
+    button.addEventListener('click',()=>run(()=>load(opts?.learnerId),'Loading server-backed evidence…',button));
+    aiButton.addEventListener('click',()=>run(()=>generateAi(opts?.learnerId),'Generating grounded AI note…',aiButton));
+    if(opts?.autoLoad!==false)run(()=>load(opts?.learnerId),'Loading server-backed evidence…',button);
   }
-  global.BAAM26Notes={load,mount};
+  global.BAAM26Notes={load,generateAi,mount};
   function boot(){
     if(!location.pathname.endsWith('teacher-os.html')&&!location.pathname.endsWith('teacher-portal.html'))return;
     const root=document.getElementById('serverLearnerView')||document.getElementById('content')||document.body;
