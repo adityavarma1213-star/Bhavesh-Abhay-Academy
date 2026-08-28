@@ -18,7 +18,7 @@ async function generate(facts){
 }
 async function list(learnerId){
   const response=await fetch(`/api/m57-parent-conversation.js?learnerId=${encodeURIComponent(learnerId||'')}`,{method:'GET',credentials:AUTH.credentials,cache:'no-store',headers:{Accept:'application/json'}});
-  const data=await response.json();
+  const data=await response.json().catch(()=>({error:{message:'Invalid server response.'}}));
   if(!response.ok)throw new Error(data?.error?.message||'Unable to load parent conversations.');
   return data;
 }
