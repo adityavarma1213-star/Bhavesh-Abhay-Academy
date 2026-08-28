@@ -46,7 +46,7 @@
     const id=String(learnerId||global.BAA_LEARNER_ID||'').trim();
     if(!id)return {ok:false,error:{code:'LEARNER_REQUIRED',message:'A learner context is required.'}};
     try{
-      const response=await fetch(`/api/m16-teacher-recommendations?learnerId=${encodeURIComponent(id)}`,{credentials:'include',headers:{Accept:'application/json'}});
+      const response=await fetch(`/api/m16-teacher-recommendations?learnerId=${encodeURIComponent(id)}`,{credentials:'include',cache:'no-store',headers:{Accept:'application/json'}});
       const data=await response.json().catch(()=>null);
       if(!response.ok)return {ok:false,error:data?.error||{code:'RECOMMENDATIONS_LOAD_FAILED',message:'Server recommendations could not be loaded.'}};
       return {ok:true,recommendations:Array.isArray(data?.recommendations)?data.recommendations:[],source:data?.source||'server_learning_evidence',limitation:data?.limitation||''};
