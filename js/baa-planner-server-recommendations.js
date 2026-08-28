@@ -10,6 +10,7 @@
     try {
       const response = await fetch(`/api/m11-planner-recommendations?learnerId=${encodeURIComponent(learnerId)}`, {
         credentials: 'include',
+        cache: 'no-store',
         headers: { Accept: 'application/json' },
       });
       const payload = await response.json().catch(() => ({}));
