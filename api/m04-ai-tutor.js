@@ -29,6 +29,22 @@ async function resolveLearnerId(session, requested) {
   return '';
 }
 
+async function enforceParentPolicy(session, learnerId) {
+  if (!learnerId || !session?.roles?.includes('student')) return;
+  const result = await sql`
+    SELECT tutor_enabled
+    FROM parent_ai_policies
+    WHERE learner_id=${learnerId}
+    LIMIT 1
+  `;
+  if (result.rows[0] && result.rows[0].tutor_enabled === false) {
+    const err = new Error('AI Tutor is disabled by the active parent approval policy.');
+    err.status = 403;
+    err.code = 'AI_TUTOR_DISABLED_BY_PARENT_POLICY';
+    throw err;
+  }
+}
+
 async function buildEvidenceContext(learnerId) {
   if (!learnerId) return null;
   const [memory, evidence, attempts] = await Promise.all([
@@ -95,6 +111,7 @@ export default async function handler(req, res) {
     if (!learnerId) {
       return json(res, 400, { error: { code: 'LEARNER_REQUIRED', message: 'A learner context is required for the production AI Tutor path.' } });
     }
+    await enforceParentPolicy(session, learnerId);
 
     const learningContext = await buildEvidenceContext(learnerId);
     const authoritativeBody = {
