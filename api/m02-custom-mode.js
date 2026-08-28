@@ -25,11 +25,16 @@ function normalizeSteps(value) {
   return steps;
 }
 
+function noStore(res) {
+  res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+}
+
 export default async function handler(req, res) {
   try {
     const session = await requireAuth(req);
     const learnerId = String(req.query?.learnerId || '').trim();
     await requireLearnerAccess(session, learnerId);
+    noStore(res);
 
     if (req.method === 'GET') {
       const result = await sql`
@@ -66,6 +71,7 @@ export default async function handler(req, res) {
 
     return json(res, 405, { error: { code: 'METHOD_NOT_ALLOWED', message: 'GET, PUT or DELETE required.' } }, { Allow: 'GET, PUT, DELETE' });
   } catch (e) {
+    noStore(res);
     return json(res, e.status || 500, { error: { code: e.code || 'CUSTOM_MODE_API_FAILED', message: e.status ? e.message : 'Custom Mode service unavailable.' } });
   }
 }
