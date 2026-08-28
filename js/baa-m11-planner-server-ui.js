@@ -18,6 +18,17 @@
     return String(global.BAA_LEARNER_ID || document.body?.dataset?.learnerId || '').trim();
   }
 
+  async function hydratePlanner() {
+    const id = learnerId();
+    if (!id || !global.BAAPlanner || typeof global.BAAPlanner.hydrateFromServer !== 'function') return false;
+    try {
+      return await global.BAAPlanner.hydrateFromServer(id);
+    } catch (error) {
+      console.warn('[BAA M11] Planner server hydration failed; keeping the existing local planner state.', error);
+      return false;
+    }
+  }
+
   function mount() {
     if (document.getElementById(PANEL_ID)) return document.getElementById(PANEL_ID);
     if (!document.body || !/student-os\.html$/i.test(location.pathname)) return null;
@@ -75,12 +86,14 @@
     render(panel, payload);
   }
 
-  function start() {
+  async function start() {
     const panel = mount();
-    if (panel) loadAndRender(panel);
+    if (!panel) return;
+    await hydratePlanner();
+    await loadAndRender(panel);
   }
 
-  global.BAAM11PlannerServerUI = { mount, loadAndRender, render };
+  global.BAAM11PlannerServerUI = { mount, loadAndRender, render, hydratePlanner };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true });
   else start();
 })(window);
