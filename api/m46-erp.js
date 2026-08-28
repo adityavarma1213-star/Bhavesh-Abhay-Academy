@@ -10,8 +10,10 @@ const ENTITY_TYPES = new Set(['students', 'attendance', 'classes', 'results', 't
 const DIRECTIONS = new Set(['pull', 'push']);
 function allowed(session) { return ROLES.some(role => hasRole(session, role)); }
 function clean(v, max = 200) { return String(v ?? '').trim().slice(0, max); }
+function noStore(res) { if (typeof res?.setHeader === 'function') res.setHeader('Cache-Control', 'private, no-store, max-age=0'); }
 
 export default async function handler(req, res) {
+  noStore(res);
   try {
     const session = await requireAuth(req);
     if (!allowed(session)) return json(res, 403, { error: { code: 'FORBIDDEN', message: 'Teacher or administrator role required.' } });
