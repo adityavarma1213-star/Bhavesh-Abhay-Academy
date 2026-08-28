@@ -1,20 +1,14 @@
 // api/evaluate.js
 // BAA OS — Section B: Subjective Answer Evaluation backend.
-// Runs as a Vercel Edge Function, same pattern as api/chat.js: keeps the
-// Gemini API key server-side, validates input, rate-limits, retries
-// transient failures — but returns a single structured JSON evaluation
-// object instead of a stream, since the assessment player needs the whole
-// result before it can show the student their score.
-//
-// Only called for questions that CANNOT be graded deterministically
-// (short answer, long answer, math, step-based, written response). MCQ and
-// True/False are graded entirely client-side in js/baa-assessment.js.
+// Server-authoritative assessment evaluation: the authenticated learner's
+// recorded attempt and canonical question define the grading context.
 
 export const config = { runtime: 'nodejs' };
 
 import { requireAuth } from './_lib/auth.js';
 import { consumeAiRateLimit } from './_lib/ai-rate-limit.js';
 import { issueAssessmentVerdict } from './_lib/assessment-verdict.js';
+import { sql } from './_lib/db.js';
 
 const MODEL = 'gemini-3.5-flash-lite';
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
@@ -44,6 +38,32 @@ function validateBody(body) {
   }
   if (studentAnswer.length > MAX_ANSWER_CHARS) return { error: 'studentAnswer is too long' };
   return { question, studentAnswer: studentAnswer.trim() };
+}
+
+async function loadCanonicalAssessmentQuestion(session, attemptId, questionId) {
+  const rows = await sql`
+    SELECT
+      aa.id AS attempt_id,
+      aa.assessment_id,
+      aq.question_id,
+      q.type,
+      q.marks,
+      q.text,
+      q.model_answer,
+      q.concept,
+      q.subject,
+      q.difficulty
+    FROM assessment_attempts aa
+    JOIN learners l ON l.id = aa.learner_id
+    JOIN assessment_questions aq ON aq.assessment_id = aa.assessment_id
+      AND aq.question_id = ${questionId}
+    JOIN questions q ON q.id = aq.question_id
+    WHERE aa.id = ${attemptId}
+      AND (l.user_id = ${session.user_id} OR EXISTS (
+        SELECT 1 FROM user_roles ur WHERE ur.user_id = ${session.user_id} AND ur.role = 'admin'
+      ))
+    LIMIT 1`;
+  return rows.rows[0] || null;
 }
 
 function buildPrompt(question, studentAnswer) {
@@ -126,8 +146,6 @@ function clampScore(score, maxScore) {
 }
 
 export default async function handler(req) {
-  // Evaluation results contain learner answers, rubric evidence and AI
-  // verdicts. They must never be retained by browser/intermediary caches.
   const responseHeaders = { 'Cache-Control': 'private, no-store, max-age=0' };
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: { ...responseHeaders, ...corsHeaders() } });
@@ -137,9 +155,7 @@ export default async function handler(req) {
   }
 
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    return jsonError(500, 'Server is missing GEMINI_API_KEY', responseHeaders);
-  }
+  if (!apiKey) return jsonError(500, 'Server is missing GEMINI_API_KEY', responseHeaders);
 
   let session;
   try { session = await requireAuth(req); } catch (e) {
@@ -151,20 +167,31 @@ export default async function handler(req) {
   if (rate.limited) return jsonError(429, 'Too many evaluation requests — please wait a moment and try again.', responseHeaders);
 
   let body;
-  try {
-    body = await req.json();
-  } catch {
-    return jsonError(400, 'Invalid JSON body', responseHeaders);
-  }
+  try { body = await req.json(); } catch { return jsonError(400, 'Invalid JSON body', responseHeaders); }
 
   const validated = validateBody(body);
-  if (validated.error) {
-    return jsonError(400, validated.error, responseHeaders);
-  }
-  const { question, studentAnswer } = validated;
+  if (validated.error) return jsonError(400, validated.error, responseHeaders);
+  const { studentAnswer } = validated;
   const attemptId = body?.attemptId;
   const questionId = body?.questionId;
   if (!attemptId || !questionId) return jsonError(400, 'attemptId and questionId are required for a server-verifiable assessment verdict', responseHeaders);
+
+  let canonicalQuestion;
+  try { canonicalQuestion = await loadCanonicalAssessmentQuestion(session, attemptId, questionId); }
+  catch { return jsonError(503, 'Assessment verification service is temporarily unavailable.', responseHeaders); }
+  if (!canonicalQuestion) return jsonError(403, 'Assessment question is not owned by the authenticated learner or is not part of the recorded attempt.', responseHeaders);
+  if (!VALID_QUESTION_TYPES.has(canonicalQuestion.type)) return jsonError(400, 'The recorded question is not eligible for AI evaluation.', responseHeaders);
+
+  const question = {
+    id: canonicalQuestion.question_id,
+    text: canonicalQuestion.text,
+    type: canonicalQuestion.type,
+    marks: Number(canonicalQuestion.marks),
+    modelAnswer: canonicalQuestion.model_answer || null,
+    concept: canonicalQuestion.concept,
+    subject: canonicalQuestion.subject,
+    difficulty: canonicalQuestion.difficulty,
+  };
 
   const payload = {
     contents: [{ role: 'user', parts: [{ text: buildPrompt(question, studentAnswer) }] }],
@@ -179,11 +206,8 @@ export default async function handler(req) {
   };
 
   let upstream;
-  try {
-    upstream = await callGeminiWithRetry(payload, apiKey);
-  } catch (err) {
-    return jsonError(502, 'AI evaluation service is temporarily unavailable', responseHeaders);
-  }
+  try { upstream = await callGeminiWithRetry(payload, apiKey); }
+  catch { return jsonError(502, 'AI evaluation service is temporarily unavailable', responseHeaders); }
 
   if (!upstream.ok) {
     let detail = 'AI evaluation service error';
@@ -196,11 +220,8 @@ export default async function handler(req) {
   }
 
   let data;
-  try {
-    data = await upstream.json();
-  } catch {
-    return jsonError(502, 'AI evaluation service returned an unreadable response', responseHeaders);
-  }
+  try { data = await upstream.json(); }
+  catch { return jsonError(502, 'AI evaluation service returned an unreadable response', responseHeaders); }
 
   const text = data?.candidates?.[0]?.content?.parts?.map((p) => p.text || '').join('') || '';
   const parsed = extractJson(text);
@@ -217,8 +238,7 @@ export default async function handler(req) {
   const result = {
     score: clampScore(parsed.score, question.marks),
     maxScore: question.marks,
-    correctness: ['correct', 'partially_correct', 'incorrect', 'uncertain'].includes(parsed.correctness)
-      ? parsed.correctness : 'uncertain',
+    correctness: ['correct', 'partially_correct', 'incorrect', 'uncertain'].includes(parsed.correctness) ? parsed.correctness : 'uncertain',
     explanation: typeof parsed.explanation === 'string' ? parsed.explanation.slice(0, 1000) : '',
     errors: Array.isArray(parsed.errors) ? parsed.errors.slice(0, 10).map(String) : [],
     missingConcepts: Array.isArray(parsed.missingConcepts) ? parsed.missingConcepts.slice(0, 10).map(String) : [],
@@ -232,8 +252,7 @@ export default async function handler(req) {
         })).filter(item => item.maxScore > 0)
       : [],
     confidence: ['high', 'medium', 'low'].includes(parsed.confidence) ? parsed.confidence : 'low',
-    humanReviewRequired: parsed.score === null || parsed.score === undefined
-      ? true : (!!parsed.humanReviewRequired || parsed.confidence === 'low'),
+    humanReviewRequired: parsed.score === null || parsed.score === undefined ? true : (!!parsed.humanReviewRequired || parsed.confidence === 'low'),
   };
 
   if (result.score === null) result.humanReviewRequired = true;
