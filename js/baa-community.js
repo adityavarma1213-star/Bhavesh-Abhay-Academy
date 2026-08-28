@@ -1,7 +1,7 @@
 /* BAA M35 — Community & Collaboration.
-   Safe local study groups/posts with a server safety gate. No anonymous public
-   network is created by this module; persistent production community storage,
-   reporting, age controls and identity/access policy remain separate concerns. */
+   Safe local study groups/posts with server safety/reporting gates. No anonymous
+   public network is created by this module; persistent production community
+   storage, age controls and identity/access policy remain separate concerns. */
 (function(global){
 'use strict';
 const KEY='baa_community_v1';
@@ -18,6 +18,18 @@ async function createPostSecure(text,groupId){
   return createPost(text,groupId);
  }catch(_){return {ok:false,error:'SERVER_MODERATION_UNAVAILABLE'};}
 }
+async function reportPost(postId,reason){
+ const id=String(postId||'').trim(); const s=load(); const post=s.posts.find(item=>item.id===id);
+ if(!post||!post.text)return {ok:false,error:'POST_NOT_FOUND'};
+ const allowed=['safety','harassment','spam','other']; const why=String(reason||'').trim().toLowerCase();
+ if(!allowed.includes(why))return {ok:false,error:'INVALID_REPORT_REASON'};
+ try{
+  const response=await fetch('/api/m35-community-report',{method:'POST',credentials:'include',cache:'no-store',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({postId:id,reportedText:post.text,reason:why})});
+  const payload=await response.json().catch(()=>({}));
+  if(!response.ok)return {ok:false,error:payload?.error?.code||'COMMUNITY_REPORT_FAILED'};
+  return {ok:true,error:null,report:payload.report||null};
+ }catch(_){return {ok:false,error:'COMMUNITY_REPORT_UNAVAILABLE'};}
+}
 function listPosts(groupId){const s=load();return {ok:true,error:null,posts:s.posts.filter(p=>!groupId||p.groupId===groupId)};}
-global.BAACommunity={createPost,createPostSecure,listPosts,moderate};
+global.BAACommunity={createPost,createPostSecure,reportPost,listPosts,moderate};
 })(window);
