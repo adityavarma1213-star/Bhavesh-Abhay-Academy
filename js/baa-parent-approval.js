@@ -100,8 +100,18 @@
     };
     panel.querySelector('#m15-save').addEventListener('click',async()=>{
       status.textContent='Saving…';
-      const result=await saveServer({tutor_enabled:panel.querySelector('#m15-tutor').value==='true',mentor_enabled:panel.querySelector('#m15-mentor').value==='true',planner_enabled:panel.querySelector('#m15-planner').value==='true',planner_daily_minutes:Number(panel.querySelector('#m15-minutes').value)});
-      if(result.ok){status.textContent='Saved to the BAA server.';localStorage.removeItem(STORAGE_KEY);}
+      const result=await saveServer({
+        tutorEnabled:panel.querySelector('#m15-tutor').value==='true',
+        mentorEnabled:panel.querySelector('#m15-mentor').value==='true',
+        plannerEnabled:panel.querySelector('#m15-planner').value==='true',
+        plannerDailyMinutes:Number(panel.querySelector('#m15-minutes').value)
+      });
+      if(result.ok){status.textContent='Saved to the BAA server.';localStorage.removeItem(STORAGE_KEY);setValue({
+        tutor_enabled:result.policy.tutorEnabled,
+        mentor_enabled:result.policy.mentorEnabled,
+        planner_enabled:result.policy.plannerEnabled,
+        planner_daily_minutes:result.policy.plannerDailyMinutes
+      });}
       else status.textContent=result.error?.message||'Could not save server policy.';
     });
     loadServer().then(result=>{
