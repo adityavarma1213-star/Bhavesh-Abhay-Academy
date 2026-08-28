@@ -8,7 +8,19 @@ const VERIFICATION=['unverified','pending','verified','rejected','suspended'];
 const SAFEGUARDING=['not_configured','pending','verified','expired'];
 const REQUEST_STATUS=['requested','accepted','declined','cancelled','completed'];
 
+function noStore(res){res.setHeader('Cache-Control','private, no-store, max-age=0');}
+
+async function enforceParentMentorPolicy(session, learnerId){
+  if(!learnerId || hasRole(session,'admin')) return;
+  const r=await sql`SELECT mentor_enabled FROM parent_ai_policies WHERE learner_id=${learnerId} LIMIT 1`;
+  if(r.rows[0] && r.rows[0].mentor_enabled === false){
+    const e=new Error('Mentor access is disabled by the active parent approval policy.');
+    e.status=403; e.code='AI_MENTOR_DISABLED_BY_PARENT_POLICY'; throw e;
+  }
+}
+
 export default async function handler(req,res){
+  noStore(res);
   try{
     const s=await requireAuth(req);
     if(req.method==='GET'){
@@ -23,6 +35,7 @@ export default async function handler(req,res){
         if(!mentorId||!learnerId) return json(res,400,{error:{code:'INVALID_MENTOR_REQUEST',message:'mentorId and learnerId are required.'}});
         const access=await sql`SELECT 1 FROM learners l WHERE l.id=${learnerId} AND l.user_id=${s.user_id} AND l.deactivated_at IS NULL UNION SELECT 1 FROM parent_learner p WHERE p.learner_id=${learnerId} AND p.parent_user_id=${s.user_id} AND p.status='active' LIMIT 1`;
         if(!access.rows.length&&!hasRole(s,'admin')) return json(res,403,{error:{code:'LEARNER_FORBIDDEN',message:'You are not authorized to request mentoring for this learner.'}});
+        await enforceParentMentorPolicy(s,learnerId);
         const mentor=await sql`SELECT id FROM mentor_profiles WHERE id=${mentorId} AND verification_status='verified' AND safeguarding_status='verified' LIMIT 1`;
         if(!mentor.rows.length) return json(res,409,{error:{code:'MENTOR_UNAVAILABLE',message:'Mentor is not currently verified and safeguarded.'}});
         const existing=await sql`SELECT id FROM mentor_requests WHERE mentor_id=${mentorId} AND learner_id=${learnerId} AND status IN ('requested','accepted') LIMIT 1`;
