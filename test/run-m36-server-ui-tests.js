@@ -15,6 +15,10 @@ const checks=[
  ['API learner access',api.includes('requireLearnerAccess(session,learnerId)')],
  ['API evidence',api.includes('FROM learning_evidence')],
  ['API audit',api.includes('INSIGHTS_VIEW')],
+ ['API no-store',api.includes("Cache-Control','private, no-store, max-age=0")],
+ ['client credentials',moduleSource.includes("credentials:'include'")],
+ ['client no-store',moduleSource.includes("cache:'no-store'")],
+ ['client JSON accept',moduleSource.includes("Accept:'application/json'")],
  ['module exposes load',moduleSource.includes('global.BAAInsights={build,load}')],
  ['bootstrap loads UI',catalogue.includes('baa-m36-insights-server-ui.js')],
 ];
