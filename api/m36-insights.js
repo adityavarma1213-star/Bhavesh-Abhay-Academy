@@ -5,7 +5,8 @@ import { sql } from './_lib/db.js';
 export const config={runtime:'nodejs'};
 const clean=(v,max=120)=>String(v??'').trim().slice(0,max);
 export default async function handler(req,res){
-  if(req.method!=='GET')return json(res,405,{error:{code:'METHOD_NOT_ALLOWED',message:'GET required.'}},{Allow:'GET'});
+  res.setHeader('Cache-Control','private, no-store, max-age=0');
+  if(req.method!=='GET')return json(res,405,{error:{code:'METHOD_NOT_ALLOWED',message:'GET required.'}},{Allow:'GET','Cache-Control':'private, no-store, max-age=0'});
   try{
     const session=await requireAuth(req),learnerId=clean(req.query?.learnerId);
     await requireLearnerAccess(session,learnerId);
@@ -18,5 +19,5 @@ export default async function handler(req,res){
     const accuracy=answered?Number((correct/answered*100).toFixed(1)):null;
     await writeAudit({actorUserId:session.user_id,action:'INSIGHTS_VIEW',entityType:'learner',entityId:learnerId,metadata:{answered,accuracy}});
     return json(res,200,{ok:true,learnerId,metrics:{completedAssessments:Number(a.completed||0),answeredQuestions:answered,accuracyPercent:accuracy,weakConceptCount:Number(w.weak||0),trackedConceptCount:Number(e.concepts||0),xp:r.xp==null?null:Number(r.xp)},evidenceQuality:answered?'measured':'insufficient_evidence',limitations:['Metrics are derived from submitted assessment evidence.','Missing evidence is not treated as a weakness.','Insights are learning-support signals, not psychological or future-outcome predictions.']});
-  }catch(e){return json(res,e.status||500,{error:{code:e.code||'INSIGHTS_FAILED',message:e.status?e.message:'Unable to load learning insights.'}});}
+  }catch(e){return json(res,e.status||500,{error:{code:e.code||'INSIGHTS_FAILED',message:e.status?e.message:'Unable to load learning insights.'}},{'Cache-Control':'private, no-store, max-age=0'});}
 }
