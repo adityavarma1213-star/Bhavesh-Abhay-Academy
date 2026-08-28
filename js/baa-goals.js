@@ -39,7 +39,7 @@ function renderServerGoals(payload){
 async function loadServerGoals(learnerId){
  const id=String(learnerId||global.BAA_LEARNER_ID||'').trim();
  if(!id) return {ok:false,error:{code:'LEARNER_ID_REQUIRED'}};
- const response=await fetch(`/api/m25-goal-tracker?learnerId=${encodeURIComponent(id)}`,{credentials:'include',headers:{Accept:'application/json'}});
+ const response=await fetch(`/api/m25-goal-tracker?learnerId=${encodeURIComponent(id)}`,{credentials:'include',cache:'no-store',headers:{Accept:'application/json'}});
  const payload=await response.json().catch(()=>({}));
  if(!response.ok) throw new Error(payload?.error?.message||'Unable to load server goal progress.');
  serverSnapshot=payload;
