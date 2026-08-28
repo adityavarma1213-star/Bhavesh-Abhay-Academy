@@ -1,7 +1,7 @@
 // BAA OS — M15 server-authoritative Parent Approval Mode.
 import { sql } from './_lib/db.js';
 import { requireAuth, hasRole } from './_lib/auth.js';
-import { json } from './_lib/security.js';
+import { json, writeAudit } from './_lib/security.js';
 
 export const config = { runtime: 'nodejs' };
 
@@ -94,6 +94,19 @@ export default async function handler(req, res) {
         updated_by=EXCLUDED.updated_by,
         updated_at=NOW()
     `;
+
+    await writeAudit({
+      actorUserId: session.user_id,
+      action: 'PARENT_AI_POLICY_UPDATED',
+      entityType: 'learner',
+      entityId: learnerId,
+      metadata: {
+        tutorEnabled: policy.tutorEnabled,
+        mentorEnabled: policy.mentorEnabled,
+        plannerEnabled: policy.plannerEnabled,
+        plannerDailyMinutes: policy.plannerDailyMinutes,
+      },
+    });
 
     return json(res, 200, { learnerId, policy });
   } catch (e) {
