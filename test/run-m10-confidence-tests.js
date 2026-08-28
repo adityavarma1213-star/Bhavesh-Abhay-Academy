@@ -13,7 +13,9 @@ assert.match(api,/insufficient_evidence/);
 assert.match(api,/low_confidence_count/);
 assert.match(client,/api\/m10-confidence/);
 assert.match(client,/credentials:'include'/);
+assert.match(client,/cache:'no-store'/);
+assert.match(client,/Accept:'application\/json'/);
 assert.match(bootstrap,/baa-m10-confidence-integration\.js/);
 assert.match(bootstrap,/data-baa-m10-integration/);
 
-console.log('M10 confidence server/client contract: 10/10 checks passed');
+console.log('M10 confidence server/client contract: 12/12 checks passed');
