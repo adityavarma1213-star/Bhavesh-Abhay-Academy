@@ -1,7 +1,7 @@
 /* BAA M35 — Community & Collaboration.
-   Safe local study groups/posts with server safety/reporting gates. No anonymous
-   public network is created by this module; persistent production community
-   storage, age controls and identity/access policy remain separate concerns. */
+   Safe authenticated community posts with server moderation/reporting gates.
+   Server persistence is preferred; local storage remains only for legacy
+   single-device/private testing compatibility. */
 (function(global){
 'use strict';
 const KEY='baa_community_v1';
@@ -12,11 +12,20 @@ function createPost(text,groupId){const m=moderate(text);if(!m.ok)return m;const
 async function createPostSecure(text,groupId){
  const local=moderate(text); if(!local.ok)return local;
  try{
-  const response=await fetch('/api/m35-community-moderate',{method:'POST',credentials:'include',cache:'no-store',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({text:String(text)})});
+  const response=await fetch('/api/m35-community-posts',{method:'POST',credentials:'include',cache:'no-store',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({text:String(text),groupId:String(groupId||'general')})});
   const payload=await response.json().catch(()=>({}));
-  if(!response.ok)return {ok:false,error:payload?.error?.code||'SERVER_MODERATION_REJECTED'};
-  return createPost(text,groupId);
- }catch(_){return {ok:false,error:'SERVER_MODERATION_UNAVAILABLE'};}
+  if(!response.ok)return {ok:false,error:payload?.error?.code||'SERVER_POST_REJECTED'};
+  return {ok:true,error:null,post:payload.post||null};
+ }catch(_){return {ok:false,error:'SERVER_POST_UNAVAILABLE'};}
+}
+async function listPostsSecure(groupId){
+ try{
+  const group=String(groupId||'general');
+  const response=await fetch(`/api/m35-community-posts?groupId=${encodeURIComponent(group)}`,{credentials:'include',cache:'no-store',headers:{Accept:'application/json'}});
+  const payload=await response.json().catch(()=>({}));
+  if(!response.ok)return {ok:false,error:payload?.error?.code||'SERVER_POST_LIST_FAILED',posts:[]};
+  return {ok:true,error:null,posts:Array.isArray(payload.posts)?payload.posts:[]};
+ }catch(_){return {ok:false,error:'SERVER_POST_LIST_UNAVAILABLE',posts:[]};}
 }
 async function reportPost(postId,reason){
  const id=String(postId||'').trim(); const s=load(); const post=s.posts.find(item=>item.id===id);
@@ -31,5 +40,5 @@ async function reportPost(postId,reason){
  }catch(_){return {ok:false,error:'COMMUNITY_REPORT_UNAVAILABLE'};}
 }
 function listPosts(groupId){const s=load();return {ok:true,error:null,posts:s.posts.filter(p=>!groupId||p.groupId===groupId)};}
-global.BAACommunity={createPost,createPostSecure,reportPost,listPosts,moderate};
+global.BAACommunity={createPost,createPostSecure,listPostsSecure,reportPost,listPosts,moderate};
 })(window);
