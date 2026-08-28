@@ -78,7 +78,9 @@
   async function loadServer(learnerId) {
     if (!learnerId) return { ok: false, error: { code: 'LEARNER_ID_REQUIRED' } };
     try {
-      const response = await fetch(`/api/m02-custom-mode?learnerId=${encodeURIComponent(learnerId)}`, { credentials: 'include' });
+      const response = await fetch(`/api/m02-custom-mode?learnerId=${encodeURIComponent(learnerId)}`, {
+        credentials: 'include', cache: 'no-store', headers: { Accept: 'application/json' },
+      });
       const data = await response.json().catch(() => null);
       if (!response.ok) return { ok: false, error: data?.error || { code: 'CUSTOM_MODE_SERVER_READ_FAILED' } };
       const path = normalizePath(data?.path);
@@ -92,7 +94,8 @@
     const normalized = normalizePath(path);
     try {
       const response = await fetch(`/api/m02-custom-mode?learnerId=${encodeURIComponent(learnerId)}`, {
-        method: 'PUT', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+        method: 'PUT', credentials: 'include', cache: 'no-store',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         body: JSON.stringify(normalized),
       });
       const data = await response.json().catch(() => null);
@@ -104,7 +107,9 @@
   async function clearServer(learnerId) {
     if (!learnerId) return { ok: false, error: { code: 'LEARNER_ID_REQUIRED' } };
     try {
-      const response = await fetch(`/api/m02-custom-mode?learnerId=${encodeURIComponent(learnerId)}`, { method: 'DELETE', credentials: 'include' });
+      const response = await fetch(`/api/m02-custom-mode?learnerId=${encodeURIComponent(learnerId)}`, {
+        method: 'DELETE', credentials: 'include', cache: 'no-store', headers: { Accept: 'application/json' },
+      });
       const data = await response.json().catch(() => null);
       if (!response.ok) return { ok: false, error: data?.error || { code: 'CUSTOM_MODE_SERVER_DELETE_FAILED' } };
       return savePath(normalizePath(data?.path));
