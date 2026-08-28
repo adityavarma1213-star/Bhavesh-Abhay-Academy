@@ -1,10 +1,14 @@
-import { json } from './_lib/security.js';
+import { json, writeAudit } from './_lib/security.js';
 import { requireAuth, requireLearnerAccess } from './_lib/auth.js';
 import { sql } from './_lib/db.js';
 
 export const config = { runtime: 'nodejs' };
 
 const ALLOWED_TYPES = new Set(['exam', 'deadline', 'holiday', 'school_event']);
+
+function noStore(res) {
+  res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+}
 
 function cleanEvent(input = {}) {
   const title = String(input.title || '').trim().slice(0, 120);
@@ -28,6 +32,7 @@ function rowsToEvents(rows) {
 }
 
 async function handler(req, res) {
+  noStore(res);
   try {
     const session = await requireAuth(req);
     const learnerId = String(req.query?.learnerId || req.body?.learnerId || '');
@@ -54,7 +59,15 @@ async function handler(req, res) {
         INSERT INTO school_calendar_events (learner_id,title,event_date,event_type,subject)
         VALUES (${learnerId},${event.title},${event.date}::date,${event.type},${event.subject})
         RETURNING id,title,event_date,event_type,subject,created_at`;
-      return json(res, 201, { ok: true, event: rowsToEvents(rows.rows)[0] });
+      const created = rowsToEvents(rows.rows)[0];
+      await writeAudit({
+        actorUserId: session.user_id,
+        action: 'school_calendar.event.create',
+        entityType: 'school_calendar_event',
+        entityId: String(created.id),
+        metadata: { learnerId, eventType: event.type },
+      });
+      return json(res, 201, { ok: true, event: created });
     }
 
     if (req.method === 'DELETE') {
@@ -62,7 +75,17 @@ async function handler(req, res) {
       if (!/^[0-9a-f-]{36}$/i.test(id)) return json(res, 400, { error: { code: 'INVALID_EVENT_ID', message: 'A valid event id is required.' } });
       const result = await sql`
         DELETE FROM school_calendar_events WHERE id=${id} AND learner_id=${learnerId}`;
-      return json(res, 200, { ok: true, deleted: result.rowCount > 0 });
+      const deleted = result.rowCount > 0;
+      if (deleted) {
+        await writeAudit({
+          actorUserId: session.user_id,
+          action: 'school_calendar.event.delete',
+          entityType: 'school_calendar_event',
+          entityId: id,
+          metadata: { learnerId },
+        });
+      }
+      return json(res, 200, { ok: true, deleted });
     }
 
     return json(res, 405, { error: { code: 'METHOD_NOT_ALLOWED', message: 'GET, POST or DELETE required.' } }, { Allow: 'GET, POST, DELETE' });
