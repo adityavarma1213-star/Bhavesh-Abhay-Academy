@@ -12,6 +12,10 @@ function body(req) {
   try { return JSON.parse(req.body || '{}'); } catch { return {}; }
 }
 
+function noStore(res) {
+  if (typeof res?.setHeader === 'function') res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+}
+
 async function resolveLearner(session, requestedId) {
   if (hasRole(session, 'student')) {
     const own = await sql`SELECT id, user_id FROM learners WHERE user_id=${session.user_id} AND deactivated_at IS NULL LIMIT 1`;
@@ -34,6 +38,7 @@ async function resolveLearner(session, requestedId) {
 }
 
 export default async function handler(req, res) {
+  noStore(res);
   try {
     const session = await requireAuth(req);
     if (req.method === 'GET') {
