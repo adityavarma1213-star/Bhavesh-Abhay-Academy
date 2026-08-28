@@ -17,5 +17,7 @@ assert(/Cache-Control/.test(api),'M01 adapter must prevent caching learner-speci
 assert(/no-store/.test(api),'M01 adapter must use no-store for learner-specific AI evidence');
 assert(/api\/m01-ai-mode/.test(client),'M01 client must use authoritative server adapter');
 assert(/credentials:\s*['"]include['"]/.test(client),'M01 client must send authenticated credentials');
+assert(/cache:\s*['"]no-store['"]/.test(client),'M01 client must prevent caching learner-specific AI plans');
+assert(/Accept['"]:\s*['"]application\/json/.test(client),'M01 client must request JSON responses explicitly');
 assert(/BAA_LEARNER_ID/.test(client),'M01 client must use authenticated learner handoff');
-console.log('M01 authoritative evidence contract: 12/12 checks passed');
+console.log('M01 authoritative evidence contract: 14/14 checks passed');
