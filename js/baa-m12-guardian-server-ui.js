@@ -41,7 +41,7 @@
     const id = learnerId();
     if (!id || typeof fetch !== 'function') { render(panel, { ok:false, error:'LEARNER_ID_REQUIRED' }); return; }
     try {
-      const response = await fetch(`/api/m12-guardian?learnerId=${encodeURIComponent(id)}`, { credentials:'include', headers:{Accept:'application/json'} });
+      const response = await fetch(`/api/m12-guardian?learnerId=${encodeURIComponent(id)}`, { credentials:'include', cache:'no-store', headers:{Accept:'application/json'} });
       const payload = await response.json().catch(() => ({}));
       render(panel, response.ok ? payload : { ok:false, error:payload?.error?.code || 'GUARDIAN_FAILED' });
     } catch (error) {
