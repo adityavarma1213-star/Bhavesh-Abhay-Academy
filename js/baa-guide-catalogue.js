@@ -16,12 +16,13 @@
     {id:'teacher-portal',title:'Teacher Portal',icon:'🧑‍🏫',roles:['teacher','admin'],description:'Teacher and academic management portal protected by the server-side role gate.',route:'teacher-portal.html'},
     {id:'themes',title:'Theme Engine',icon:'🎨',roles:['student','parent','teacher','admin'],description:'Choose Aurora, Galaxy, Academic, NeoGlass, Calm or Duology, with Light, Dark or System display mode.',route:'student-os.html'},
     {id:'feature-map',title:'Feature Map',icon:'🗺️',roles:['student','parent','teacher','admin'],description:'See the BAA feature map and understand how the major product areas connect.',route:'feature-map.html'},
+    {id:'adaptive-pacing',title:'Adaptive Pacing',icon:'⏱️',roles:['student'],description:'Adjust planned learning scope or intensity using explicit available time, planned time and self-reported energy.',route:'student-os.html'},
     {id:'trust',title:'Trust & Privacy',icon:'🔐',roles:['student','parent','teacher','admin'],description:'Review BAA trust, privacy and data-handling information.',route:'trust-privacy.html'},
     {id:'user-guide',title:'User Guide',icon:'📖',roles:['student','parent','teacher','admin'],description:'Read the written guide to the major BAA OS features.',route:'user-guide.html'},
     {id:'demo',title:'BAA Demo',icon:'▶️',roles:['student','parent','teacher','admin'],description:'Open the product demonstration experience.',route:'demo.html'}
   ];
   function clone(){return FEATURES.map(function(f){return Object.assign({},f,{roles:f.roles.slice()});});}
-  global.BAAGuideCatalogue={version:'m63.18',features:FEATURES.slice(),getFeatures:clone,getFeature:function(id){return FEATURES.find(function(f){return f.id===id;})||null;}};
+  global.BAAGuideCatalogue={version:'m63.19',features:FEATURES.slice(),getFeatures:clone,getFeature:function(id){return FEATURES.find(function(f){return f.id===id;})||null;}};
 
   function loadScript(src,attribute){
     if(document.querySelector('script['+attribute+']')) return;
@@ -45,6 +46,7 @@
     loadScript('js/baa-m30-rewards-server-ui.js','data-baa-m30-rewards-ui');loadScript('js/baa-m36-insights-server-ui.js','data-baa-m36-insights-server-ui');loadScript('js/baa-m43-scholarship-server-ui.js','data-baa-m43-scholarship-server-ui');loadScript('js/baa-m48-collaboration-server.js','data-baa-m48-server');
     loadScript('js/baa-m04-ai-tutor-server.js','data-baa-m04-tutor-server');loadScript('js/baa-m52-mistake-server-ui.js','data-baa-m52-mistake-server-ui');loadScript('js/baa-server-learner-view.js','data-baa-server-learner-view');loadScript('js/baa-teacher-server-dashboard.js','data-baa-teacher-server-dashboard');
     loadScript('js/baa-m58-teacher-diagnostic-ui.js','data-baa-m58-teacher-diagnostic-ui');loadScript('js/baa-m51-pedagogy-server-ui.js','data-baa-m51-pedagogy-server-ui');loadScript('js/baa-m26-notes-server-ui.js','data-baa-m26-notes-server-ui');
+    loadScript('js/baa-m56-adaptive-pacing-server.js','data-baa-m56-adaptive-pacing-server');
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',startBridges);else startBridges();
 })(window);
