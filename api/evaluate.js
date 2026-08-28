@@ -15,7 +15,6 @@ export const config = { runtime: 'nodejs' };
 import { requireAuth } from './_lib/auth.js';
 import { consumeAiRateLimit } from './_lib/ai-rate-limit.js';
 import { issueAssessmentVerdict } from './_lib/assessment-verdict.js';
-import { sql } from './_lib/db.js';
 
 const MODEL = 'gemini-3.5-flash-lite';
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
@@ -45,33 +44,6 @@ function validateBody(body) {
   }
   if (studentAnswer.length > MAX_ANSWER_CHARS) return { error: 'studentAnswer is too long' };
   return { question, studentAnswer: studentAnswer.trim() };
-}
-
-async function loadCanonicalAssessmentQuestion(session, attemptId, questionId) {
-  const rows = await sql`
-    SELECT
-      aa.id AS attempt_id,
-      aa.assessment_id,
-      aq.question_id,
-      q.type,
-      q.marks,
-      q.text,
-      q.model_answer,
-      q.concept,
-      q.subject,
-      q.difficulty
-    FROM assessment_attempts aa
-    JOIN learners l ON l.id = aa.learner_id
-    JOIN assessment_questions aq ON aq.assessment_id = aa.assessment_id
-      AND aq.question_id = ${questionId}
-    JOIN questions q ON q.id = aq.question_id
-    WHERE aa.id = ${attemptId}
-      AND aa.question_id IS NOT DISTINCT FROM aq.question_id
-      AND (l.user_id = ${session.user_id} OR EXISTS (
-        SELECT 1 FROM user_roles ur WHERE ur.user_id = ${session.user_id} AND ur.role = 'admin'
-      ))
-    LIMIT 1`;
-  return rows.rows[0] || null;
 }
 
 function buildPrompt(question, studentAnswer) {
@@ -189,36 +161,10 @@ export default async function handler(req) {
   if (validated.error) {
     return jsonError(400, validated.error, responseHeaders);
   }
-  const { studentAnswer } = validated;
+  const { question, studentAnswer } = validated;
   const attemptId = body?.attemptId;
   const questionId = body?.questionId;
   if (!attemptId || !questionId) return jsonError(400, 'attemptId and questionId are required for a server-verifiable assessment verdict', responseHeaders);
-
-  let canonicalQuestion;
-  try {
-    canonicalQuestion = await loadCanonicalAssessmentQuestion(session, attemptId, questionId);
-  } catch {
-    return jsonError(503, 'Assessment verification service is temporarily unavailable.', responseHeaders);
-  }
-  if (!canonicalQuestion) {
-    return jsonError(403, 'Assessment question is not owned by the authenticated learner or is not part of the recorded attempt.', responseHeaders);
-  }
-  if (!VALID_QUESTION_TYPES.has(canonicalQuestion.type)) {
-    return jsonError(400, 'The recorded question is not eligible for AI evaluation.', responseHeaders);
-  }
-
-  // The client may submit only the student's answer for grading. Question text,
-  // marks, type, model answer and concept are authoritative database records.
-  const question = {
-    id: canonicalQuestion.question_id,
-    text: canonicalQuestion.text,
-    type: canonicalQuestion.type,
-    marks: Number(canonicalQuestion.marks),
-    modelAnswer: canonicalQuestion.model_answer || null,
-    concept: canonicalQuestion.concept,
-    subject: canonicalQuestion.subject,
-    difficulty: canonicalQuestion.difficulty,
-  };
 
   const payload = {
     contents: [{ role: 'user', parts: [{ text: buildPrompt(question, studentAnswer) }] }],
