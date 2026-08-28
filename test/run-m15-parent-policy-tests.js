@@ -11,6 +11,8 @@ const checks = [
   ['Parent learner ownership', api.includes('FROM parent_learner') && api.includes("status='active'"), 'parent must be actively linked to learner'],
   ['Server persistence', api.includes('parent_ai_policies'), 'policy is stored server-side'],
   ['Server no-store policy', api.includes("res.setHeader('Cache-Control', 'private, no-store, max-age=0')"), 'learner policy responses cannot be cached'],
+  ['Policy audit import', api.includes("import { json, writeAudit } from './_lib/security.js';"), 'policy mutations use the shared audit helper'],
+  ['Policy mutation audit', api.includes("action: 'PARENT_AI_POLICY_UPDATED'") && api.includes('await writeAudit'), 'successful policy changes are auditable'],
   ['Tutor control', migration.includes('tutor_enabled BOOLEAN'), 'Tutor enable/disable is persisted'],
   ['Mentor control', migration.includes('mentor_enabled BOOLEAN'), 'Mentor enable/disable is persisted'],
   ['Planner control', migration.includes('planner_enabled BOOLEAN'), 'Planner enable/disable is persisted'],
