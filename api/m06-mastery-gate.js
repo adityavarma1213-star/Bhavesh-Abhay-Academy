@@ -1,0 +1,104 @@
+import { json, id, verifyPassword, writeAudit, clientIp } from './_lib/security.js';
+import { requireAuth, requireLearnerAccess, hasRole } from './_lib/auth.js';
+import { sql } from './_lib/db.js';
+
+export const config = { runtime: 'nodejs' };
+const clean = (v, max = 180) => String(v ?? '').trim().slice(0, max);
+const findingKey = (subject, chapter, concept, label) => `${subject}::${chapter}::${concept}::${label}`.toLowerCase();
+
+async function buildGate(learnerId, subject, chapter) {
+  const evidence = await sql`
+    SELECT le.id, le.attempt_id AS "attemptId", le.question_id AS "questionId",
+           le.subject, le.chapter, le.concept, le.correctness,
+           le.finding_details AS "findingDetails", le.created_at AS "createdAt",
+           q.common_error_type AS "commonErrorType"
+    FROM learning_evidence le
+    JOIN questions q ON q.id=le.question_id
+    WHERE le.learner_id=${learnerId}
+      AND le.subject=${subject}
+      AND le.chapter=${chapter}
+    ORDER BY le.created_at DESC
+    LIMIT 500`;
+
+  const rows = Array.isArray(evidence.rows) ? evidence.rows : [];
+  const findings = new Map();
+  const latestConcept = new Map();
+  for (const row of rows) {
+    const concept = clean(row.concept, 180) || 'Unspecified concept';
+    const conceptKey = `${row.subject}::${row.chapter}::${concept}`;
+    if (!latestConcept.has(conceptKey)) latestConcept.set(conceptKey, row.correctness);
+    if (!['incorrect','partially_correct','uncertain'].includes(String(row.correctness))) continue;
+    const details = Array.isArray(row.findingDetails) && row.findingDetails.length ? row.findingDetails : [row.commonErrorType || 'general_error'];
+    for (const raw of details) {
+      const label = clean(raw, 180) || 'general_error';
+      const key = findingKey(row.subject, row.chapter, concept, label);
+      if (!findings.has(key)) findings.set(key, { key, type: clean(row.commonErrorType || 'concept_gap', 80) || 'concept_gap', text: label, concept, status: 'red', attemptId: row.attemptId, questionId: row.questionId, firstSeenAt: row.createdAt, lastSeenAt: row.createdAt, clearedAt: null });
+    }
+  }
+  for (const f of findings.values()) {
+    const conceptKey = `${subject}::${chapter}::${f.concept}`;
+    if (latestConcept.get(conceptKey) === 'correct') {
+      f.status = 'green';
+      f.clearedAt = f.lastSeenAt;
+    }
+  }
+  const list = [...findings.values()];
+  const red = list.filter(f => f.status === 'red');
+  const green = list.filter(f => f.status === 'green');
+  const gateStatus = red.length ? 'locked' : (list.length ? 'cleared' : 'open');
+
+  if (rows[0]) {
+    const gateId = `gate_${learnerId}_${Buffer.from(`${subject}:${chapter}`).toString('base64url').slice(0,80)}`;
+    await sql`
+      INSERT INTO learning_progression_gates(id,learner_id,subject,chapter,status,red_count,green_count,last_assessment_id,last_attempt_id,updated_at)
+      VALUES(${gateId},${learnerId},${subject},${chapter},${gateStatus},${red.length},${green.length},
+        (SELECT assessment_id FROM assessment_attempts WHERE id=${rows[0].attemptId} LIMIT 1),${rows[0].attemptId},NOW())
+      ON CONFLICT (learner_id,subject,chapter) DO UPDATE SET status=EXCLUDED.status,red_count=EXCLUDED.red_count,green_count=EXCLUDED.green_count,last_assessment_id=EXCLUDED.last_assessment_id,last_attempt_id=EXCLUDED.last_attempt_id,updated_at=NOW()`;
+
+    for (const f of list) {
+      await sql`
+        INSERT INTO learning_gate_findings(id,learner_id,subject,chapter,attempt_id,question_id,finding_key,finding_type,finding_text,status,first_seen_at,last_seen_at,cleared_at)
+        VALUES(${id('gatefinding')},${learnerId},${subject},${chapter},${f.attemptId},${f.questionId},${f.key},${f.type},${f.text},${f.status},${f.firstSeenAt},${f.lastSeenAt},${f.clearedAt})
+        ON CONFLICT (learner_id,subject,chapter,finding_key) DO UPDATE SET status=EXCLUDED.status,last_seen_at=EXCLUDED.last_seen_at,cleared_at=EXCLUDED.cleared_at`;
+    }
+  }
+  const bypass = await sql`
+    SELECT id, reason, created_at AS "createdAt", parent_user_id AS "parentUserId"
+    FROM learning_gate_bypasses
+    WHERE learner_id=${learnerId} AND subject=${subject} AND chapter=${chapter}
+    ORDER BY created_at DESC LIMIT 1`;
+  return { learnerId, subject, chapter, status: gateStatus, redCount: red.length, greenCount: green.length, findings: list, bypass: bypass.rows[0] || null, evidenceCount: rows.length };
+}
+
+export default async function handler(req, res) {
+  res.setHeader('Cache-Control','private, no-store, max-age=0');
+  try {
+    const session = await requireAuth(req);
+    const body = req.body || {};
+    const learnerId = clean(req.query?.learnerId || body.learnerId, 120);
+    const subject = clean(req.query?.subject || body.subject, 120);
+    const chapter = clean(req.query?.chapter || body.chapter, 180);
+    if (!learnerId || !subject || !chapter) return json(res,400,{error:{code:'INVALID_GATE_SCOPE',message:'learnerId, subject and chapter are required.'}});
+    await requireLearnerAccess(session, learnerId);
+
+    if (req.method === 'GET') return json(res,200,{ok:true,gate:await buildGate(learnerId,subject,chapter)});
+    if (req.method !== 'POST') return json(res,405,{error:{code:'METHOD_NOT_ALLOWED',message:'GET or POST required.'}},{Allow:'GET, POST'});
+    if (String(body.action || '') !== 'bypass') return json(res,400,{error:{code:'INVALID_GATE_ACTION',message:'POST requires action=bypass.'}});
+    if (!hasRole(session,'parent')) return json(res,403,{error:{code:'PARENT_REQUIRED',message:'Only an authenticated parent can bypass a progression gate.'}});
+    const relation = await sql`SELECT 1 FROM parent_learner WHERE parent_user_id=${session.user_id} AND learner_id=${learnerId} AND status='active' LIMIT 1`;
+    if (!relation.rows.length) return json(res,403,{error:{code:'PARENT_LEARNER_FORBIDDEN',message:'No active parent relationship exists for this learner.'}});
+    const password = String(body.password || '');
+    if (!password) return json(res,400,{error:{code:'PASSWORD_REAUTH_REQUIRED',message:'Parent password re-entry is required.'}});
+    const credential = await sql`SELECT password_hash FROM credentials WHERE user_id=${session.user_id} LIMIT 1`;
+    if (!credential.rows.length || !verifyPassword(password,credential.rows[0].password_hash)) return json(res,401,{error:{code:'PASSWORD_REAUTH_FAILED',message:'Password verification failed.'}});
+    const reason = clean(body.reason,500);
+    if (!reason) return json(res,400,{error:{code:'BYPASS_REASON_REQUIRED',message:'A reason is required for a progression-gate bypass.'}});
+    const bypassId=id('gatebypass');
+    await sql`INSERT INTO learning_gate_bypasses(id,learner_id,parent_user_id,subject,chapter,reason,created_at,ip_address) VALUES(${bypassId},${learnerId},${session.user_id},${subject},${chapter},${reason},NOW(),${clientIp(req)})`;
+    await writeAudit({actorUserId:session.user_id,action:'mastery_gate.bypass',entityType:'learner_progression_gate',entityId:`${learnerId}:${subject}:${chapter}`,metadata:{learnerId,subject,chapter,reason,bypassId,ip:clientIp(req)}});
+    return json(res,200,{ok:true,bypassId,gate:{...(await buildGate(learnerId,subject,chapter)),bypass:{id:bypassId,reason,createdAt:new Date().toISOString(),parentUserId:session.user_id}}});
+  } catch (e) {
+    console.error('MASTERY_GATE_FAILED',e);
+    return json(res,e.status||500,{error:{code:e.code||'MASTERY_GATE_FAILED',message:e.status?e.message:'Unable to evaluate mastery gate.'}});
+  }
+}
