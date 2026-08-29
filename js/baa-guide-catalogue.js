@@ -48,12 +48,13 @@
     {id:'cognitive-safety',title:'Cognitive Safety',icon:'🧠',roles:['student'],description:'Use student-only cognitive-safety check-ins and server-computed recommendations.',route:'student-os.html'},
     {id:'teacher-diagnostic',title:'Teacher Diagnostic',icon:'🩺',roles:['teacher','admin'],description:'Review evidence-derived instructional diagnostics; this is not a psychological diagnosis.',route:'teacher-os.html'},
     {id:'humane-ui',title:'Humane UI',icon:'❤️',roles:['student','parent','teacher','admin'],description:'Apply actionable interface-safety rules against manipulative, shaming or emotion-inference patterns.',route:'student-os.html'},
+    {id:'parent-conversation',title:'Parent Learning Conversation',icon:'💬',roles:['parent'],description:'Generate supportive, non-diagnostic conversation prompts from the learner’s recorded academic evidence.',route:'parent-os.html'},
     {id:'trust',title:'Trust & Privacy',icon:'🔐',roles:['student','parent','teacher','admin'],description:'Review BAA trust, privacy and data-handling information.',route:'trust-privacy.html'},
     {id:'user-guide',title:'User Guide',icon:'📖',roles:['student','parent','teacher','admin'],description:'Read the written guide to the major BAA OS features.',route:'user-guide.html'},
     {id:'demo',title:'BAA Demo',icon:'▶️',roles:['student','parent','teacher','admin'],description:'Open the product demonstration experience.',route:'demo.html'}
   ];
   function clone(){return FEATURES.map(function(f){return Object.assign({},f,{roles:f.roles.slice()});});}
-  global.BAAGuideCatalogue={version:'m63.20',features:FEATURES.slice(),getFeatures:clone,getFeature:function(id){return FEATURES.find(function(f){return f.id===id;})||null;}};
+  global.BAAGuideCatalogue={version:'m63.21',features:FEATURES.slice(),getFeatures:clone,getFeature:function(id){return FEATURES.find(function(f){return f.id===id;})||null;}};
 
   function loadScript(src,attribute){
     if(document.querySelector('script['+attribute+']')) return;
