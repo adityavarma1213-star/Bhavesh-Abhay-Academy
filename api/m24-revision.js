@@ -3,11 +3,12 @@ import { requireAuth, requireLearnerAccess } from './_lib/auth.js';
 import { sql } from './_lib/db.js';
 
 export const config = { runtime: 'nodejs' };
+const MIN_EVIDENCE = 3;
 const clean = (v, max = 160) => String(v ?? '').trim().slice(0, max);
-const intervalFor = (incorrect, partial, evidence) => incorrect >= 2 ? 1 : partial >= 1 ? 3 : evidence >= 6 ? 30 : evidence >= 3 ? 14 : 7;
+const intervalFor = (incorrect, partial, evidence) => incorrect >= 2 ? 1 : partial >= 1 ? 3 : evidence >= 6 ? 30 : evidence >= MIN_EVIDENCE ? 14 : 7;
 
 export default async function handler(req, res) {
-  if (req.method !== 'GET') return json(res, 405, { error: { code: 'METHOD_NOT_ALLOWED', message: 'GET required.' } }, { Allow: 'GET', 'Cache-Control': 'no-store' });
+  if (req.method !== 'GET') return json(res, 405, { error: { code: 'METHOD_NOT_ALLOWED', message: 'GET required.' } }, { Allow: 'GET', 'Cache-Control': 'private, no-store, max-age=0' });
   try {
     const session = await requireAuth(req);
     const learnerId = clean(req.query?.learnerId, 120);
@@ -31,11 +32,11 @@ export default async function handler(req, res) {
       const interval = intervalFor(incorrect, partial, evidence);
       const last = Date.parse(r.last_seen || '');
       const days = Number.isFinite(last) ? Math.max(0, Math.floor((now-last)/86400000)) : 0;
-      const state = incorrect >= 2 ? 'struggling' : partial >= 1 ? 'needs_revision' : evidence < 3 ? 'learning' : 'stable';
-      return { concept:r.concept || 'Unspecified concept', subject:r.subject || null, chapter:r.chapter || null, status:state, evidenceCount:evidence, reviewIntervalDays:interval, due:days>=interval, lastSeen:r.last_seen, reason:`Review interval selected from ${state} server evidence.` };
+      const state = evidence < MIN_EVIDENCE ? 'insufficient_evidence' : incorrect >= 2 ? 'struggling' : partial >= 1 ? 'needs_revision' : 'stable';
+      return { concept:r.concept || 'Unspecified concept', subject:r.subject || null, chapter:r.chapter || null, status:state, evidenceCount:evidence, reviewIntervalDays:interval, due:days>=interval, lastSeen:r.last_seen, reason:evidence < MIN_EVIDENCE ? `Not enough evidence yet (${evidence}/${MIN_EVIDENCE} required) to characterize revision need.` : `Review interval selected from ${state} server evidence.` };
     });
-    return json(res, 200, { ok:true, learnerId, plan, source:'server_learning_evidence', limitation:'Revision timing is an evidence-based product heuristic, not a medically or scientifically validated timing claim.' }, { 'Cache-Control': 'no-store' });
+    return json(res, 200, { ok:true, learnerId, plan, evidenceGate:{ minimumEvidence:MIN_EVIDENCE, sparseEvidenceStatus:'insufficient_evidence' }, source:'server_learning_evidence', limitation:'Revision timing is an evidence-based product heuristic, not a medically or scientifically validated timing claim.' }, { 'Cache-Control': 'private, no-store, max-age=0' });
   } catch (e) {
-    return json(res, e.status || 500, { error: { code:e.code || 'REVISION_FAILED', message:e.status ? e.message : 'Unable to load revision evidence.' } }, { 'Cache-Control': 'no-store' });
+    return json(res, e.status || 500, { error: { code:e.code || 'REVISION_FAILED', message:e.status ? e.message : 'Unable to load revision evidence.' } }, { 'Cache-Control': 'private, no-store, max-age=0' });
   }
 }
