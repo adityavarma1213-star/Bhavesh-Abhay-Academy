@@ -23,7 +23,10 @@ function buildAcademicAlerts(memoryRows, assessmentRows) {
     const latest = rows[0];
     const evidenceCount = Number(latest?.evidence_count || 0);
     const correctCount = Number(latest?.correct_count || 0);
-    if (latest?.status === 'needs_revision' && evidenceCount >= 2) {
+    // BAA's evidence gate requires at least three answered questions before
+    // an academic concept can be characterized as needing revision. Sparse
+    // evidence must remain informational rather than becoming a Guardian alert.
+    if (latest?.status === 'needs_revision' && evidenceCount >= 3) {
       alerts.push({
         id: `low_performance:${concept}`,
         severity: evidenceCount >= 4 && correctCount <= 1 ? 'high' : 'medium',
