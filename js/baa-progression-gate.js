@@ -6,11 +6,12 @@
 (function(global){
 'use strict';
 const esc=(v)=>{const d=document.createElement('div');d.textContent=String(v??'');return d.innerHTML;};
+const fresh={credentials:'include',cache:'no-store',headers:{Accept:'application/json'}};
 let learnerId=null;
 function setLearnerId(id){learnerId=id||null;}
 async function getGate(subject,chapter){
   if(!learnerId) return {ok:false,localOnly:true,gate:{subject,chapter,status:'open',redCount:0,greenCount:0,totalFindings:0},canEnter:true};
-  const r=await fetch(`/api/v1/progression-gate?learnerId=${encodeURIComponent(learnerId)}&subject=${encodeURIComponent(subject)}&chapter=${encodeURIComponent(chapter)}`,{credentials:'include'});
+  const r=await fetch(`/api/v1/progression-gate?learnerId=${encodeURIComponent(learnerId)}&subject=${encodeURIComponent(subject)}&chapter=${encodeURIComponent(chapter)}`,fresh);
   const p=await r.json().catch(()=>({}));
   if(!r.ok) throw new Error(p?.error?.message||'Could not load progression gate.');
   return p;
@@ -40,7 +41,7 @@ async function renderStudentGate({mountId='progressionGatePanel',subject,chapter
 async function renderForecast({mountId='academicForecastPanel'}={}){
  const mount=document.getElementById(mountId);if(!mount||!learnerId)return null;
  try{
-  const r=await fetch(`/api/v1/academic-forecast?learnerId=${encodeURIComponent(learnerId)}`,{credentials:'include'}); const p=await r.json(); if(!r.ok)throw new Error(p?.error?.message||'Forecast unavailable');
+  const r=await fetch(`/api/v1/academic-forecast?learnerId=${encodeURIComponent(learnerId)}`,fresh); const p=await r.json(); if(!r.ok)throw new Error(p?.error?.message||'Forecast unavailable');
   const overall=p.overallPercentage==null?'—':`${p.overallPercentage}%`;
   mount.innerHTML=`<div class="forecast-card"><div class="forecast-head"><div><div class="gate-kicker">ACADEMIC FORECAST</div><h3>🔮 Exam readiness</h3></div><b>${overall}</b></div>${p.exams?.length?p.exams.map(e=>{const f=e.forecast;const cls=f.warningLevel==='urgent'?'urgent':f.warningLevel?.includes('caution')?'caution':'good';return `<div class="forecast-row"><div><b>${esc(e.title)}</b><small>${esc(e.subject||'')} ${e.chapter?'· '+esc(e.chapter):''} · ${e.daysUntil} day${e.daysUntil===1?'':'s'} away</small></div><span class="forecast-pill ${cls}">${f.status==='forecast'?`${f.predictedPercentage}% (${f.range.low}–${f.range.high}%)`:'Need more evidence'}</span></div>${f.warningLevel&&f.warningLevel!=='monitor'?`<div class="forecast-warning ${cls}">⚠️ ${f.warningLevel==='urgent'?'Priority revision is recommended now.':'Exam is approaching and current evidence is below the preferred readiness band.'}</div>`:''}`}).join(''):'<div class="gate-empty">Add an upcoming assessment linked to a BAA assessment to receive an evidence-based forecast.</div>'}</div>`;
   return p;
