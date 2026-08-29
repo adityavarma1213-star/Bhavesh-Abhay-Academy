@@ -4,6 +4,7 @@ import { sql } from './_lib/db.js';
 
 export const config = { runtime: 'nodejs' };
 const clean = (v, max = 180) => String(v ?? '').trim().slice(0, max);
+const MIN_EVIDENCE = 3;
 const pct = (correct, total) => total > 0 ? correct / total : 0;
 
 function aggregate(rows) {
@@ -18,7 +19,7 @@ function aggregate(rows) {
     else item.uncertainCount += 1;
     if (!item.lastSeen || new Date(row.createdAt) > new Date(item.lastSeen)) item.lastSeen = row.createdAt;
   }
-  return [...map.values()].map(x => ({ ...x, accuracy: pct(x.correctCount, x.evidenceCount), insufficientEvidence: x.evidenceCount < 2 }));
+  return [...map.values()].map(x => ({ ...x, accuracy: pct(x.correctCount, x.evidenceCount), insufficientEvidence: x.evidenceCount < MIN_EVIDENCE }));
 }
 
 export default async function handler(req, res) {
@@ -45,13 +46,13 @@ export default async function handler(req, res) {
         LIMIT 1000`
     ]);
     const concepts = aggregate(evidenceResult.rows);
-    const weaknesses = concepts.filter(x => x.evidenceCount >= 2 && x.accuracy < 0.6)
+    const weaknesses = concepts.filter(x => x.evidenceCount >= MIN_EVIDENCE && x.accuracy < 0.6)
       .sort((a,b) => a.accuracy-b.accuracy || b.evidenceCount-a.evidenceCount)
       .map(x => ({ ...x, status: 'needs_revision', reason: `Recorded evidence is below the weakness threshold (${x.correctCount}/${x.evidenceCount} correct).` }));
-    const strengths = concepts.filter(x => x.evidenceCount >= 2 && x.accuracy >= 0.8)
+    const strengths = concepts.filter(x => x.evidenceCount >= MIN_EVIDENCE && x.accuracy >= 0.8)
       .sort((a,b) => b.accuracy-a.accuracy || b.evidenceCount-a.evidenceCount)
       .map(x => ({ ...x, status: 'strong', reason: `Recorded evidence shows ${x.correctCount}/${x.evidenceCount} correct.` }));
-    const prioritizedConcepts = concepts.filter(x => x.evidenceCount >= 2)
+    const prioritizedConcepts = concepts.filter(x => x.evidenceCount >= MIN_EVIDENCE)
       .sort((a,b) => a.accuracy-b.accuracy || b.evidenceCount-a.evidenceCount)
       .map(x => ({ subject: x.subject, concept: x.concept, accuracy: x.accuracy, evidenceCount: x.evidenceCount }));
     const rank = new Map(prioritizedConcepts.map((x,i) => [`${x.subject || 'Unknown'}::${x.concept}`, i]));
@@ -61,7 +62,7 @@ export default async function handler(req, res) {
       .filter(q => rank.has(`${q.subject || 'Unknown'}::${q.concept}`))
       .sort((a,b) => rank.get(`${a.subject || 'Unknown'}::${a.concept}`) - rank.get(`${b.subject || 'Unknown'}::${b.concept}`) || String(a.id).localeCompare(String(b.id)))
       .slice(0, 20);
-    return json(res, 200, { ok: true, learnerId, evidenceCount: evidenceResult.rows.length, weaknesses, strengths, prioritizedConcepts, practiceQuestions, limitation: 'M21–M23 summarize recorded academic evidence only; they do not diagnose ability, motivation, personality, or psychological traits.' });
+    return json(res, 200, { ok: true, learnerId, evidenceCount: evidenceResult.rows.length, weaknesses, strengths, prioritizedConcepts, practiceQuestions, evidenceGate: { minimumEvidence: MIN_EVIDENCE, sparseEvidenceStatus: 'insufficient_evidence' }, limitation: 'M21–M23 summarize recorded academic evidence only; they do not diagnose ability, motivation, personality, or psychological traits.' });
   } catch (e) {
     return json(res, e.status || 500, { error: { code: e.code || 'M21_23_EVIDENCE_FAILED', message: e.status ? e.message : 'Unable to load learning evidence.' } });
   }
