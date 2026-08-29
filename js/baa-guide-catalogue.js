@@ -78,6 +78,7 @@
     loadScript('js/baa-m04-ai-tutor-server.js','data-baa-m04-tutor-server');loadScript('js/baa-m52-mistake-server-ui.js','data-baa-m52-mistake-server-ui');loadScript('js/baa-server-learner-view.js','data-baa-server-learner-view');loadScript('js/baa-teacher-server-dashboard.js','data-baa-teacher-server-dashboard');
     loadScript('js/baa-m58-teacher-diagnostic-ui.js','data-baa-m58-teacher-diagnostic-ui');loadScript('js/baa-m51-pedagogy-server-ui.js','data-baa-m51-pedagogy-server-ui');loadScript('js/baa-m26-notes-server-ui.js','data-baa-m26-notes-server-ui');
     loadScript('js/baa-m56-adaptive-pacing-server.js','data-baa-m56-adaptive-pacing-server');
+    loadScript('js/baa-m31-language-server-sync.js','data-baa-m31-language-server-sync');
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',startBridges);else startBridges();
 })(window);
