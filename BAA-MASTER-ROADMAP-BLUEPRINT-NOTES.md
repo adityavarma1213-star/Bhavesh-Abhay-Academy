@@ -7,6 +7,26 @@ Sources used:
 
 The PDF preserves source-defined terminology and labels the added examples as illustrative examples. It does not silently convert open blueprint items into official acceptance criteria.
 
+## 2026-08-30 — Current roadmap reconciliation through M63
+
+The current repository evidence confirms continued implementation and remediation through **M63**. The latest observed repository commit is:
+
+`19c467506f71c36bd88e5fc94de8d43ffdbaf659` — `feat(m63): add parent conversation to verified Guide Robot catalogue`.
+
+The preceding M63 boundary commit wires M57 and M60 through the shared bootstrap. Recent hardening also includes M58 canonical-evidence gating, M36 evidence-gated insight metrics, M35 server-authoritative reporting, M31 authenticated language-preference synchronization, M30 server-authoritative rewards, M41 offline-sync conflict handling, M08 signed-verdict controls, and teacher class-membership authorization.
+
+These are implementation/repository facts only. They do **not** constitute deployed-browser, live-database, external-provider, or 100% statutory acceptance evidence.
+
+### Scope boundary
+
+- **M01–M63:** implemented statutory scope under continuing evidence-based audit/remediation.
+- **M64–M78:** future/next roadmap scope unless and until separately implemented and evidenced.
+- No M64–M78 implementation is implied by the current M01–M63 repository status.
+
+### Release-gate rule
+
+A module is not considered fully certified solely because source code or tests exist. Applicable UI reachability, authenticated behavior, authorization/security, persistence/integration, regression, and deployed-browser evidence must be available where required.
+
 ## 2026-08-11 — Cross-Cutting Feature Addition: Mastery Gate + Parent Bypass + Exam Forecast
 
 The BAA learning loop now includes a formal **Mastery Gate** control spanning assessment, learning evidence, AI Mode/Custom Mode assessment entry, Planner exam forecasting, Student OS and Parent OS.
