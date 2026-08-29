@@ -5,6 +5,7 @@ import { sql } from './_lib/db.js';
 export const config = { runtime: 'nodejs' };
 const clean = (v, max = 160) => String(v ?? '').trim().slice(0, max);
 const noStore = { 'Cache-Control': 'private, no-store, max-age=0' };
+const MIN_EVIDENCE = 3;
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') return json(res, 405, { error: { code: 'METHOD_NOT_ALLOWED', message: 'GET required.' } }, { Allow: 'GET', ...noStore });
@@ -39,6 +40,7 @@ export default async function handler(req, res) {
       WHERE le.learner_id=${learnerId}
         AND le.correctness IN ('incorrect','partially_correct','uncertain')
       GROUP BY le.subject, le.chapter, le.concept
+      HAVING COUNT(*) >= ${MIN_EVIDENCE}
       ORDER BY incorrect_count DESC, evidence_count DESC, last_seen DESC
       LIMIT 10`;
 
@@ -61,11 +63,12 @@ export default async function handler(req, res) {
       };
     });
 
-    await writeAudit({ actorUserId: session.user_id, action: 'teacher.recommendations.view', entityType: 'learner', entityId: learnerId, metadata: { recommendationCount: recommendations.length, role: isAdmin ? 'admin' : 'teacher' } });
+    await writeAudit({ actorUserId: session.user_id, action: 'teacher.recommendations.view', entityType: 'learner', entityId: learnerId, metadata: { recommendationCount: recommendations.length, role: isAdmin ? 'admin' : 'teacher', minEvidence: MIN_EVIDENCE } });
     return json(res, 200, {
       ok: true,
       learnerId,
       recommendations,
+      evidenceGate: { minEvidence: MIN_EVIDENCE, sparseEvidenceExcluded: true },
       source: 'server_learning_evidence',
       limitation: 'Recommendations are evidence-based instructional suggestions, not diagnoses or automatic assignments.'
     }, noStore);
