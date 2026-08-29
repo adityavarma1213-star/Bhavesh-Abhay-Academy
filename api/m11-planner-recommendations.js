@@ -5,6 +5,7 @@ import { sql } from './_lib/db.js';
 export const config = { runtime: 'nodejs' };
 
 const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
+const MIN_EVIDENCE = 3;
 const NO_STORE = { 'Cache-Control': 'private, no-store, max-age=0' };
 
 function stateForEvidence(rows) {
@@ -27,8 +28,15 @@ function stateForEvidence(rows) {
   return [...grouped.values()].map(item => {
     const accuracy = item.total ? Math.round((item.correct / item.total) * 100) : 0;
     const recentIncorrect = item.recent.filter(x => x !== 'correct').length;
-    const state = accuracy < 60 || recentIncorrect >= 3 ? 'struggling' : accuracy < 80 ? 'needs_revision' : 'learning';
-    return { ...item, accuracy, state };
+    const evidenceSufficient = item.total >= MIN_EVIDENCE;
+    const state = !evidenceSufficient
+      ? 'insufficient_evidence'
+      : accuracy < 60 || recentIncorrect >= 3
+        ? 'struggling'
+        : accuracy < 80
+          ? 'needs_revision'
+          : 'learning';
+    return { ...item, accuracy, state, evidenceSufficient };
   });
 }
 
@@ -86,7 +94,7 @@ async function handler(req, res) {
 
     for (const state of states) {
       if (remainingMinutes <= 0) break;
-      if (state.state === 'learning' && state.total < 2) continue;
+      if (!state.evidenceSufficient) continue;
       const exam = upcoming.rows.find(x => x.subject && x.subject === state.subject);
       const goal = goals.rows.find(x => String(x.text || '').toLowerCase().includes(String(state.concept).toLowerCase()));
       const daysUntil = exam ? Math.ceil((new Date(`${exam.date}T00:00:00Z`).getTime() - Date.now()) / 86400000) : null;
@@ -120,10 +128,11 @@ async function handler(req, res) {
       learnerId,
       recommendations: recommendations.slice(0, 12),
       evidencePoints: evidence.rows.length,
+      evidenceGate: { minEvidence: MIN_EVIDENCE, sparseConceptsExcluded: states.filter(x => !x.evidenceSufficient).length },
       plannerDailyMinutes: policy.plannerDailyMinutes,
       scheduledMinutes: policy.plannerDailyMinutes - remainingMinutes,
       source: 'server_learning_evidence',
-      limitations: ['Recommendations are evidence-based study guidance, not diagnosis or prediction of outcomes.'],
+      limitations: ['Recommendations require at least three tagged evidence points per concept.', 'Recommendations are evidence-based study guidance, not diagnosis or prediction of outcomes.'],
     }, NO_STORE);
   } catch (error) {
     return json(res, error.status || 500, {
