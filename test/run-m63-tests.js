@@ -26,6 +26,11 @@ assert.ok(robot.includes("credentials:'include'"),'Guide Robot role lookup must 
 assert.ok(robot.includes("cache:'no-store'"),'Guide Robot role lookup must not use a cached identity response');
 assert.ok(!robot.includes("localStorage.getItem('baa.user')"),'Guide Robot must not trust localStorage for role visibility');
 assert.ok(robot.includes('roleResolved'),'Guide Robot must wait for server role resolution before showing role-specific features');
+assert.ok(robot.includes('roles.some'),'Guide Robot must allow any matching server-authoritative role');
+assert.ok(robot.includes('getCurrentRoles'),'Guide Robot must expose the resolved role set without trusting browser storage');
+assert.ok(robot.includes('currentPath()'),'Guide Robot must resolve the current route for contextual guidance');
+assert.ok(robot.includes('contextual explanation'),'Guide Robot must identify the current feature context');
+assert.ok(robot.includes('explain(here.id)'),'Guide Robot must surface contextual guidance for the current page');
 assert.ok(robot.includes('id="baaGuideRobotAnswer" class="baa-guide-answer" tabindex="-1"'),'Guide Robot answer must be keyboard-focusable');
 assert.ok(robot.includes('answer.focus();'),'Guide Robot must move focus to the rendered answer');
 assert.ok(css.includes('.baa-guide-launcher'));
