@@ -19,30 +19,57 @@ export default async function handler(req, res) {
     const classId = String(req.query?.classId || '').trim();
     if (!classId) return json(res, 400, { error: { code: 'INVALID_CLASS', message: 'classId is required.' } });
 
-    // Teachers may only inspect classes they own; administrators may inspect any class.
     const classRows = isAdmin
       ? await sql`SELECT id,name FROM classes WHERE id=${classId} LIMIT 1`
       : await sql`SELECT id,name FROM classes WHERE id=${classId} AND teacher_user_id=${session.user_id} AND archived_at IS NULL LIMIT 1`;
     if (!classRows.rows.length) return json(res, 404, { error: { code: 'CLASS_NOT_FOUND', message: 'Class not found or not accessible.' } });
 
+    // Diagnostic state is derived from canonical learning evidence, not from
+    // a single assessment result. Three evidence rows are the minimum needed
+    // before a learner can be placed into a weakness/strength group.
     const rows = await sql`
+      WITH evidence AS (
+        SELECT learner_id,
+               COUNT(*)::int AS evidence_count,
+               COUNT(*) FILTER (WHERE correctness='correct')::int AS correct_count
+        FROM learning_evidence
+        GROUP BY learner_id
+      ),
+      attempts AS (
+        SELECT learner_id, COUNT(*)::int AS attempt_count
+        FROM assessment_attempts
+        WHERE status='submitted'
+        GROUP BY learner_id
+      )
       SELECT cm.learner_id AS "studentId",
         CASE
-          WHEN COUNT(aa.id)=0 THEN 'insufficient_evidence'
-          WHEN AVG(CASE WHEN aa.max_score>0 THEN aa.score*100.0/aa.max_score END) < 50 THEN 'struggling'
-          WHEN AVG(CASE WHEN aa.max_score>0 THEN aa.score*100.0/aa.max_score END) < 75 THEN 'needs_revision'
-          WHEN AVG(CASE WHEN aa.max_score>0 THEN aa.score*100.0/aa.max_score END) < 90 THEN 'learning'
+          WHEN COALESCE(e.evidence_count,0) < 3 THEN 'insufficient_evidence'
+          WHEN e.correct_count * 100.0 / e.evidence_count < 50 THEN 'struggling'
+          WHEN e.correct_count * 100.0 / e.evidence_count < 75 THEN 'needs_revision'
+          WHEN e.correct_count * 100.0 / e.evidence_count < 90 THEN 'learning'
           ELSE 'mastered'
         END AS state,
-        COUNT(aa.id)::int AS attempts,
-        COALESCE(ROUND(AVG(CASE WHEN aa.max_score>0 THEN aa.score*100.0/aa.max_score END)::numeric,1),0) AS average_percentage
+        COALESCE(a.attempt_count,0)::int AS attempts,
+        CASE WHEN COALESCE(e.evidence_count,0) >= 3
+          THEN ROUND((e.correct_count * 100.0 / e.evidence_count)::numeric,1)
+          ELSE NULL
+        END AS average_percentage,
+        COALESCE(e.evidence_count,0)::int AS evidence_count
       FROM class_members cm
-      LEFT JOIN assessment_attempts aa ON aa.learner_id=cm.learner_id AND aa.status='submitted'
+      LEFT JOIN evidence e ON e.learner_id=cm.learner_id
+      LEFT JOIN attempts a ON a.learner_id=cm.learner_id
       WHERE cm.class_id=${classId} AND cm.status='active'
-      GROUP BY cm.learner_id
+      GROUP BY cm.learner_id,e.evidence_count,e.correct_count,a.attempt_count
       ORDER BY cm.learner_id`;
+
     const groups = { reteach: [], practice: [], extend: [], insufficientEvidence: [] };
-    const students = rows.rows.map(r => ({ studentId: r.studentId, state: r.state, attempts: Number(r.attempts), averagePercentage: Number(r.average_percentage) }));
+    const students = rows.rows.map(r => ({
+      studentId: r.studentId,
+      state: r.state,
+      attempts: Number(r.attempts),
+      averagePercentage: r.average_percentage == null ? null : Number(r.average_percentage),
+      evidenceCount: Number(r.evidence_count)
+    }));
     for (const student of students) {
       if (['struggling','needs_revision'].includes(student.state)) groups.reteach.push(student.studentId);
       else if (student.state === 'learning') groups.practice.push(student.studentId);
@@ -50,7 +77,14 @@ export default async function handler(req, res) {
       else groups.insufficientEvidence.push(student.studentId);
     }
     await writeAudit({ actorUserId: session.user_id, action: 'teacher.diagnostic.view', entityType: 'class', entityId: classId, metadata: { studentCount: students.length, role: isAdmin ? 'admin' : 'teacher' } });
-    return json(res, 200, { ok: true, class: { id: classId, name: classRows.rows[0].name }, students, groups, limitation: 'Grouping is evidence-based instructional support, not a psychological diagnosis.' });
+    return json(res, 200, {
+      ok: true,
+      class: { id: classId, name: classRows.rows[0].name },
+      students,
+      groups,
+      evidenceRule: 'Learners require at least 3 canonical learning-evidence rows before instructional strength/weakness grouping is assigned.',
+      limitation: 'Grouping is evidence-based instructional support, not a psychological diagnosis.'
+    });
   } catch (e) {
     return json(res, e.status || 500, { error: { code: e.code || 'TEACHER_DIAGNOSTIC_FAILED', message: e.status ? e.message : 'Unable to load teacher diagnostic evidence.' } });
   }
