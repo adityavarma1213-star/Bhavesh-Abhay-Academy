@@ -57,9 +57,9 @@ async function setServer(learnerId,enabled,contentMode){
     if(result.ok)return result;
     if(result.error==='LOW_BANDWIDTH_CONFLICT'){
       const current=result.data?.current;
-      if(current?.preference)set(current.preference.enabled,current.preference.contentMode);
+      if(current)set(current.enabled,current.contentMode);
       clearQueue();
-      return {ok:false,error:result.error,state:current?.preference||get(),updatedAt:current?.updatedAt||null,conflict:true};
+      return {ok:false,error:result.error,state:current||get(),updatedAt:current?.updatedAt||null,conflict:true};
     }
     if(queue(local.state,id,expected))return {ok:false,error:'LOW_BANDWIDTH_SYNC_QUEUED',state:local.state,pending:true};
     return {ok:false,error:result.error,state:local.state};
@@ -77,7 +77,7 @@ async function syncPending(learnerId){
     if(result.error==='LOW_BANDWIDTH_CONFLICT'){
       clearQueue();
       const current=result.data?.current;
-      if(current?.preference)set(current.preference.enabled,current.preference.contentMode);
+      if(current)set(current.enabled,current.contentMode);
       return {ok:false,error:result.error,conflict:true,pending:false,current};
     }
     return {ok:false,error:result.error,pending:true};
