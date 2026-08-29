@@ -9,6 +9,9 @@
   const SCHEMA_VERSION=2;
   let serverRecord=null;
   function build(){
+    // Once authenticated server evidence has loaded, it is the canonical
+    // passport source. Do not silently fall back to a stale browser snapshot
+    // while a server record is available.
     if(serverRecord)return serverRecord;
     const a=global.BAAAssessment;
     if(!a)return {schemaVersion:SCHEMA_VERSION,status:'unavailable'};
