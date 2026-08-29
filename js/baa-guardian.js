@@ -69,7 +69,7 @@
   async function getServerSummary(learnerId){
     if(!learnerId) return {status:'unavailable',error:'LEARNER_ID_REQUIRED'};
     try{
-      const response=await fetch(`/api/m12-guardian?learnerId=${encodeURIComponent(learnerId)}`,{credentials:'include'});
+      const response=await fetch(`/api/m12-guardian?learnerId=${encodeURIComponent(learnerId)}`,{credentials:'include',cache:'no-store',headers:{Accept:'application/json'}});
       const data=await response.json().catch(()=>({}));
       if(!response.ok) return {status:'unavailable',error:data?.error?.code||'GUARDIAN_SERVER_UNAVAILABLE',httpStatus:response.status};
       const store=load(); store.acknowledged={};
@@ -92,7 +92,7 @@
 
   async function syncServer(learnerId){
     if(!learnerId) return {ok:false,error:'LEARNER_ID_REQUIRED'};
-    const response=await fetch(`/api/m12-guardian?learnerId=${encodeURIComponent(learnerId)}`,{credentials:'include'});
+    const response=await fetch(`/api/m12-guardian?learnerId=${encodeURIComponent(learnerId)}`,{credentials:'include',cache:'no-store',headers:{Accept:'application/json'}});
     if(!response.ok) return {ok:false,error:'GUARDIAN_SERVER_UNAVAILABLE',status:response.status};
     const data=await response.json();
     const store=load(); store.acknowledged={};
@@ -105,7 +105,7 @@
   async function acknowledgeAlertServer(learnerId, alertId){
     if(!learnerId||!alertId) return {ok:false,error:'LEARNER_AND_ALERT_REQUIRED'};
     acknowledgeAlert(alertId);
-    const response=await fetch(`/api/m12-guardian?learnerId=${encodeURIComponent(learnerId)}`,{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({alertId:String(alertId)})});
+    const response=await fetch(`/api/m12-guardian?learnerId=${encodeURIComponent(learnerId)}`,{method:'POST',credentials:'include',cache:'no-store',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({alertId:String(alertId)})});
     if(!response.ok) return {ok:false,error:'GUARDIAN_SERVER_WRITE_FAILED',status:response.status};
     return {ok:true,alertId:String(alertId)};
   }
@@ -113,7 +113,7 @@
   async function resetAcknowledgementsServer(learnerId){
     if(!learnerId) return {ok:false,error:'LEARNER_ID_REQUIRED'};
     resetAcknowledgements();
-    const response=await fetch(`/api/m12-guardian?learnerId=${encodeURIComponent(learnerId)}`,{method:'DELETE',credentials:'include',headers:{'Content-Type':'application/json'},body:'{}'});
+    const response=await fetch(`/api/m12-guardian?learnerId=${encodeURIComponent(learnerId)}`,{method:'DELETE',credentials:'include',cache:'no-store',headers:{'Content-Type':'application/json',Accept:'application/json'},body:'{}'});
     if(!response.ok) return {ok:false,error:'GUARDIAN_SERVER_DELETE_FAILED',status:response.status};
     return {ok:true};
   }
