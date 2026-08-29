@@ -27,13 +27,13 @@ async function listPostsSecure(groupId){
   return {ok:true,error:null,posts:Array.isArray(payload.posts)?payload.posts:[]};
  }catch(_){return {ok:false,error:'SERVER_POST_LIST_UNAVAILABLE',posts:[]};}
 }
-async function reportPost(postId,reason){
- const id=String(postId||'').trim(); const s=load(); const post=s.posts.find(item=>item.id===id);
- if(!post||!post.text)return {ok:false,error:'POST_NOT_FOUND'};
+async function reportPost(postId,reason,reportedText){
+ const id=String(postId||'').trim();
  const allowed=['safety','harassment','spam','other']; const why=String(reason||'').trim().toLowerCase();
+ if(!id)return {ok:false,error:'POST_NOT_FOUND'};
  if(!allowed.includes(why))return {ok:false,error:'INVALID_REPORT_REASON'};
  try{
-  const response=await fetch('/api/m35-community-report',{method:'POST',credentials:'include',cache:'no-store',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({postId:id,reportedText:post.text,reason:why})});
+  const response=await fetch('/api/m35-community-report',{method:'POST',credentials:'include',cache:'no-store',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({postId:id,reportedText:typeof reportedText==='string'?reportedText:'',reason:why})});
   const payload=await response.json().catch(()=>({}));
   if(!response.ok)return {ok:false,error:payload?.error?.code||'COMMUNITY_REPORT_FAILED'};
   return {ok:true,error:null,report:payload.report||null};
