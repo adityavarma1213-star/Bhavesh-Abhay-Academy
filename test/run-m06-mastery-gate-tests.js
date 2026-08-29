@@ -16,6 +16,8 @@ const checks=[
   ['mandatory bypass reason',/BYPASS_REASON_REQUIRED/.test(api)],
   ['bypass persistence',/INSERT INTO learning_gate_bypasses/.test(api)],
   ['bypass audit',/mastery_gate\.bypass/.test(api)],
+  ['persisted bypass changes gate state',/activeBypass \? 'bypassed'/.test(api)],
+  ['bypass response re-evaluates gate',/gate:await buildGate\(learnerId,subject,chapter\)/.test(api)],
   ['private transport',/private, no-store/.test(api)],
   ['client authenticated transport',/credentials:'include'/.test(client)],
   ['client fresh transport',/cache:'no-store'/.test(client)],
