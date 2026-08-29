@@ -22,6 +22,9 @@ const checks = [
   ['M08 migration uses JSONB payload', /payload JSONB NOT NULL/.test(files.migration)],
   ['M08 client uses authenticated sync', /credentials:'include'/.test(files.client)],
   ['M08 client uses fresh sync', /cache:'no-store'/.test(files.client)],
+  ['M08 rejects unsigned human-review control changes', /verdict\.humanReviewRequired.*e\.humanReviewRequired/.test(files.api)],
+  ['M08 persists only signed learning signals', /signedLearningSignals.*suppliedLearningSignals/.test(files.api)],
+  ['M08 uses server verdict verification', /verifyHomeworkVerdict/.test(files.api)],
 ];
 
 let failed = 0;
