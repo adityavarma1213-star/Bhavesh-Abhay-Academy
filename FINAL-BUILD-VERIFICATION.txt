@@ -1,18 +1,30 @@
-BAA OS FINAL INTEGRITY BUILD
-Date: 12 August 2026
+BAA OS — CURRENT BUILD VERIFICATION BASELINE
+Date: 30 August 2026
 
-Automated regression suites: 99/99 PASS
-JavaScript syntax checks: 0 errors
+Current verified implementation baseline: M01–M63.
+Latest repository implementation commit:
+19c467506f71c36bd88e5fc94de8d43ffdbaf659
+feat(m63): add parent conversation to verified Guide Robot catalogue
 
-High-priority completion pass:
-1. Server-side assessment/evidence chain: IMPLEMENTED in code; requires real PostgreSQL deployment verification.
-2. M17 class-wide analytics: IMPLEMENTED in code; requires a configured multi-learner class for live verification.
-3. Parent/Teacher server-backed learner view: IMPLEMENTED/EXPANDED; requires real authenticated end-to-end verification.
-4. Homework image + scanned PDF vision evaluation: IMPLEMENTED; first 3 scanned PDF pages are rendered transiently and sent to vision evaluation.
-5. Offline sync: IMPLEMENTED for planner, assessment/learning-memory, and homework state-sync requests using a durable IndexedDB queue; requires real offline/reconnect verification.
+Recent verified implementation activity includes:
+- M35: server-authoritative secure community reporting hardening.
+- M36: evidence-gated insight metrics and strong-concept metric.
+- M58: diagnostic grouping gated behind canonical evidence.
+- M57/M60: shared-bootstrap wiring.
+- M63: Parent Learning Conversation added to the verified Guide Robot catalogue.
 
-External production dependencies are not falsely claimed as live.
-No Blueprint module or roadmap scope was deleted.
-The existing Galaxy starter experience is preserved.
-Six selectable themes remain: Aurora, Galaxy, Academic, NeoGlass, Calm, Duology.
-Each theme supports Light, Dark, and System.
+Verification boundary:
+- Code/repository evidence is available for the current implementation baseline.
+- This file does NOT claim universal statutory or production certification.
+- Browser/manual deployed verification is not established by repository inspection alone.
+- Live database verification is not established by repository inspection alone.
+- Vercel/deployment health must be verified from current deployment evidence and is not inferred from code commits.
+- External production services and credentials must not be claimed live without evidence.
+
+Architecture invariants:
+- Existing Galaxy starter experience is preserved.
+- Six selectable themes remain: Aurora, Galaxy, Academic, NeoGlass, Calm, Duology.
+- Each theme supports Light, Dark, and System.
+
+Release status:
+M01–M63 remain in evidence-based audit/remediation status. M64–M78 are the next roadmap scope and are not represented as completed by this document.
