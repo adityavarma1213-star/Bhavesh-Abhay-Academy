@@ -1,31 +1,28 @@
-# BHAVESH ABHAY ACADEMY — M62 RELEASE / STRICT AUDIT STATUS
+# BHAVESH ABHAY ACADEMY — M63 RELEASE / STRICT AUDIT STATUS
 
 ## Product-module inventory
-**62 / 62 roadmap modules identified and tracked.**
+**63 / 63 statutory roadmap modules identified and tracked through M63.**
 
 ## Important correction
-The previous release note described the 62-module software baseline as a 100% audit completion. That wording was too broad. Source/module implementation evidence is not the same as end-to-end product acceptance.
+Previous release notes that described a module inventory as a 100% audit completion were too broad. Source/module implementation evidence is not the same as end-to-end product acceptance.
 
 **The strict BAA Blueprint/Roadmap audit is NOT yet 100% complete.**
 
-A module may only be certified complete when the applicable gates are evidenced: visible UI control → real module/API call → rendered result → role/security boundary → intended persistence/integration → regression test → deployed-browser acceptance.
+A module may only be certified complete when the applicable gates are evidenced: visible UI control → real module/API call → rendered result → role/security boundary → intended persistence/integration → regression test → deployed-browser acceptance where required.
 
-## Current strict-audit baseline
-See `BLUEPRINT-ROADMAP-DEEP-AUDIT-2026-08-22.md` for the authoritative M1–M62 status table.
+## Current evidence-based baseline
 
-- M62 modules audited for requirements: 62/62
-- Source/UI/test-verified baseline: 8
-- Implemented by source/docs but live gate remains: 2
-- Partial/pending: 44
-- Genuine implementation gaps in the strict baseline: 4
-- Foundation-only capabilities: 2
-- Deployed-browser acceptance: NOT YET VERIFIED for all modules
+The repository has continued to receive M01–M63 implementation and hardening after the older M62 release note. The latest observed commit is:
 
-## Remediation status
-The repository is in an active remediation phase. Code-addressable gaps are being fixed and regression-tested. External-provider and infrastructure requirements are not to be fabricated as complete.
+`19c467506f71c36bd88e5fc94de8d43ffdbaf659` — `feat(m63): add parent conversation to verified Guide Robot catalogue`.
+
+Recent preceding work includes M57/M60 shared-bootstrap wiring, M58 canonical-evidence gating, M36 evidence-gated insights, M35 server-authoritative reporting, M31 authenticated language preference synchronization, M30 server-authoritative rewards, M41 offline-sync conflict handling, M08 signed-verdict controls, and teacher class-membership authorization.
+
+These repository changes are evidence of implementation/remediation activity. They do not by themselves prove live production acceptance.
 
 ## Release gates that remain open
-- Complete strict M1–M62 UI/reachability acceptance
+
+- Complete strict M01–M63 UI/reachability acceptance
 - Complete server/database/persistence acceptance where required
 - Complete role/security acceptance
 - Complete regression verification after each remediation batch
@@ -34,6 +31,7 @@ The repository is in an active remediation phase. Code-addressable gaps are bein
 - Complete production infrastructure, accessibility and disaster-recovery gates
 
 ## External dependencies that cannot be truthfully marked complete without real configuration
+
 - real school ERP credentials/endpoints
 - live scholarship/competition/job feeds
 - real mentor identity verification, payments and safeguarding
@@ -43,10 +41,18 @@ The repository is in an active remediation phase. Code-addressable gaps are bein
 - production payment processing/webhooks
 - production monitoring, backups and disaster recovery
 
+## Roadmap scope beyond M63
+
+**M64–M78 remain roadmap/innovation scope and are not included in the current M01–M63 statutory completion claim.**
+
+BAA Littles is also maintained as a future roadmap/blueprint item and is not claimed here as implemented or production-ready.
+
 ## Release rule
+
 **Do not declare BAA 100% complete until the strict audit evidence supports every applicable requirement.**
 
 A green module count, test count, status document, or source file alone is insufficient evidence for final certification.
 
 ## Design preservation
+
 The existing BAA OS visual design remains in place. Remediation must preserve the approved existing experience unless a specific blueprint requirement requires a change.
