@@ -1,0 +1,120 @@
+// BAA M08 — authenticated durable homework synchronization boundary.
+// Persists structured submission snapshots only. Raw image/PDF bytes are never stored here.
+import { sql } from '../_lib/db.js';
+import { json, id, writeAudit } from '../_lib/security.js';
+import { requireAuth, requireLearnerAccess } from '../_lib/auth.js';
+
+export const config = { runtime: 'nodejs' };
+const MAX_SUBMISSIONS = 100;
+const MAX_TEXT_CHARS = 8000;
+const MAX_SUBJECT_CHARS = 200;
+const MAX_JSON_BYTES = 900000;
+const ALLOWED_STATUSES = new Set(['received', 'evaluating', 'evaluated', 'evaluation_failed']);
+const ALLOWED_ASSESSMENTS = new Set(['strong', 'good', 'needs_improvement', 'incomplete', 'uncertain']);
+const ALLOWED_CONFIDENCE = new Set(['high', 'medium', 'low']);
+
+function noStore(res) { res.setHeader('Cache-Control', 'private, no-store, max-age=0'); }
+function parseBody(req) {
+  if (req.body && typeof req.body === 'object') return req.body;
+  try { return JSON.parse(req.body || '{}'); } catch { return {}; }
+}
+function cleanString(value, max) {
+  return typeof value === 'string' ? value.trim().slice(0, max) : null;
+}
+function cleanAttachment(a) {
+  if (!a || typeof a !== 'object' || !['image', 'pdf'].includes(a.type)) return null;
+  const mime = cleanString(a.mimeType, 100);
+  if (!mime) return null;
+  const out = { type: a.type, mimeType: mime };
+  for (const key of ['originalSizeBytes', 'compressedSizeBytes', 'width', 'height', 'pageCount', 'extractedChars']) {
+    if (a[key] != null && Number.isFinite(Number(a[key])) && Number(a[key]) >= 0) out[key] = Math.floor(Number(a[key]));
+  }
+  if (a.fileName) out.fileName = cleanString(a.fileName, 200);
+  return out;
+}
+function cleanEvaluation(e) {
+  if (!e || typeof e !== 'object') return null;
+  if (!ALLOWED_ASSESSMENTS.has(e.overallAssessment) || !ALLOWED_CONFIDENCE.has(e.confidence)) return null;
+  const list = (v, maxItems, maxChars) => Array.isArray(v) ? v.filter(x => typeof x === 'string').slice(0, maxItems).map(x => x.slice(0, maxChars)) : [];
+  return {
+    schemaVersion: 1,
+    evaluationType: e.evaluationType === 'image_or_text' ? 'image_or_text' : 'text',
+    overallAssessment: e.overallAssessment,
+    summary: cleanString(e.summary, 1000) || '',
+    strengths: list(e.strengths, 10, 300),
+    mistakes: list(e.mistakes, 10, 300),
+    suggestions: list(e.suggestions, 10, 300),
+    confidence: e.confidence,
+    humanReviewRequired: Boolean(e.humanReviewRequired),
+    humanReviewReasons: list(e.humanReviewReasons, 5, 300),
+    imageEvaluated: Boolean(e.imageEvaluated),
+    learningSignals: list(e.learningSignals, 5, 300),
+    verdictToken: cleanString(e.verdictToken, 2000),
+  };
+}
+function cleanSubmission(input) {
+  if (!input || typeof input !== 'object') return null;
+  const idValue = cleanString(input.id, 120);
+  const text = cleanString(input.text, MAX_TEXT_CHARS);
+  if (!idValue || !text || text.length < 3) return null;
+  const submittedAt = new Date(input.submittedAt || 0);
+  if (Number.isNaN(submittedAt.getTime())) return null;
+  const attachments = Array.isArray(input.attachments) ? input.attachments.slice(0, 3).map(cleanAttachment).filter(Boolean) : [];
+  const status = ALLOWED_STATUSES.has(input.status) ? input.status : 'received';
+  return {
+    id: idValue,
+    submittedAt: submittedAt.toISOString(),
+    inputType: cleanString(input.inputType, 40) || 'text',
+    text,
+    subjectHint: cleanString(input.subjectHint, MAX_SUBJECT_CHARS),
+    attachments,
+    status,
+    evaluation: cleanEvaluation(input.evaluation),
+    lastEvaluationError: cleanString(input.lastEvaluationError, 300),
+  };
+}
+
+export default async function handler(req, res) {
+  noStore(res);
+  try {
+    const session = await requireAuth(req);
+    const learnerId = String(req.query?.learnerId || '').trim();
+    if (!learnerId) return json(res, 400, { ok: false, error: { code: 'LEARNER_ID_REQUIRED', message: 'learnerId is required.' } });
+    await requireLearnerAccess(session, learnerId);
+
+    if (req.method === 'GET') {
+      const result = await sql`SELECT id, submitted_at, updated_at, payload FROM homework_submissions WHERE learner_id=${learnerId} ORDER BY submitted_at DESC LIMIT ${MAX_SUBMISSIONS}`;
+      return json(res, 200, { ok: true, learnerId, submissions: result.rows.map(r => ({ ...(r.payload || {}), id: r.id, submittedAt: r.submitted_at })) });
+    }
+
+    if (req.method === 'PUT') {
+      const body = parseBody(req);
+      const raw = Array.isArray(body.submissions) ? body.submissions : [];
+      if (raw.length > MAX_SUBMISSIONS) return json(res, 400, { ok: false, error: { code: 'TOO_MANY_SUBMISSIONS', message: `At most ${MAX_SUBMISSIONS} submissions may be synchronized.` } });
+      const normalized = raw.map(cleanSubmission);
+      if (normalized.some(x => !x)) return json(res, 400, { ok: false, error: { code: 'INVALID_SUBMISSION', message: 'One or more homework submissions are invalid.' } });
+      const bytes = Buffer.byteLength(JSON.stringify(normalized), 'utf8');
+      if (bytes > MAX_JSON_BYTES) return json(res, 413, { ok: false, error: { code: 'PAYLOAD_TOO_LARGE', message: 'Homework synchronization payload is too large.' } });
+
+      for (const submission of normalized) {
+        await sql`
+          INSERT INTO homework_submissions(id, learner_id, submitted_at, updated_at, payload)
+          VALUES(${submission.id}, ${learnerId}, ${submission.submittedAt}, NOW(), ${JSON.stringify(submission)})
+          ON CONFLICT(id) DO UPDATE SET
+            updated_at=NOW(),
+            payload=EXCLUDED.payload,
+            submitted_at=EXCLUDED.submitted_at
+          WHERE homework_submissions.learner_id=${learnerId}
+        `;
+      }
+      await writeAudit({ actorUserId: session.user_id, action: 'HOMEWORK_SUBMISSIONS_SYNCED', entityType: 'learner', entityId: learnerId, metadata: { count: normalized.length } });
+      return json(res, 200, { ok: true, learnerId, synced: normalized.length });
+    }
+
+    return json(res, 405, { ok: false, error: { code: 'METHOD_NOT_ALLOWED', message: 'GET or PUT required.' } }, { Allow: 'GET, PUT' });
+  } catch (err) {
+    noStore(res);
+    const status = Number(err?.status) || (err?.code === 'DATABASE_NOT_CONFIGURED' ? 503 : 500);
+    return json(res, status, { ok: false, error: { code: err?.code || 'HOMEWORK_SERVICE_FAILED', message: err?.status ? err.message : 'Homework service unavailable.' } });
+  }
+}
