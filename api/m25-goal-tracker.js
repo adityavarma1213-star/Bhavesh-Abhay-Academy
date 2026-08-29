@@ -4,6 +4,7 @@ import { sql } from './_lib/db.js';
 
 export const config = { runtime: 'nodejs' };
 
+const MIN_EVIDENCE = 3;
 const STOP_WORDS = new Set([
   'the','and','for','with','from','this','that','learn','learning','study','understand',
   'improve','goal','goals','better','more','practice','complete','finish','master'
@@ -32,22 +33,24 @@ function goalProgress(goalText, evidenceRows) {
 
   const concepts = [...grouped.values()].map(item => ({
     ...item,
+    evidenceSufficient: item.total >= MIN_EVIDENCE,
     accuracy: item.total ? Math.round((item.correct / item.total) * 100) : 0,
   }));
-  const evidenceCount = concepts.reduce((sum, item) => sum + item.total, 0);
+  const evidenceBackedConcepts = concepts.filter(item => item.evidenceSufficient);
+  const evidenceCount = evidenceBackedConcepts.reduce((sum, item) => sum + item.total, 0);
   const accuracy = evidenceCount
-    ? Math.round(concepts.reduce((sum, item) => sum + item.correct, 0) / evidenceCount * 100)
+    ? Math.round(evidenceBackedConcepts.reduce((sum, item) => sum + item.correct, 0) / evidenceCount * 100)
     : null;
-  const status = accuracy == null ? 'no_evidence' : accuracy < 60 ? 'struggling' : accuracy < 80 ? 'needs_revision' : 'on_track';
-  const nextAction = status === 'no_evidence'
-    ? 'Build evidence by completing a relevant assessment or practice activity.'
+  const status = accuracy == null ? 'insufficient_evidence' : accuracy < 60 ? 'struggling' : accuracy < 80 ? 'needs_revision' : 'on_track';
+  const nextAction = status === 'insufficient_evidence'
+    ? 'Build at least three tagged evidence points on a relevant concept before drawing a progress conclusion.'
     : status === 'struggling'
       ? 'Schedule targeted practice on the weakest matched concept.'
       : status === 'needs_revision'
         ? 'Use a short revision task, then reassess the matched concept.'
         : 'Maintain progress with spaced practice and a later check.';
 
-  return { status, accuracy, evidenceCount, matchedConcepts: concepts, nextAction };
+  return { status, accuracy, evidenceCount, matchedConcepts: evidenceBackedConcepts, sparseConcepts: concepts.filter(item => !item.evidenceSufficient), nextAction };
 }
 
 async function handler(req, res) {
@@ -82,7 +85,7 @@ async function handler(req, res) {
         text: goal.text,
         createdAt: goal.created_at,
         ...progress,
-        nextAssessment: nextAssessment ? {
+      nextAssessment: nextAssessment ? {
           title: nextAssessment.title,
           subject: nextAssessment.subject,
           date: nextAssessment.date,
@@ -96,16 +99,17 @@ async function handler(req, res) {
       learnerId,
       goals: goalResults,
       evidencePoints: evidence.rows.length,
+      evidenceGate: { minEvidence: MIN_EVIDENCE },
       source: 'server_planner_goals_and_learning_evidence',
-      limitations: ['Goal progress is an evidence-linked academic heuristic; it does not claim to predict outcomes or measure motivation.'],
-    }, { 'Cache-Control': 'no-store' });
+      limitations: ['Goal progress is reported only from matched concepts with at least three tagged evidence points.', 'This is an evidence-linked academic heuristic; it does not claim to predict outcomes or measure motivation.'],
+    }, { 'Cache-Control': 'private, no-store, max-age=0' });
   } catch (error) {
     return json(res, error.status || 500, {
       error: {
         code: error.code || 'GOAL_TRACKER_FAILED',
         message: error.status ? error.message : 'Unable to load goal progress.',
       },
-    }, { 'Cache-Control': 'no-store' });
+    }, { 'Cache-Control': 'private, no-store, max-age=0' });
   }
 }
 
