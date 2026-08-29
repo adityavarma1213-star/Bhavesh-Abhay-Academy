@@ -17,6 +17,11 @@ function learnerIdFrom(body) {
   return value.slice(0, 100);
 }
 
+function expectedUpdatedAtFrom(body) {
+  const value = typeof body?.expectedUpdatedAt === 'string' ? body.expectedUpdatedAt.trim() : '';
+  return value.slice(0, 64);
+}
+
 function normalizePolicy(body) {
   const minutes = Number(body?.plannerDailyMinutes);
   return {
@@ -54,6 +59,10 @@ function toPolicy(row) {
   };
 }
 
+function updatedAtFrom(row) {
+  return row?.updated_at ? new Date(row.updated_at).toISOString() : null;
+}
+
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'private, no-store, max-age=0');
   try {
@@ -67,12 +76,13 @@ export default async function handler(req, res) {
       if (!learnerId) return json(res, 400, { error: { code: 'LEARNER_REQUIRED', message: 'learnerId is required.' } });
       await assertParentLearner(session, learnerId);
       const result = await sql`
-        SELECT tutor_enabled, mentor_enabled, planner_enabled, planner_daily_minutes
+        SELECT tutor_enabled, mentor_enabled, planner_enabled, planner_daily_minutes, updated_at
         FROM parent_ai_policies
         WHERE learner_id=${learnerId}
         LIMIT 1
       `;
-      return json(res, 200, { learnerId, policy: toPolicy(result.rows[0]) });
+      const row = result.rows[0];
+      return json(res, 200, { learnerId, policy: toPolicy(row), updatedAt: updatedAtFrom(row) });
     }
 
     const body = await req.json();
@@ -80,8 +90,26 @@ export default async function handler(req, res) {
     if (!learnerId) return json(res, 400, { error: { code: 'LEARNER_REQUIRED', message: 'learnerId is required.' } });
     await assertParentLearner(session, learnerId);
     const policy = normalizePolicy(body);
+    const expectedUpdatedAt = expectedUpdatedAtFrom(body);
 
-    await sql`
+    if (expectedUpdatedAt) {
+      const current = await sql`
+        SELECT updated_at
+        FROM parent_ai_policies
+        WHERE learner_id=${learnerId}
+        LIMIT 1
+      `;
+      const currentUpdatedAt = updatedAtFrom(current.rows[0]);
+      if (currentUpdatedAt && currentUpdatedAt !== expectedUpdatedAt) {
+        return json(res, 409, {
+          error: { code: 'POLICY_CONFLICT', message: 'Parent policy changed elsewhere. Reload the current policy before saving.' },
+          learnerId,
+          updatedAt: currentUpdatedAt,
+        });
+      }
+    }
+
+    const result = await sql`
       INSERT INTO parent_ai_policies
         (learner_id, tutor_enabled, mentor_enabled, planner_enabled, planner_daily_minutes, updated_by)
       VALUES
@@ -93,7 +121,9 @@ export default async function handler(req, res) {
         planner_daily_minutes=EXCLUDED.planner_daily_minutes,
         updated_by=EXCLUDED.updated_by,
         updated_at=NOW()
+      RETURNING tutor_enabled, mentor_enabled, planner_enabled, planner_daily_minutes, updated_at
     `;
+    const saved = result.rows[0];
 
     await writeAudit({
       actorUserId: session.user_id,
@@ -108,7 +138,7 @@ export default async function handler(req, res) {
       },
     });
 
-    return json(res, 200, { learnerId, policy });
+    return json(res, 200, { learnerId, policy: toPolicy(saved), updatedAt: updatedAtFrom(saved) });
   } catch (e) {
     return json(res, e.status || 500, {
       error: { code: e.code || 'M15_POLICY_FAILED', message: e.status ? e.message : 'Parent policy service unavailable.' }
