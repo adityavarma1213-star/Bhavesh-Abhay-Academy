@@ -1,7 +1,7 @@
 // BAA M08 — authenticated durable homework synchronization boundary.
 // Persists structured submission snapshots only. Raw image/PDF bytes are never stored here.
 // AI evaluation data is accepted only when its server-issued verdict token binds it
-// to the same submission id and homework text.
+// to the same submission id, homework text, and signed evaluation controls.
 import { sql } from '../_lib/db.js';
 import { json, writeAudit } from '../_lib/security.js';
 import { requireAuth, requireLearnerAccess } from '../_lib/auth.js';
@@ -35,6 +35,15 @@ function cleanAttachment(a) {
   if (a.fileName) out.fileName = cleanString(a.fileName, 200);
   return out;
 }
+function cleanLearningSignals(value) {
+  if (!Array.isArray(value)) return [];
+  return value.slice(0, 5).filter(x => x && typeof x === 'object').map(x => ({
+    concept: cleanString(x.concept, 120),
+    outcome: cleanString(x.outcome, 60),
+    errorType: x.errorType == null ? null : cleanString(x.errorType, 120),
+    confidence: cleanString(x.confidence, 20),
+  })).filter(x => x.concept);
+}
 function cleanEvaluation(e, submissionId, text) {
   if (!e || typeof e !== 'object') return null;
   if (!ALLOWED_ASSESSMENTS.has(e.overallAssessment) || !ALLOWED_CONFIDENCE.has(e.confidence)) return null;
@@ -42,7 +51,11 @@ function cleanEvaluation(e, submissionId, text) {
   const verification = verifyHomeworkVerdict(token, { submissionId, textHash: hashHomeworkText(text) });
   if (!verification.ok) return null;
   const verdict = verification.verdict;
+  const signedLearningSignals = cleanLearningSignals(verdict.learningSignals);
+  const suppliedLearningSignals = cleanLearningSignals(e.learningSignals);
   if (verdict.overallAssessment !== e.overallAssessment || verdict.confidence !== e.confidence) return null;
+  if (Boolean(verdict.humanReviewRequired) !== Boolean(e.humanReviewRequired)) return null;
+  if (JSON.stringify(signedLearningSignals) !== JSON.stringify(suppliedLearningSignals)) return null;
   const list = (v, maxItems, maxChars) => Array.isArray(v) ? v.filter(x => typeof x === 'string').slice(0, maxItems).map(x => x.slice(0, maxChars)) : [];
   return {
     schemaVersion: 1,
@@ -53,15 +66,10 @@ function cleanEvaluation(e, submissionId, text) {
     mistakes: list(e.mistakes, 10, 300),
     suggestions: list(e.suggestions, 10, 300),
     confidence: e.confidence,
-    humanReviewRequired: Boolean(e.humanReviewRequired),
+    humanReviewRequired: Boolean(verdict.humanReviewRequired),
     humanReviewReasons: list(e.humanReviewReasons, 5, 300),
     imageEvaluated: Boolean(e.imageEvaluated),
-    learningSignals: Array.isArray(e.learningSignals) ? e.learningSignals.slice(0, 5).filter(x => x && typeof x === 'object').map(x => ({
-      concept: cleanString(x.concept, 120),
-      outcome: cleanString(x.outcome, 60),
-      errorType: x.errorType == null ? null : cleanString(x.errorType, 120),
-      confidence: cleanString(x.confidence, 20),
-    })).filter(x => x.concept) : [],
+    learningSignals: signedLearningSignals,
     verdictToken: token,
   };
 }
