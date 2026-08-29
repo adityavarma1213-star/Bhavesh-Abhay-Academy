@@ -40,10 +40,7 @@ function summarize(){
   const correct=evidence.filter(e=>e.correctness==='correct').length;
   const memory=store.learningMemory&&typeof store.learningMemory==='object'?Object.values(store.learningMemory):[];
   const mastered=memory.filter(m=>m.status==='mastered'||m.status==='strong').length;
-
-  // Transparent XP: activity-based, not a replacement for academic scores.
   const xp=completed*10 + correct*5 + mastered*25;
-
   return {ok:true,error:null,completedAttempts:completed,answeredQuestions:answered,
     correctAnswers:correct,masteredConcepts:mastered,xp};
 }
@@ -57,10 +54,9 @@ function loadEarned(){
   return {schemaVersion:SCHEMA_VERSION,earnedBadgeIds:[],lastSyncedAt:null};
 }
 
-async function pushServer(state){ if(!syncLearnerId||typeof fetch!=='function')return; try{await fetch(`/api/v1/rewards?learnerId=${encodeURIComponent(syncLearnerId)}`,{method:'PUT',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({earnedBadgeIds:state.earnedBadgeIds,xp:state.xp,completedAttempts:state.completedAttempts,answeredQuestions:state.answeredQuestions,correctAnswers:state.correctAnswers,masteredConcepts:state.masteredConcepts})});}catch(e){console.warn('[BAA Rewards] server sync failed; local rewards retained',e);} }
+async function pushServer(state){ if(!syncLearnerId||typeof fetch!=='function')return; try{await fetch(`/api/v1/rewards?learnerId=${encodeURIComponent(syncLearnerId)}`,{method:'PUT',credentials:'include',cache:'no-store',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({earnedBadgeIds:state.earnedBadgeIds,xp:state.xp,completedAttempts:state.completedAttempts,answeredQuestions:state.answeredQuestions,correctAnswers:state.correctAnswers,masteredConcepts:state.masteredConcepts})});}catch(e){console.warn('[BAA Rewards] server sync failed; local rewards retained',e);} }
 function setSyncTarget(id){syncLearnerId=id||null;}
-async function hydrateFromServer(id){if(!id||typeof fetch!=='function')return false;try{const r=await fetch(`/api/v1/rewards?learnerId=${encodeURIComponent(id)}`,{credentials:'include'});if(!r.ok)throw new Error(String(r.status));const p=await r.json();const prior=loadEarned();const server=Array.isArray(p.rewards?.earnedBadgeIds)?p.rewards.earnedBadgeIds:[];
-const serverStats={xp:Number(p.rewards?.xp||0),completedAttempts:Number(p.rewards?.completedAttempts||0),answeredQuestions:Number(p.rewards?.answeredQuestions||0),correctAnswers:Number(p.rewards?.correctAnswers||0),masteredConcepts:Number(p.rewards?.masteredConcepts||0)};const merged=[...new Set([...prior.earnedBadgeIds,...server])];localStorage.setItem(STORAGE_KEY,JSON.stringify({...prior,earnedBadgeIds:merged,lastSyncedAt:new Date().toISOString(),serverStats}));setSyncTarget(id);return true;}catch(e){console.warn('[BAA Rewards] hydrate failed; continuing locally',e);return false;}}
+async function hydrateFromServer(id){if(!id||typeof fetch!=='function')return false;try{const r=await fetch(`/api/v1/rewards?learnerId=${encodeURIComponent(id)}`,{credentials:'include',cache:'no-store',headers:{Accept:'application/json'}});if(!r.ok)throw new Error(String(r.status));const p=await r.json();const server=Array.isArray(p.rewards?.earnedBadgeIds)?p.rewards.earnedBadgeIds:[];const serverStats={xp:Number(p.rewards?.xp||0),completedAttempts:Number(p.rewards?.completedAttempts||0),answeredQuestions:Number(p.rewards?.answeredQuestions||0),correctAnswers:Number(p.rewards?.correctAnswers||0),masteredConcepts:Number(p.rewards?.masteredConcepts||0)};localStorage.setItem(STORAGE_KEY,JSON.stringify({schemaVersion:SCHEMA_VERSION,earnedBadgeIds:server,lastSyncedAt:new Date().toISOString(),serverStats}));setSyncTarget(id);return true;}catch(e){console.warn('[BAA Rewards] hydrate failed; continuing locally',e);return false;}}
 function sync(){
   const s=summarize();
   if(!s.ok)return s;
