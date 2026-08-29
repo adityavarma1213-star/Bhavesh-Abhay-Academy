@@ -3,6 +3,7 @@ import { json } from './_lib/security.js';
 import { requireAuth, requireLearnerAccess } from './_lib/auth.js';
 
 export const config = { runtime: 'nodejs' };
+const MIN_CONCEPT_EVIDENCE = 3;
 
 function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
 
@@ -59,7 +60,10 @@ async function upcomingForecasts(learnerId) {
 
   return catalog.rows.map(assessment => {
     const rows = byAssessment.get(assessment.id) || [];
-    const known = rows.filter(row => Number(row.evidence_count || 0) >= 1);
+    // Forecasting must be based on the same minimum concept-evidence gate as
+    // the rest of BAA. A single memory row is not sufficient evidence for a
+    // predictive estimate about an assessment.
+    const known = rows.filter(row => Number(row.evidence_count || 0) >= MIN_CONCEPT_EVIDENCE);
     if (!known.length || known.length < Math.max(1, Math.ceil(rows.length * 0.5))) {
       return {
         assessmentId: assessment.id,
@@ -70,7 +74,7 @@ async function upcomingForecasts(learnerId) {
         predictedPercentage: null,
         predictedRange: null,
         warningLevel: 'insufficient_evidence',
-        evidence: { questions: rows.length, evidenceBackedQuestions: known.length },
+        evidence: { questions: rows.length, evidenceBackedQuestions: known.length, minimumConceptEvidence: MIN_CONCEPT_EVIDENCE },
         message: 'Not enough concept evidence to forecast this assessment yet.'
       };
     }
@@ -100,7 +104,7 @@ async function upcomingForecasts(learnerId) {
       },
       warningLevel: forecastWarning(predicted),
       confidence: band,
-      evidence: { questions: rows.length, evidenceBackedQuestions: known.length, concepts: new Set(known.map(row => row.concept)).size },
+      evidence: { questions: rows.length, evidenceBackedQuestions: known.length, concepts: new Set(known.map(row => row.concept)).size, minimumConceptEvidence: MIN_CONCEPT_EVIDENCE },
       scope: 'academic_forecast_only'
     };
   });
