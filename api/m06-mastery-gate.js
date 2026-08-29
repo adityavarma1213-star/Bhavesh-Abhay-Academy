@@ -45,7 +45,14 @@ async function buildGate(learnerId, subject, chapter) {
   const list = [...findings.values()];
   const red = list.filter(f => f.status === 'red');
   const green = list.filter(f => f.status === 'green');
-  const gateStatus = red.length ? 'locked' : (list.length ? 'cleared' : 'open');
+
+  const bypass = await sql`
+    SELECT id, reason, created_at AS "createdAt", parent_user_id AS "parentUserId"
+    FROM learning_gate_bypasses
+    WHERE learner_id=${learnerId} AND subject=${subject} AND chapter=${chapter}
+    ORDER BY created_at DESC LIMIT 1`;
+  const activeBypass = bypass.rows[0] || null;
+  const gateStatus = activeBypass ? 'bypassed' : (red.length ? 'locked' : (list.length ? 'cleared' : 'open'));
 
   if (rows[0]) {
     const gateId = `gate_${learnerId}_${Buffer.from(`${subject}:${chapter}`).toString('base64url').slice(0,80)}`;
@@ -62,12 +69,7 @@ async function buildGate(learnerId, subject, chapter) {
         ON CONFLICT (learner_id,subject,chapter,finding_key) DO UPDATE SET status=EXCLUDED.status,last_seen_at=EXCLUDED.last_seen_at,cleared_at=EXCLUDED.cleared_at`;
     }
   }
-  const bypass = await sql`
-    SELECT id, reason, created_at AS "createdAt", parent_user_id AS "parentUserId"
-    FROM learning_gate_bypasses
-    WHERE learner_id=${learnerId} AND subject=${subject} AND chapter=${chapter}
-    ORDER BY created_at DESC LIMIT 1`;
-  return { learnerId, subject, chapter, status: gateStatus, redCount: red.length, greenCount: green.length, findings: list, bypass: bypass.rows[0] || null, evidenceCount: rows.length };
+  return { learnerId, subject, chapter, status: gateStatus, redCount: red.length, greenCount: green.length, findings: list, bypass: activeBypass, evidenceCount: rows.length };
 }
 
 export default async function handler(req, res) {
@@ -96,7 +98,7 @@ export default async function handler(req, res) {
     const bypassId=id('gatebypass');
     await sql`INSERT INTO learning_gate_bypasses(id,learner_id,parent_user_id,subject,chapter,reason,created_at,ip_address) VALUES(${bypassId},${learnerId},${session.user_id},${subject},${chapter},${reason},NOW(),${clientIp(req)})`;
     await writeAudit({actorUserId:session.user_id,action:'mastery_gate.bypass',entityType:'learner_progression_gate',entityId:`${learnerId}:${subject}:${chapter}`,metadata:{learnerId,subject,chapter,reason,bypassId,ip:clientIp(req)}});
-    return json(res,200,{ok:true,bypassId,gate:{...(await buildGate(learnerId,subject,chapter)),bypass:{id:bypassId,reason,createdAt:new Date().toISOString(),parentUserId:session.user_id}}});
+    return json(res,200,{ok:true,bypassId,gate:await buildGate(learnerId,subject,chapter)});
   } catch (e) {
     console.error('MASTERY_GATE_FAILED',e);
     return json(res,e.status||500,{error:{code:e.code||'MASTERY_GATE_FAILED',message:e.status?e.message:'Unable to evaluate mastery gate.'}});
