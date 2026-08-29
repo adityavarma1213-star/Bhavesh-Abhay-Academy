@@ -16,6 +16,7 @@ t('No invented scores are generated',()=>{assert.ok(!p.includes('score:100'));as
 t('No psychological diagnosis is inferred',()=>assert.ok(!w.includes('diagnose')));
 t('M21-M23 bridge requires authenticated BAA learner context',()=>{assert.ok(bridge.includes("global.BAA_LEARNER_ID || document.body?.dataset?.learnerId"));assert.ok(!bridge.includes('localStorage.getItem(\'BAA_LEARNER_ID\')'))});
 t('M21-M23 bridge requests fresh JSON with session credentials',()=>{assert.ok(bridge.includes("credentials:'include'"));assert.ok(bridge.includes("cache:'no-store'"));assert.ok(bridge.includes("Accept:{Accept:'application/json'}")||bridge.includes("Accept:'application/json'"))});
+t('M21 server response explicitly prevents learner-evidence caching',()=>assert.ok(api.includes("Cache-Control', 'private, no-store, max-age=0")||api.includes("Cache-Control',\'private, no-store, max-age=0")||api.includes("Cache-Control', 'private, no-store")));
 t('M21 server never selects answer-key fields for practice feed',()=>{assert.ok(!api.includes('correct_answer AS "correctAnswer"'));assert.ok(!api.includes(', explanation\n        FROM questions'))});
 t('M21-M23 server remains learner-owned',()=>{assert.ok(api.includes('requireAuth(req)'));assert.ok(api.includes('requireLearnerAccess(session, learnerId)'))});
-console.log(`\nM21-23: ${n}/14 PASS`);if(process.exitCode)process.exit(process.exitCode);
+console.log(`\nM21-23: ${n}/15 PASS`);if(process.exitCode)process.exit(process.exitCode);
