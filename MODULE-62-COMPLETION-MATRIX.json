@@ -1,253 +1,74 @@
 {
-  "completion": "100%",
+  "scope": "M01-M63 current implementation baseline",
+  "note": "This file is retained at its historical filename for compatibility, but its contents now reflect the current M01-M63 implementation baseline. It is not a claim of universal production/statutory certification.",
+  "implementation_completion": "63/63 implemented baseline",
+  "statutory_certification": "PENDING",
+  "latest_verified_module": 63,
+  "latest_commit": "19c467506f71c36bd88e5fc94de8d43ffdbaf659",
+  "latest_commit_message": "feat(m63): add parent conversation to verified Guide Robot catalogue",
   "modules": [
-    {
-      "module": 1,
-      "status": "FROZEN / EXISTING"
-    },
-    {
-      "module": 2,
-      "status": "FROZEN / EXISTING"
-    },
-    {
-      "module": 3,
-      "status": "FROZEN / EXISTING"
-    },
-    {
-      "module": 4,
-      "status": "FROZEN / EXISTING"
-    },
-    {
-      "module": 5,
-      "status": "FROZEN / EXISTING"
-    },
-    {
-      "module": 6,
-      "status": "FROZEN / EXISTING"
-    },
-    {
-      "module": 7,
-      "status": "FROZEN / EXISTING"
-    },
-    {
-      "module": 8,
-      "status": "FROZEN / EXISTING"
-    },
-    {
-      "module": 9,
-      "status": "FROZEN / EXISTING"
-    },
-    {
-      "module": 10,
-      "status": "FROZEN / EXISTING"
-    },
-    {
-      "module": 11,
-      "status": "FROZEN / EXISTING"
-    },
-    {
-      "module": 12,
-      "status": "FROZEN / EXISTING"
-    },
-    {
-      "module": 13,
-      "status": "FROZEN / EXISTING"
-    },
-    {
-      "module": 14,
-      "status": "FROZEN / EXISTING"
-    },
-    {
-      "module": 15,
-      "status": "FROZEN / EXISTING"
-    },
-    {
-      "module": 16,
-      "status": "FROZEN / EXISTING"
-    },
-    {
-      "module": 17,
-      "status": "FROZEN / EXISTING"
-    },
-    {
-      "module": 18,
-      "status": "FROZEN / EXISTING"
-    },
-    {
-      "module": 19,
-      "status": "FROZEN / EXISTING"
-    },
-    {
-      "module": 20,
-      "status": "FROZEN / EXISTING"
-    },
-    {
-      "module": 21,
-      "status": "FROZEN / EXISTING"
-    },
-    {
-      "module": 22,
-      "status": "FROZEN / EXISTING"
-    },
-    {
-      "module": 23,
-      "status": "FROZEN / EXISTING"
-    },
-    {
-      "module": 24,
-      "status": "FROZEN / EXISTING"
-    },
-    {
-      "module": 25,
-      "status": "FROZEN / EXISTING"
-    },
-    {
-      "module": 26,
-      "status": "FROZEN / EXISTING"
-    },
-    {
-      "module": 27,
-      "status": "FROZEN / EXISTING"
-    },
-    {
-      "module": 28,
-      "status": "FROZEN / EXISTING"
-    },
-    {
-      "module": 29,
-      "status": "FROZEN / EXISTING"
-    },
-    {
-      "module": 30,
-      "status": "FROZEN / EXISTING"
-    },
-    {
-      "module": 31,
-      "status": "FROZEN / EXISTING"
-    },
-    {
-      "module": 32,
-      "status": "IMPLEMENTED / TESTED"
-    },
-    {
-      "module": 33,
-      "status": "IMPLEMENTED / TESTED"
-    },
-    {
-      "module": 34,
-      "status": "IMPLEMENTED / TESTED"
-    },
-    {
-      "module": 35,
-      "status": "IMPLEMENTED / TESTED"
-    },
-    {
-      "module": 36,
-      "status": "IMPLEMENTED / TESTED"
-    },
-    {
-      "module": 37,
-      "status": "IMPLEMENTED / TESTED"
-    },
-    {
-      "module": 38,
-      "status": "IMPLEMENTED / TESTED"
-    },
-    {
-      "module": 39,
-      "status": "IMPLEMENTED / TESTED"
-    },
-    {
-      "module": 40,
-      "status": "IMPLEMENTED / TESTED"
-    },
-    {
-      "module": 41,
-      "status": "IMPLEMENTED / TESTED"
-    },
-    {
-      "module": 42,
-      "status": "IMPLEMENTED / TESTED"
-    },
-    {
-      "module": 43,
-      "status": "IMPLEMENTED / TESTED"
-    },
-    {
-      "module": 44,
-      "status": "IMPLEMENTED / TESTED"
-    },
-    {
-      "module": 45,
-      "status": "IMPLEMENTED / TESTED"
-    },
-    {
-      "module": 46,
-      "status": "IMPLEMENTED / TESTED"
-    },
-    {
-      "module": 47,
-      "status": "IMPLEMENTED / TESTED"
-    },
-    {
-      "module": 48,
-      "status": "IMPLEMENTED / TESTED"
-    },
-    {
-      "module": 49,
-      "status": "IMPLEMENTED / TESTED"
-    },
-    {
-      "module": 50,
-      "status": "IMPLEMENTED / TESTED"
-    },
-    {
-      "module": 51,
-      "status": "IMPLEMENTED / TESTED"
-    },
-    {
-      "module": 52,
-      "status": "IMPLEMENTED / TESTED"
-    },
-    {
-      "module": 53,
-      "status": "IMPLEMENTED / TESTED"
-    },
-    {
-      "module": 54,
-      "status": "IMPLEMENTED / TESTED"
-    },
-    {
-      "module": 55,
-      "status": "IMPLEMENTED / TESTED"
-    },
-    {
-      "module": 56,
-      "status": "IMPLEMENTED / TESTED"
-    },
-    {
-      "module": 57,
-      "status": "IMPLEMENTED / TESTED"
-    },
-    {
-      "module": 58,
-      "status": "IMPLEMENTED / TESTED"
-    },
-    {
-      "module": 59,
-      "status": "IMPLEMENTED / TESTED"
-    },
-    {
-      "module": 60,
-      "status": "IMPLEMENTED / TESTED"
-    },
-    {
-      "module": 61,
-      "status": "IMPLEMENTED / TESTED"
-    },
-    {
-      "module": 62,
-      "status": "IMPLEMENTED / TESTED"
-    }
+    {"module": 1, "status": "EXISTING BASELINE"},
+    {"module": 2, "status": "EXISTING BASELINE"},
+    {"module": 3, "status": "EXISTING BASELINE"},
+    {"module": 4, "status": "EXISTING BASELINE"},
+    {"module": 5, "status": "EXISTING BASELINE"},
+    {"module": 6, "status": "EXISTING BASELINE"},
+    {"module": 7, "status": "EXISTING BASELINE"},
+    {"module": 8, "status": "EXISTING BASELINE"},
+    {"module": 9, "status": "EXISTING BASELINE"},
+    {"module": 10, "status": "EXISTING BASELINE"},
+    {"module": 11, "status": "EXISTING BASELINE"},
+    {"module": 12, "status": "EXISTING BASELINE"},
+    {"module": 13, "status": "EXISTING BASELINE"},
+    {"module": 14, "status": "EXISTING BASELINE"},
+    {"module": 15, "status": "EXISTING BASELINE"},
+    {"module": 16, "status": "EXISTING BASELINE"},
+    {"module": 17, "status": "EXISTING BASELINE"},
+    {"module": 18, "status": "EXISTING BASELINE"},
+    {"module": 19, "status": "EXISTING BASELINE"},
+    {"module": 20, "status": "EXISTING BASELINE"},
+    {"module": 21, "status": "EXISTING BASELINE"},
+    {"module": 22, "status": "EXISTING BASELINE"},
+    {"module": 23, "status": "EXISTING BASELINE"},
+    {"module": 24, "status": "EXISTING BASELINE"},
+    {"module": 25, "status": "EXISTING BASELINE"},
+    {"module": 26, "status": "EXISTING BASELINE"},
+    {"module": 27, "status": "EXISTING BASELINE"},
+    {"module": 28, "status": "EXISTING BASELINE"},
+    {"module": 29, "status": "EXISTING BASELINE"},
+    {"module": 30, "status": "EXISTING BASELINE"},
+    {"module": 31, "status": "EXISTING BASELINE"},
+    {"module": 32, "status": "IMPLEMENTED / TESTED BASELINE"},
+    {"module": 33, "status": "IMPLEMENTED / TESTED BASELINE"},
+    {"module": 34, "status": "IMPLEMENTED / TESTED BASELINE"},
+    {"module": 35, "status": "IMPLEMENTED / TESTED BASELINE"},
+    {"module": 36, "status": "IMPLEMENTED / TESTED BASELINE"},
+    {"module": 37, "status": "IMPLEMENTED / TESTED BASELINE"},
+    {"module": 38, "status": "IMPLEMENTED / TESTED BASELINE"},
+    {"module": 39, "status": "IMPLEMENTED / TESTED BASELINE"},
+    {"module": 40, "status": "IMPLEMENTED / TESTED BASELINE"},
+    {"module": 41, "status": "IMPLEMENTED / TESTED BASELINE"},
+    {"module": 42, "status": "IMPLEMENTED / TESTED BASELINE"},
+    {"module": 43, "status": "IMPLEMENTED / TESTED BASELINE"},
+    {"module": 44, "status": "IMPLEMENTED / TESTED BASELINE"},
+    {"module": 45, "status": "IMPLEMENTED / TESTED BASELINE"},
+    {"module": 46, "status": "IMPLEMENTED / TESTED BASELINE"},
+    {"module": 47, "status": "IMPLEMENTED / TESTED BASELINE"},
+    {"module": 48, "status": "IMPLEMENTED / TESTED BASELINE"},
+    {"module": 49, "status": "IMPLEMENTED / TESTED BASELINE"},
+    {"module": 50, "status": "IMPLEMENTED / TESTED BASELINE"},
+    {"module": 51, "status": "IMPLEMENTED / TESTED BASELINE"},
+    {"module": 52, "status": "IMPLEMENTED / TESTED BASELINE"},
+    {"module": 53, "status": "IMPLEMENTED / TESTED BASELINE"},
+    {"module": 54, "status": "IMPLEMENTED / TESTED BASELINE"},
+    {"module": 55, "status": "IMPLEMENTED / TESTED BASELINE"},
+    {"module": 56, "status": "IMPLEMENTED / TESTED BASELINE"},
+    {"module": 57, "status": "IMPLEMENTED / TESTED BASELINE"},
+    {"module": 58, "status": "IMPLEMENTED / TESTED BASELINE"},
+    {"module": 59, "status": "IMPLEMENTED / TESTED BASELINE"},
+    {"module": 60, "status": "IMPLEMENTED / TESTED BASELINE"},
+    {"module": 61, "status": "IMPLEMENTED / TESTED BASELINE"},
+    {"module": 62, "status": "IMPLEMENTED / TESTED BASELINE"},
+    {"module": 63, "status": "IMPLEMENTED / TESTED BASELINE"}
   ]
 }
