@@ -67,7 +67,7 @@
     loadStyle('css/baa-guide-robot.css','data-baa-m63-style');loadScript('js/baa-guide-robot.js','data-baa-m63-robot');
     loadScript('js/baa-m02-custom-mode-server-sync.js','data-baa-m02-server-sync');
     loadScript('js/baa-m03-hybrid-mode-server-sync.js','data-baa-m03-server-sync');
-    loadScript('js/baa-m06-mastery-gate.js','data-baa-m06-mastery-gate');loadScript('js/baa-m06-assessment-fresh-sync.js','data-baa-m06-fresh-sync');
+    loadScript('js/baa-m06-mastery-gate.js','data-baa-m06-mastery-gate');loadScript('js/baa-m06-assessment-fresh-sync.js','data-baa-m06-fresh-sync');loadScript('js/baa-m06-progression-guard.js','data-baa-m06-progression-guard');
     loadScript('js/baa-m09-learning-memory-server-ui.js','data-baa-m09-server-ui');
     loadScript('js/baa-m10-confidence-integration.js','data-baa-m10-integration');loadScript('js/baa-m10-confidence-ui.js','data-baa-m10-ui');
     loadScript('js/baa-m11-planner-integration.js','data-baa-m11-integration');loadScript('js/baa-planner-server-recommendations.js','data-baa-m11-server-recommendations');loadScript('js/baa-m11-planner-server-ui.js','data-baa-m11-server-ui');
