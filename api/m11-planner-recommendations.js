@@ -5,7 +5,7 @@ import { sql } from './_lib/db.js';
 export const config = { runtime: 'nodejs' };
 
 const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
-const NO_STORE = { 'Cache-Control': 'no-store' };
+const NO_STORE = { 'Cache-Control': 'private, no-store, max-age=0' };
 
 function stateForEvidence(rows) {
   const grouped = new Map();
@@ -32,6 +32,20 @@ function stateForEvidence(rows) {
   });
 }
 
+async function getPolicy(learnerId) {
+  const result = await sql`
+    SELECT planner_enabled, planner_daily_minutes
+    FROM parent_ai_policies
+    WHERE learner_id=${learnerId}
+    LIMIT 1
+  `;
+  const row = result.rows[0];
+  return {
+    plannerEnabled: row?.planner_enabled !== false,
+    plannerDailyMinutes: clamp(Number.isFinite(Number(row?.planner_daily_minutes)) ? Number(row.planner_daily_minutes) : 30, 0, 480),
+  };
+}
+
 async function handler(req, res) {
   if (req.method !== 'GET') {
     return json(res, 405, { error: { code: 'METHOD_NOT_ALLOWED', message: 'GET required.' } }, { Allow: 'GET', ...NO_STORE });
@@ -39,8 +53,18 @@ async function handler(req, res) {
 
   try {
     const session = await requireAuth(req);
-    const learnerId = String(req.query?.learnerId || '');
+    const learnerId = String(req.query?.learnerId || '').trim().slice(0, 100);
     await requireLearnerAccess(session, learnerId);
+
+    const policy = await getPolicy(learnerId);
+    if (!policy.plannerEnabled) {
+      return json(res, 403, {
+        error: {
+          code: 'AI_PLANNER_DISABLED_BY_PARENT_POLICY',
+          message: 'AI Planner is disabled by the active parent approval policy for this learner.',
+        },
+      }, NO_STORE);
+    }
 
     const [evidence, upcoming, goals] = await Promise.all([
       sql`SELECT subject,chapter,concept,correctness,created_at
@@ -58,13 +82,17 @@ async function handler(req, res) {
 
     const states = stateForEvidence(evidence.rows);
     const recommendations = [];
+    let remainingMinutes = policy.plannerDailyMinutes;
 
     for (const state of states) {
+      if (remainingMinutes <= 0) break;
       if (state.state === 'learning' && state.total < 2) continue;
       const exam = upcoming.rows.find(x => x.subject && x.subject === state.subject);
       const goal = goals.rows.find(x => String(x.text || '').toLowerCase().includes(String(state.concept).toLowerCase()));
       const daysUntil = exam ? Math.ceil((new Date(`${exam.date}T00:00:00Z`).getTime() - Date.now()) / 86400000) : null;
       const priority = state.state === 'struggling' ? 'high' : (exam && daysUntil <= 14 ? 'high' : 'medium');
+      const estimatedMinutes = Math.min(clamp(state.state === 'struggling' ? 20 : 15, 10, 30), remainingMinutes);
+      if (estimatedMinutes <= 0) break;
       const reasons = [
         `${state.accuracy}% observed accuracy from ${state.total} evidence points.`,
         state.state === 'struggling' ? 'Recent evidence shows repeated incorrect or unresolved responses.' : 'Evidence indicates this concept can benefit from targeted revision.',
@@ -77,12 +105,13 @@ async function handler(req, res) {
         subject: state.subject,
         concept: state.concept,
         priority,
-        estimatedMinutes: clamp(state.state === 'struggling' ? 20 : 15, 10, 30),
+        estimatedMinutes,
         reasons,
         evidenceCount: state.total,
         accuracy: state.accuracy,
         source: 'server_learning_evidence',
       });
+      remainingMinutes -= estimatedMinutes;
     }
 
     recommendations.sort((a, b) => (a.priority === 'high' ? -1 : 1) - (b.priority === 'high' ? -1 : 1));
@@ -91,6 +120,8 @@ async function handler(req, res) {
       learnerId,
       recommendations: recommendations.slice(0, 12),
       evidencePoints: evidence.rows.length,
+      plannerDailyMinutes: policy.plannerDailyMinutes,
+      scheduledMinutes: policy.plannerDailyMinutes - remainingMinutes,
       source: 'server_learning_evidence',
       limitations: ['Recommendations are evidence-based study guidance, not diagnosis or prediction of outcomes.'],
     }, NO_STORE);
