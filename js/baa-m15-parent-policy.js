@@ -2,8 +2,14 @@
 (function (global) {
   'use strict';
 
+  const versions = new Map();
+
   function learnerId() {
     return String(global.BAA_LEARNER_ID || '').trim();
+  }
+
+  function rememberVersion(id, updatedAt) {
+    if (updatedAt) versions.set(id, String(updatedAt));
   }
 
   async function load(id = learnerId()) {
@@ -16,7 +22,8 @@
       });
       const data = await response.json().catch(() => null);
       if (!response.ok) return { ok: false, error: data?.error || { code: 'POLICY_LOAD_FAILED', message: 'Parent policy could not be loaded.' } };
-      return { ok: true, learnerId: id, policy: data.policy };
+      rememberVersion(id, data?.updatedAt);
+      return { ok: true, learnerId: id, policy: data.policy, updatedAt: data?.updatedAt || null };
     } catch {
       return { ok: false, error: { code: 'NETWORK_ERROR', message: 'Parent policy could not reach the server.' } };
     }
@@ -25,16 +32,21 @@
   async function save(policy, id = learnerId()) {
     if (!id) return { ok: false, error: { code: 'LEARNER_REQUIRED', message: 'A learner context is required.' } };
     try {
+      const expectedUpdatedAt = versions.get(id);
       const response = await fetch('/api/m15-parent-policy', {
         method: 'POST',
         credentials: 'include',
         cache: 'no-store',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({ learnerId: id, ...(policy || {}) }),
+        body: JSON.stringify({ learnerId: id, ...(policy || {}), ...(expectedUpdatedAt ? { expectedUpdatedAt } : {}) }),
       });
       const data = await response.json().catch(() => null);
-      if (!response.ok) return { ok: false, error: data?.error || { code: 'POLICY_SAVE_FAILED', message: 'Parent policy could not be saved.' } };
-      return { ok: true, learnerId: id, policy: data.policy };
+      if (!response.ok) {
+        if (data?.updatedAt) rememberVersion(id, data.updatedAt);
+        return { ok: false, error: data?.error || { code: 'POLICY_SAVE_FAILED', message: 'Parent policy could not be saved.' }, updatedAt: data?.updatedAt || null };
+      }
+      rememberVersion(id, data?.updatedAt);
+      return { ok: true, learnerId: id, policy: data.policy, updatedAt: data?.updatedAt || null };
     } catch {
       return { ok: false, error: { code: 'NETWORK_ERROR', message: 'Parent policy could not reach the server.' } };
     }
