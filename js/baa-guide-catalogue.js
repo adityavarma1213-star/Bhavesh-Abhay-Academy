@@ -16,13 +16,44 @@
     {id:'teacher-portal',title:'Teacher Portal',icon:'🧑‍🏫',roles:['teacher','admin'],description:'Teacher and academic management portal protected by the server-side role gate.',route:'teacher-portal.html'},
     {id:'themes',title:'Theme Engine',icon:'🎨',roles:['student','parent','teacher','admin'],description:'Choose Aurora, Galaxy, Academic, NeoGlass, Calm or Duology, with Light, Dark or System display mode.',route:'student-os.html'},
     {id:'feature-map',title:'Feature Map',icon:'🗺️',roles:['student','parent','teacher','admin'],description:'See the BAA feature map and understand how the major product areas connect.',route:'feature-map.html'},
+    {id:'ai-mode',title:'AI Mode',icon:'🤖',roles:['student'],description:'Use server-authoritative learning evidence to support academic AI interactions.',route:'student-os.html'},
+    {id:'custom-mode',title:'Custom Mode',icon:'🧩',roles:['student'],description:'Create and persist a learner-customized academic mode through the authenticated server path.',route:'student-os.html'},
+    {id:'hybrid-mode',title:'Hybrid Mode',icon:'🔄',roles:['student'],description:'Use the hybrid learning mode with authenticated learner context and server synchronization.',route:'student-os.html'},
+    {id:'mastery-gate',title:'Mastery Gate',icon:'🚦',roles:['student','parent'],description:'Check evidence-backed progression findings and use the authenticated parent bypass workflow where permitted.',route:'assessment.html'},
+    {id:'learning-memory',title:'Learning Memory',icon:'🧠',roles:['student'],description:'Review authenticated learner-scoped academic evidence and concept states from server-backed Learning Memory.',route:'student-os.html'},
+    {id:'confidence',title:'Learning Confidence',icon:'📈',roles:['student'],description:'View evidence-based academic confidence signals without psychological inference.',route:'student-os.html'},
     {id:'adaptive-pacing',title:'Adaptive Pacing',icon:'⏱️',roles:['student'],description:'Adjust planned learning scope or intensity using explicit available time, planned time and self-reported energy.',route:'student-os.html'},
+    {id:'planner',title:'AI Planner',icon:'🗓️',roles:['student'],description:'Generate evidence-based study recommendations within the active parent-approved planning policy and daily minute cap.',route:'student-os.html'},
+    {id:'academic-forecast',title:'Academic Forecast',icon:'🔭',roles:['student','parent'],description:'View evidence-based forecasts for supported upcoming assessments, including insufficient-evidence states.',route:'student-os.html'},
+    {id:'guardian',title:'AI Guardian',icon:'🛡️',roles:['student','parent'],description:'Use the server-backed academic guardian surface grounded in learner evidence.',route:'student-os.html'},
+    {id:'school-calendar',title:'School Calendar',icon:'📅',roles:['student'],description:'Manage learner school-calendar events through the authenticated server-backed calendar path.',route:'student-os.html'},
+    {id:'practice-prioritization',title:'Practice Prioritization',icon:'🎯',roles:['student'],description:'Prioritize practice from stored learning evidence without exposing answer keys or inventing scores.',route:'student-os.html'},
+    {id:'learning-paths',title:'Learning Paths',icon:'🛤️',roles:['student'],description:'Build an evidence-priority learning path from current learner evidence without claiming an inferred canonical syllabus graph.',route:'student-os.html'},
+    {id:'learning-resources',title:'Learning Resources',icon:'📚',roles:['student'],description:'Browse authenticated server-backed learning resources.',route:'student-os.html'},
+    {id:'rewards',title:'Rewards',icon:'🏆',roles:['student'],description:'View the server-backed rewards surface for learner progress.',route:'student-os.html'},
+    {id:'teacher-analytics',title:'Teacher Analytics',icon:'📊',roles:['teacher','admin'],description:'Review class and learner academic analytics, including concept-level evidence patterns.',route:'teacher-os.html'},
+    {id:'career',title:'Career Guidance',icon:'🧭',roles:['student'],description:'Explore academic career alignment grounded in stored learner evidence.',route:'student-os.html'},
+    {id:'goals',title:'Goals',icon:'🎯',roles:['student'],description:'Set and track learner academic goals through the authenticated goal workflow.',route:'student-os.html'},
+    {id:'teacher-notes',title:'Teacher AI Notes',icon:'📝',roles:['teacher','admin'],description:'Generate bounded evidence-based teacher notes within the teacher/admin workflow.',route:'teacher-os.html'},
+    {id:'virtual-labs',title:'Virtual Labs',icon:'🧪',roles:['student'],description:'Run safe deterministic Physics/Mathematics simulations with user-entered inputs.',route:'student-os.html'},
+    {id:'community',title:'Community',icon:'👥',roles:['student','teacher','admin'],description:'Use the authenticated community post and moderation workflow with safety boundaries.',route:'student-os.html'},
+    {id:'insights',title:'Insights',icon:'💡',roles:['student','parent','teacher','admin'],description:'Review supported academic insight surfaces built from server-backed evidence.',route:'student-os.html'},
+    {id:'explainability',title:'Explainability',icon:'🔎',roles:['student','parent','teacher','admin'],description:'See bounded explanations of stored academic evidence without exposing hidden model reasoning.',route:'student-os.html'},
+    {id:'low-bandwidth',title:'Low-Bandwidth Learning',icon:'📶',roles:['student'],description:'Persist explicit learner low-bandwidth preferences through the authenticated server path.',route:'student-os.html'},
+    {id:'anti-cheating',title:'Assessment Integrity',icon:'🛡️',roles:['student','teacher','admin'],description:'Record assessment-integrity events without automatically failing the learner.',route:'assessment.html'},
+    {id:'scholarships',title:'Scholarship Finder',icon:'🎓',roles:['student'],description:'Browse the configured scholarship catalogue through an authenticated fresh-data path.',route:'student-os.html'},
+    {id:'mentor-marketplace',title:'Mentor Marketplace',icon:'🤝',roles:['student','parent','teacher','admin'],description:'Use the safeguarded mentor-request workflow with verification and parent-policy controls where applicable.',route:'student-os.html'},
+    {id:'erp',title:'ERP Connection',icon:'🔗',roles:['teacher','admin'],description:'Use the vendor-neutral ERP connection boundary; live synchronization remains unavailable until a real provider is configured.',route:'teacher-portal.html'},
+    {id:'mistake-archeology',title:'Mistake Archeology',icon:'🧩',roles:['student','teacher'],description:'Review recurring academic mistake patterns derived from stored evidence and assessment findings.',route:'assessment.html'},
+    {id:'cognitive-safety',title:'Cognitive Safety',icon:'🧠',roles:['student'],description:'Use student-only cognitive-safety check-ins and server-computed recommendations.',route:'student-os.html'},
+    {id:'teacher-diagnostic',title:'Teacher Diagnostic',icon:'🩺',roles:['teacher','admin'],description:'Review evidence-derived instructional diagnostics; this is not a psychological diagnosis.',route:'teacher-os.html'},
+    {id:'humane-ui',title:'Humane UI',icon:'❤️',roles:['student','parent','teacher','admin'],description:'Apply actionable interface-safety rules against manipulative, shaming or emotion-inference patterns.',route:'student-os.html'},
     {id:'trust',title:'Trust & Privacy',icon:'🔐',roles:['student','parent','teacher','admin'],description:'Review BAA trust, privacy and data-handling information.',route:'trust-privacy.html'},
     {id:'user-guide',title:'User Guide',icon:'📖',roles:['student','parent','teacher','admin'],description:'Read the written guide to the major BAA OS features.',route:'user-guide.html'},
     {id:'demo',title:'BAA Demo',icon:'▶️',roles:['student','parent','teacher','admin'],description:'Open the product demonstration experience.',route:'demo.html'}
   ];
   function clone(){return FEATURES.map(function(f){return Object.assign({},f,{roles:f.roles.slice()});});}
-  global.BAAGuideCatalogue={version:'m63.19',features:FEATURES.slice(),getFeatures:clone,getFeature:function(id){return FEATURES.find(function(f){return f.id===id;})||null;}};
+  global.BAAGuideCatalogue={version:'m63.20',features:FEATURES.slice(),getFeatures:clone,getFeature:function(id){return FEATURES.find(function(f){return f.id===id;})||null;}};
 
   function loadScript(src,attribute){
     if(document.querySelector('script['+attribute+']')) return;
