@@ -1,8 +1,11 @@
 // BAA M08 — authenticated durable homework synchronization boundary.
 // Persists structured submission snapshots only. Raw image/PDF bytes are never stored here.
+// AI evaluation data is accepted only when its server-issued verdict token binds it
+// to the same submission id and homework text.
 import { sql } from '../_lib/db.js';
-import { json, id, writeAudit } from '../_lib/security.js';
+import { json, writeAudit } from '../_lib/security.js';
 import { requireAuth, requireLearnerAccess } from '../_lib/auth.js';
+import { hashHomeworkText, verifyHomeworkVerdict } from '../_lib/assessment-verdict.js';
 
 export const config = { runtime: 'nodejs' };
 const MAX_SUBMISSIONS = 100;
@@ -32,9 +35,14 @@ function cleanAttachment(a) {
   if (a.fileName) out.fileName = cleanString(a.fileName, 200);
   return out;
 }
-function cleanEvaluation(e) {
+function cleanEvaluation(e, submissionId, text) {
   if (!e || typeof e !== 'object') return null;
   if (!ALLOWED_ASSESSMENTS.has(e.overallAssessment) || !ALLOWED_CONFIDENCE.has(e.confidence)) return null;
+  const token = cleanString(e.verdictToken, 2000);
+  const verification = verifyHomeworkVerdict(token, { submissionId, textHash: hashHomeworkText(text) });
+  if (!verification.ok) return null;
+  const verdict = verification.verdict;
+  if (verdict.overallAssessment !== e.overallAssessment || verdict.confidence !== e.confidence) return null;
   const list = (v, maxItems, maxChars) => Array.isArray(v) ? v.filter(x => typeof x === 'string').slice(0, maxItems).map(x => x.slice(0, maxChars)) : [];
   return {
     schemaVersion: 1,
@@ -48,8 +56,13 @@ function cleanEvaluation(e) {
     humanReviewRequired: Boolean(e.humanReviewRequired),
     humanReviewReasons: list(e.humanReviewReasons, 5, 300),
     imageEvaluated: Boolean(e.imageEvaluated),
-    learningSignals: list(e.learningSignals, 5, 300),
-    verdictToken: cleanString(e.verdictToken, 2000),
+    learningSignals: Array.isArray(e.learningSignals) ? e.learningSignals.slice(0, 5).filter(x => x && typeof x === 'object').map(x => ({
+      concept: cleanString(x.concept, 120),
+      outcome: cleanString(x.outcome, 60),
+      errorType: x.errorType == null ? null : cleanString(x.errorType, 120),
+      confidence: cleanString(x.confidence, 20),
+    })).filter(x => x.concept) : [],
+    verdictToken: token,
   };
 }
 function cleanSubmission(input) {
@@ -60,7 +73,9 @@ function cleanSubmission(input) {
   const submittedAt = new Date(input.submittedAt || 0);
   if (Number.isNaN(submittedAt.getTime())) return null;
   const attachments = Array.isArray(input.attachments) ? input.attachments.slice(0, 3).map(cleanAttachment).filter(Boolean) : [];
-  const status = ALLOWED_STATUSES.has(input.status) ? input.status : 'received';
+  const requestedStatus = ALLOWED_STATUSES.has(input.status) ? input.status : 'received';
+  const evaluation = cleanEvaluation(input.evaluation, idValue, text);
+  const status = requestedStatus === 'evaluated' && !evaluation ? 'evaluation_failed' : requestedStatus;
   return {
     id: idValue,
     submittedAt: submittedAt.toISOString(),
@@ -69,8 +84,8 @@ function cleanSubmission(input) {
     subjectHint: cleanString(input.subjectHint, MAX_SUBJECT_CHARS),
     attachments,
     status,
-    evaluation: cleanEvaluation(input.evaluation),
-    lastEvaluationError: cleanString(input.lastEvaluationError, 300),
+    evaluation,
+    lastEvaluationError: evaluation ? null : cleanString(input.lastEvaluationError, 300),
   };
 }
 
