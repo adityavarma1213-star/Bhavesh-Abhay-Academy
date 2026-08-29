@@ -49,6 +49,9 @@ async function callGemini(prompt, apiKey) {
 }
 
 export default async function handler(req, res) {
+  // Teacher-facing notes contain learner-specific academic evidence and must
+  // never be cached by a browser or intermediary.
+  res.setHeader('Cache-Control', 'private, no-store, max-age=0');
   if (req.method !== 'POST') return json(res, 405, { error: { code: 'METHOD_NOT_ALLOWED', message: 'POST required.' } }, { Allow: 'POST' });
   try {
     const session = await requireAuth(req);
