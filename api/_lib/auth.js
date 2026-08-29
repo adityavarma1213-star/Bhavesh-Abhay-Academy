@@ -47,14 +47,37 @@ export async function canAccessLearner(session, learnerId) {
     if (r.rows.length) return true;
   }
   if (session.roles.includes('teacher')) {
-    const r=await sql`SELECT 1 FROM teacher_learner WHERE teacher_user_id=${session.user_id} AND learner_id=${learnerId} AND status='active' LIMIT 1`;
-    if (r.rows.length) return true;
+    const direct=await sql`SELECT 1 FROM teacher_learner WHERE teacher_user_id=${session.user_id} AND learner_id=${learnerId} AND status='active' LIMIT 1`;
+    if (direct.rows.length) return true;
+    const viaClass=await sql`SELECT 1
+      FROM classes c
+      JOIN class_members cm ON cm.class_id=c.id
+      WHERE c.teacher_user_id=${session.user_id}
+        AND c.archived_at IS NULL
+        AND cm.learner_id=${learnerId}
+        AND cm.status='active'
+      LIMIT 1`;
+    if (viaClass.rows.length) return true;
   }
   return false;
+}
+
+export async function canAccessClass(session, classId) {
+  if (!classId) return false;
+  if (hasRole(session,'admin')) return true;
+  if (!hasRole(session,'teacher')) return false;
+  const r=await sql`SELECT 1 FROM classes WHERE id=${classId} AND teacher_user_id=${session.user_id} AND archived_at IS NULL LIMIT 1`;
+  return r.rows.length>0;
 }
 
 export async function requireLearnerAccess(session, learnerId) {
   if (!(await canAccessLearner(session, learnerId))) {
     const err=new Error('You are not authorized to access this learner.'); err.status=403; err.code='LEARNER_FORBIDDEN'; throw err;
+  }
+}
+
+export async function requireClassAccess(session, classId) {
+  if (!(await canAccessClass(session, classId))) {
+    const err=new Error('You are not authorized to access this class.'); err.status=403; err.code='CLASS_FORBIDDEN'; throw err;
   }
 }
