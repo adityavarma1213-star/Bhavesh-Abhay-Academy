@@ -1,5 +1,5 @@
 import { sql } from './_lib/db.js';
-import { json } from './_lib/security.js';
+import { json, writeAudit } from './_lib/security.js';
 import { requireAuth, requireLearnerAccess } from './_lib/auth.js';
 
 export const config = { runtime: 'nodejs' };
@@ -61,11 +61,25 @@ export default async function handler(req, res) {
         ON CONFLICT(learner_id)
         DO UPDATE SET path=EXCLUDED.path, updated_at=NOW()
       `;
+      await writeAudit({
+        actorUserId: session.user_id,
+        action: 'CUSTOM_MODE_PATH_SAVED',
+        entityType: 'learner',
+        entityId: learnerId,
+        metadata: { stepCount: steps.length },
+      });
       return json(res, 200, { ok: true, learnerId, path });
     }
 
     if (req.method === 'DELETE') {
       await sql`DELETE FROM custom_learning_paths WHERE learner_id=${learnerId}`;
+      await writeAudit({
+        actorUserId: session.user_id,
+        action: 'CUSTOM_MODE_PATH_CLEARED',
+        entityType: 'learner',
+        entityId: learnerId,
+        metadata: {},
+      });
       return json(res, 200, { ok: true, learnerId, path: { schemaVersion: 1, mode: 'custom', steps: [] } });
     }
 
