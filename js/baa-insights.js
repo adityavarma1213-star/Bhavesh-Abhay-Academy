@@ -12,7 +12,8 @@ function build(){
  const completed=attempts.filter(a=>a&&a.status==='submitted').length,correct=evidence.filter(e=>e&&e.correctness==='correct').length;
  const accuracy=evidence.length?Number((correct/evidence.length*100).toFixed(1)):null;
  const weak=paths&&paths.nodes?paths.nodes.filter(n=>['needs_revision','struggling'].includes(n.state)).length:null;
- return {ok:true,error:null,metrics:{completedAssessments:completed,answeredQuestions:evidence.length,accuracyPercent:accuracy,weakConceptCount:weak,xp:rewards&&rewards.xp!=null?number(rewards.xp):null},evidenceQuality:evidence.length?'measured':'insufficient_evidence'};
+ const strong=paths&&paths.nodes?paths.nodes.filter(n=>['mastered','strong'].includes(n.state)).length:null;
+ return {ok:true,error:null,metrics:{completedAssessments:completed,answeredQuestions:evidence.length,accuracyPercent:accuracy,weakConceptCount:weak,strongConceptCount:strong,xp:rewards&&rewards.xp!=null?number(rewards.xp):null},evidenceQuality:evidence.length?'measured':'insufficient_evidence'};
 }
 async function load(learnerId){
  const id=String(learnerId||'').trim();
