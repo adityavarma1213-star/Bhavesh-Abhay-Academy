@@ -3,6 +3,7 @@ import { requireAuth, requireLearnerAccess } from './_lib/auth.js';
 import { sql } from './_lib/db.js';
 
 export const config = { runtime: 'nodejs' };
+const NO_STORE = { 'Cache-Control': 'private, no-store, max-age=0' };
 const TRACKS = {
   'Space & Aerospace': ['algebra','geometry','physics','problem-solving','coding'],
   'Software Development': ['algebra','coding','logic','problem-solving','computer-science'],
@@ -15,13 +16,14 @@ const humanize = v => clean(v,80).replace(/-/g,' ');
 const label = r => r.title ? clean(r.title,120) : r.concept ? clean(r.concept,120) : 'Academic evidence';
 
 export default async function handler(req,res){
-  if(req.method !== 'GET') return json(res,405,{error:{code:'METHOD_NOT_ALLOWED',message:'GET required.'}},{Allow:'GET'});
+  res.setHeader('Cache-Control','private, no-store, max-age=0');
+  if(req.method !== 'GET') return json(res,405,{error:{code:'METHOD_NOT_ALLOWED',message:'GET required.'}},{Allow:'GET',...NO_STORE});
   try {
     const session=await requireAuth(req);
     const learnerId=clean(req.query?.learnerId,120);
     await requireLearnerAccess(session,learnerId);
     const track=clean(req.query?.track,80);
-    if(!TRACKS[track]) return json(res,400,{error:{code:'INVALID_TRACK',message:'A supported career track is required.'}});
+    if(!TRACKS[track]) return json(res,400,{error:{code:'INVALID_TRACK',message:'A supported career track is required.'}},NO_STORE);
     const rows=await sql`SELECT id,concept,correctness,title,attempt_id,created_at FROM learning_evidence WHERE learner_id=${learnerId} ORDER BY created_at DESC LIMIT 500`;
     const skills=TRACKS[track].map(skill=>{
       const target=normalize(skill);
@@ -37,6 +39,6 @@ export default async function handler(req,res){
     const tracked=skills.filter(x=>x.status!=='not_yet_tracked');
     const strengths=skills.filter(x=>x.status==='strength_evidence');
     const summary=!tracked.length?'Not enough evidence':strengths.length===skills.length?'Strong current alignment':strengths.length>=Math.ceil(skills.length*.6)?'Promising current alignment':'Mixed alignment — explore further';
-    return json(res,200,{ok:true,learnerId,track,summary,coverage:skills.length?tracked.length/skills.length:0,skills,methodology:'Career alignment compares selected track skills only with tagged academic evidence already stored for the learner. Missing evidence is not treated as weakness.',limitations:['Exploratory guidance only; not a prediction or guarantee.','No job, salary, admission, or future outcome is inferred.','Consequential decisions should be reviewed with a parent, teacher, or qualified career professional.'],disclaimer:'Career alignment is exploratory guidance, not a prediction or guarantee.'});
-  }catch(e){return json(res,e.status||500,{error:{code:e.code||'CAREER_ANALYTICS_FAILED',message:e.status?e.message:'Unable to load career evidence.'}});}
+    return json(res,200,{ok:true,learnerId,track,summary,coverage:skills.length?tracked.length/skills.length:0,skills,methodology:'Career alignment compares selected track skills only with tagged academic evidence already stored for the learner. Missing evidence is not treated as weakness.',limitations:['Exploratory guidance only; not a prediction or guarantee.','No job, salary, admission, or future outcome is inferred.','Consequential decisions should be reviewed with a parent, teacher, or qualified career professional.'],disclaimer:'Career alignment is exploratory guidance, not a prediction or guarantee.'},NO_STORE);
+  }catch(e){return json(res,e.status||500,{error:{code:e.code||'CAREER_ANALYTICS_FAILED',message:e.status?e.message:'Unable to load career evidence.'}},NO_STORE);}
 }
