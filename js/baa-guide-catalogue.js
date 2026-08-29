@@ -79,6 +79,8 @@
     loadScript('js/baa-m58-teacher-diagnostic-ui.js','data-baa-m58-teacher-diagnostic-ui');loadScript('js/baa-m51-pedagogy-server-ui.js','data-baa-m51-pedagogy-server-ui');loadScript('js/baa-m26-notes-server-ui.js','data-baa-m26-notes-server-ui');
     loadScript('js/baa-m56-adaptive-pacing-server.js','data-baa-m56-adaptive-pacing-server');
     loadScript('js/baa-m31-language-server-sync.js','data-baa-m31-language-server-sync');
+    loadScript('js/baa-parent-conversation.js','data-baa-m57-parent-conversation');
+    loadScript('js/baa-purpose-design.js','data-baa-m60-purpose-design');
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',startBridges);else startBridges();
 })(window);
