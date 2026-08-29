@@ -20,9 +20,22 @@ function buildStates(rows){
   }
   return [...grouped.values()].map(item=>{
     const accuracy=item.total?Math.round(item.correct/item.total*100):0;
-    const recentIncorrect=item.recent.filter(x=>x!=='correct').length;
-    const state=accuracy<60||recentIncorrect>=3?'struggling':accuracy<80?'needs_revision':'learning';
-    return {...item,accuracy,state,confidence:item.total>=4?'observed':'insufficient_evidence'};
+    const recent=item.recent.slice(-5);
+    const recentAccuracy=recent.length?Math.round(recent.filter(x=>x==='correct').length/recent.length*100):0;
+    const recentIncorrect=recent.filter(x=>x!=='correct').length;
+    let state='insufficient_evidence';
+    if(item.total>=3){
+      if(recentAccuracy>=80) state='mastered';
+      else if(recentAccuracy>=60) state='learning';
+      else state='needs_revision';
+      if(recentAccuracy<=25 || recentIncorrect>=4) state='struggling';
+      // "strong" is deliberately stricter than mastered: it needs a larger
+      // evidence base and consistently correct recent evidence, matching the
+      // server Learning Memory confidence distinction rather than inventing a
+      // new mastery threshold.
+      if(item.total>=6 && recent.length>=4 && recentAccuracy>=80 && recent.every(x=>x==='correct')) state='strong';
+    }
+    return {...item,accuracy,recentAccuracy,state,confidence:item.total>=6?'high':item.total>=3?'observed':'insufficient_evidence'};
   });
 }
 
@@ -41,8 +54,8 @@ export default async function handler(req,res){
     states.sort((a,b)=>(ORDER[a.state]??2)-(ORDER[b.state]??2)||(a.total-b.total));
     const nodes=states.slice(0,limit).map((s,index)=>({
       nodeId:`path_${String(s.concept).replace(/[^a-z0-9]+/gi,'_').toLowerCase()}_${index+1}`,
-      order:index+1,concept:s.concept,subject:s.subject,state:s.state,evidenceCount:s.total,accuracy:s.accuracy,confidence:s.confidence,
-      action:s.state==='struggling'||s.state==='needs_revision'?'Review and retry':s.state==='learning'?'Practice next':'Build evidence',
+      order:index+1,concept:s.concept,subject:s.subject,state:s.state,evidenceCount:s.total,accuracy:s.accuracy,recentAccuracy:s.recentAccuracy,confidence:s.confidence,
+      action:s.state==='struggling'||s.state==='needs_revision'?'Review and retry':s.state==='learning'?'Practice next':s.state==='mastered'||s.state==='strong'?'Extend or reassess':'Build evidence',
       current:index===0,prerequisiteClaim:null
     }));
     return json(res,200,{ok:true,learnerId,subject,nodes,hasEvidence:Boolean(nodes.length),pathType:'evidence_priority_queue',evidencePoints:evidence.rows.length,source:'server_learning_evidence',limitation:'Node order is generated from current evidence state. BAA has not inferred a canonical syllabus prerequisite graph.'});
