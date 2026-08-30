@@ -1,5 +1,5 @@
 import { json, writeAudit } from './_lib/security.js';
-import { requireAuth } from './_lib/auth.js';
+import { requireAuth, hasRole } from './_lib/auth.js';
 import { sql } from './_lib/db.js';
 
 export const config = { runtime: 'nodejs' };
@@ -21,11 +21,59 @@ function postId(userId) {
   return `post_${Date.now().toString(36)}_${String(userId).slice(0, 8)}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
+async function requireGroupAccess(session, groupId) {
+  if (groupId === 'general' || hasRole(session, 'admin')) return;
+
+  if (hasRole(session, 'teacher')) {
+    const owned = await sql`
+      SELECT 1 FROM classes
+      WHERE id=${groupId} AND teacher_user_id=${session.user_id} AND archived_at IS NULL
+      LIMIT 1`;
+    if (owned.rows.length) return;
+  }
+
+  if (hasRole(session, 'student')) {
+    const member = await sql`
+      SELECT 1
+      FROM learners l
+      JOIN class_members cm ON cm.learner_id=l.id
+      JOIN classes c ON c.id=cm.class_id
+      WHERE l.user_id=${session.user_id}
+        AND l.deactivated_at IS NULL
+        AND cm.class_id=${groupId}
+        AND cm.status='active'
+        AND c.archived_at IS NULL
+      LIMIT 1`;
+    if (member.rows.length) return;
+  }
+
+  if (hasRole(session, 'parent')) {
+    const member = await sql`
+      SELECT 1
+      FROM parent_learner pl
+      JOIN class_members cm ON cm.learner_id=pl.learner_id
+      JOIN classes c ON c.id=cm.class_id
+      WHERE pl.parent_user_id=${session.user_id}
+        AND pl.status='active'
+        AND cm.class_id=${groupId}
+        AND cm.status='active'
+        AND c.archived_at IS NULL
+      LIMIT 1`;
+    if (member.rows.length) return;
+  }
+
+  const err = new Error('You are not authorized to access this community group.');
+  err.status = 403;
+  err.code = 'COMMUNITY_GROUP_FORBIDDEN';
+  throw err;
+}
+
 export default async function handler(req, res) {
   try {
     const session = await requireAuth(req);
     if (req.method === 'GET') {
       const groupId = clean(req.query?.groupId, 120) || 'general';
+      await requireGroupAccess(session, groupId);
       const result = await sql`
         SELECT p.id, p.group_id AS "groupId", p.body AS text, p.status,
                p.created_at AS "createdAt", p.author_user_id AS "authorUserId"
@@ -43,6 +91,7 @@ export default async function handler(req, res) {
     const checked = moderate(req.body?.text);
     if (!checked.ok) return json(res, 422, { error: { code: checked.code, message: checked.message } }, noStore);
     const groupId = clean(req.body?.groupId, 120) || 'general';
+    await requireGroupAccess(session, groupId);
     const id = postId(session.user_id);
     const inserted = await sql`
       INSERT INTO community_posts (id, author_user_id, group_id, body)
