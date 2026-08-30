@@ -56,10 +56,22 @@ export default async function handler(req, res) {
       }
 
       const result = await withTransaction(async tx => {
-        // Lock the learner preference row for the entire compare-and-write
-        // sequence. The previous implementation performed SELECT and UPSERT
-        // as separate transactions, leaving a race where two stale writers
-        // could both pass the version check and the last one would win.
+        // Lock the owning learner row as well as the preference row. This
+        // serializes the no-preference-yet case so two first-time writers
+        // cannot race into the unique learner_id constraint.
+        const learner = await tx`
+          SELECT id
+          FROM learners
+          WHERE id=${learnerId} AND deactivated_at IS NULL
+          FOR UPDATE
+        `;
+        if (!learner.length) {
+          const err = new Error('Learner not found.'); err.status = 404; err.code = 'LEARNER_NOT_FOUND'; throw err;
+        }
+
+        // Lock the preference row for the entire compare-and-write sequence.
+        // This closes the race where two stale writers could both pass a
+        // separate SELECT version check and the last one would win.
         const current = await tx`
           SELECT enabled, content_mode, updated_at
           FROM learner_low_bandwidth_preferences
@@ -94,9 +106,6 @@ export default async function handler(req, res) {
           return { row: updated[0] };
         }
 
-        // No row exists. A client with no expected version is allowed to
-        // establish the initial preference. A client carrying a non-null
-        // expected version was handled above as a conflict.
         const inserted = await tx`
           INSERT INTO learner_low_bandwidth_preferences(learner_id, enabled, content_mode, updated_at)
           VALUES(${learnerId}, ${preference.enabled}, ${preference.contentMode}, NOW())
