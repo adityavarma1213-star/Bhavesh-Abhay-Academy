@@ -1,6 +1,6 @@
 // BAA M31 — authenticated learner Tutor response-language preference.
 // The server validates the same bounded language catalogue used by the UI.
-import { sql } from './_lib/db.js';
+import { sql, withTransaction } from './_lib/db.js';
 import { json } from './_lib/security.js';
 import { requireAuth, requireLearnerAccess } from './_lib/auth.js';
 
@@ -49,14 +49,14 @@ export default async function handler(req, res) {
         return json(res, 400, { ok:false, error:{ code:'INVALID_VERSION', message:'expectedUpdatedAt must be a valid timestamp.' } });
       }
 
-      const result = await sql.begin(async tx => {
+      const result = await withTransaction(async tx => {
         const current = await tx`
           SELECT language_code, updated_at
           FROM learner_language_preferences
           WHERE learner_id=${learnerId}
           FOR UPDATE
         `;
-        const row = current.rows[0];
+        const row = current[0];
         const currentUpdatedAt = iso(row?.updated_at);
         if (expected && currentUpdatedAt && expected !== currentUpdatedAt) {
           return { conflict:true, current:{ code:row.language_code, updatedAt:currentUpdatedAt } };
@@ -71,7 +71,7 @@ export default async function handler(req, res) {
             SET language_code=EXCLUDED.language_code, updated_at=NOW()
           RETURNING language_code, updated_at
         `;
-        const savedRow = saved.rows[0];
+        const savedRow = saved[0];
         return { conflict:false, row:savedRow };
       });
 
