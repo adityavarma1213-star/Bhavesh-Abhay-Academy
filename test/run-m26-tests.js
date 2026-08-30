@@ -20,4 +20,8 @@ t('M26 server enforces class ownership',()=>assert.ok(api.includes('c.teacher_us
 t('M26 server uses persisted evidence and assessment attempts',()=>{assert.ok(api.includes('FROM learning_evidence'));assert.ok(api.includes('FROM assessment_attempts'));});
 t('M26 client requests authenticated server draft',()=>{assert.ok(mod.includes('/api/m26-notes?learnerId='));assert.ok(mod.includes("credentials:'include'"));});
 t('M26 server result is mounted into the existing draft UI',()=>{assert.ok(mod.includes('mountServerDraft'));assert.ok(mod.includes('noteDraftBox'));});
-console.log(`\nM26: ${n}/15 PASS`);if(process.exitCode)process.exit(process.exitCode);
+t('M26 deterministic notes require three evidence items per characterized concept',()=>assert.ok(api.includes('const MIN_EVIDENCE = 3')&&api.includes('g.total >= MIN_EVIDENCE')));
+t('M26 AI notes only receive concepts that passed the evidence gate',()=>assert.ok(api.includes('const gatedEvidence = evidence.rows.filter')&&api.includes('eligibleConcepts')));
+t('M26 AI notes refuse inference when no concept passes the evidence gate',()=>assert.ok(api.includes('if (!gatedEvidence.length)')&&api.includes('No AI inference was made because evidence is insufficient')));
+t('M26 AI note audit records the evidence gate',()=>assert.ok(api.includes('minimumEvidence: MIN_EVIDENCE')));
+console.log(`\nM26: ${n}/19 PASS`);if(process.exitCode)process.exit(process.exitCode);
