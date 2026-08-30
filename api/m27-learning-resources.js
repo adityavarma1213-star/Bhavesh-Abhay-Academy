@@ -4,6 +4,7 @@ import { sql } from './_lib/db.js';
 
 export const config = { runtime: 'nodejs' };
 const FORMATS = new Set(['visual','video','interactive','practice']);
+const MIN_EVIDENCE = 3;
 const clean = (v, max=160) => String(v ?? '').trim().slice(0,max);
 const encode = (v) => encodeURIComponent(String(v || '').trim());
 function urlFor(format, query){
@@ -52,7 +53,8 @@ export default async function handler(req,res){
     const recommendations=[];
     for(const r of rows.rows){
       const evidence=Number(r.evidence_count||0), incorrect=Number(r.incorrect_count||0), partial=Number(r.partial_count||0);
-      const status=incorrect>=2?'struggling':partial>=1?'needs_revision':evidence<3?'learning':'stable';
+      if(evidence<MIN_EVIDENCE) continue;
+      const status=incorrect>=2?'struggling':partial>=1?'needs_revision':'stable';
       const state={subject:r.subject||null,concept:r.concept||'Unspecified concept',status};
       const query=`${r.subject||''} ${String(r.concept||'').replace(/-/g,' ')}`.trim();
       for(const rec of rank(state,preference)){
@@ -63,7 +65,7 @@ export default async function handler(req,res){
       }
       if(recommendations.length>=20) break;
     }
-    return json(res,200,{ok:true,learnerId,preference,recommendations,source:'server_learning_evidence',limitation:'External search destinations are not BAA-validated resources and this feature does not infer a psychological learning style.'});
+    return json(res,200,{ok:true,learnerId,preference,recommendations,source:'server_learning_evidence',evidenceGate:{minimumEvidence:MIN_EVIDENCE,rule:'Concept recommendations require at least 3 recorded evidence rows.'},limitation:'External search destinations are not BAA-validated resources and this feature does not infer a psychological learning style.'});
   }catch(e){
     return json(res,e.status||500,{error:{code:e.code||'LEARNING_RESOURCES_FAILED',message:e.status?e.message:'Unable to load learning resources.'}});
   }
