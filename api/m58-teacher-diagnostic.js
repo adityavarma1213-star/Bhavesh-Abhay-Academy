@@ -24,22 +24,32 @@ export default async function handler(req, res) {
       : await sql`SELECT id,name FROM classes WHERE id=${classId} AND teacher_user_id=${session.user_id} AND archived_at IS NULL LIMIT 1`;
     if (!classRows.rows.length) return json(res, 404, { error: { code: 'CLASS_NOT_FOUND', message: 'Class not found or not accessible.' } });
 
-    // Diagnostic state is derived from canonical learning evidence, not from
-    // a single assessment result. Three evidence rows are the minimum needed
-    // before a learner can be placed into a weakness/strength group.
+    // Diagnostic grouping is derived from canonical learner evidence. The
+    // three-row gate prevents sparse evidence from becoming a strength or
+    // weakness label. Assessment counts include all terminal scored states so
+    // completed/evaluated work cannot disappear from the teacher view.
     const rows = await sql`
-      WITH evidence AS (
-        SELECT learner_id,
+      WITH class_roster AS (
+        SELECT learner_id
+        FROM class_members
+        WHERE class_id=${classId} AND status='active'
+      ),
+      evidence AS (
+        SELECT le.learner_id,
                COUNT(*)::int AS evidence_count,
-               COUNT(*) FILTER (WHERE correctness='correct')::int AS correct_count
-        FROM learning_evidence
-        GROUP BY learner_id
+               COUNT(*) FILTER (WHERE le.correctness='correct')::int AS correct_count
+        FROM learning_evidence le
+        INNER JOIN class_roster cr ON cr.learner_id=le.learner_id
+        GROUP BY le.learner_id
       ),
       attempts AS (
-        SELECT learner_id, COUNT(*)::int AS attempt_count
-        FROM assessment_attempts
-        WHERE status='submitted'
-        GROUP BY learner_id
+        SELECT aa.learner_id, COUNT(*)::int AS attempt_count
+        FROM assessment_attempts aa
+        INNER JOIN class_roster cr ON cr.learner_id=aa.learner_id
+        WHERE aa.status IN ('submitted','evaluated','completed')
+          AND aa.score IS NOT NULL
+          AND aa.max_score > 0
+        GROUP BY aa.learner_id
       )
       SELECT cm.learner_id AS "studentId",
         CASE
@@ -76,13 +86,30 @@ export default async function handler(req, res) {
       else if (['mastered','strong'].includes(student.state)) groups.extend.push(student.studentId);
       else groups.insufficientEvidence.push(student.studentId);
     }
-    await writeAudit({ actorUserId: session.user_id, action: 'teacher.diagnostic.view', entityType: 'class', entityId: classId, metadata: { studentCount: students.length, role: isAdmin ? 'admin' : 'teacher' } });
+    await writeAudit({
+      actorUserId: session.user_id,
+      action: 'teacher.diagnostic.view',
+      entityType: 'class',
+      entityId: classId,
+      metadata: {
+        studentCount: students.length,
+        role: isAdmin ? 'admin' : 'teacher',
+        evidenceGate: 3,
+        groupCounts: {
+          reteach: groups.reteach.length,
+          practice: groups.practice.length,
+          extend: groups.extend.length,
+          insufficientEvidence: groups.insufficientEvidence.length
+        }
+      }
+    });
     return json(res, 200, {
       ok: true,
       class: { id: classId, name: classRows.rows[0].name },
       students,
       groups,
       evidenceRule: 'Learners require at least 3 canonical learning-evidence rows before instructional strength/weakness grouping is assigned.',
+      assessmentRule: "Completed assessment counts include submitted, evaluated, and completed attempts with valid scores.",
       limitation: 'Grouping is evidence-based instructional support, not a psychological diagnosis.'
     });
   } catch (e) {
