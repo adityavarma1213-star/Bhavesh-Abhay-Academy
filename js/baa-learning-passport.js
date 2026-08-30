@@ -7,6 +7,7 @@
 (function(global){
   'use strict';
   const SCHEMA_VERSION=2;
+  const MIN_EVIDENCE=3;
   let serverRecord=null;
   function build(){
     // Once authenticated server evidence has loaded, it is the canonical
@@ -16,9 +17,9 @@
     const a=global.BAAAssessment;
     if(!a)return {schemaVersion:SCHEMA_VERSION,status:'unavailable'};
     const store=a._load(),memory=Object.values(store.learningMemory||{});
-    const competencies=memory.filter(m=>m.status==='mastered'||m.status==='strong').map(m=>({concept:m.concept,subject:m.subject,topic:m.topic,status:m.status,evidenceCount:m.evidenceCount,correctCount:m.correctCount,verifiedByEvidence:true,lastUpdated:m.lastUpdated}));
+    const competencies=memory.filter(m=>m.evidenceCount>=MIN_EVIDENCE&&(m.status==='mastered'||m.status==='strong')).map(m=>({concept:m.concept,subject:m.subject,topic:m.topic,status:m.status,evidenceCount:m.evidenceCount,correctCount:m.correctCount,verifiedByEvidence:true,lastUpdated:m.lastUpdated}));
     const attempts=(store.attempts||[]).filter(x=>x.status!=='in_progress');
-    return {schemaVersion:SCHEMA_VERSION,student:a.getStudentName(),issuedAt:new Date().toISOString(),status:'local_testing_record',competencies,assessments:attempts.slice(0,20).map(x=>({id:x.id,title:x.assessmentTitle,score:x.score,maxScore:x.maxScore,status:x.status,completedAt:x.endTime})),evidenceCount:(store.evidence||[]).length};
+    return {schemaVersion:SCHEMA_VERSION,student:a.getStudentName(),issuedAt:new Date().toISOString(),status:'local_testing_record',evidenceGate:{minimumEvidencePerConcept:MIN_EVIDENCE,sparseConceptsAreNotCharacterized:true},competencies,assessments:attempts.slice(0,20).map(x=>({id:x.id,title:x.assessmentTitle,score:x.score,maxScore:x.maxScore,status:x.status,completedAt:x.endTime})),evidenceCount:(store.evidence||[]).length};
   }
   async function load(learnerId){
     const id=String(learnerId||global.BAA_LEARNER_ID||'').trim();
