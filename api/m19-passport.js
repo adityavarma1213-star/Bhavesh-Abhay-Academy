@@ -4,6 +4,7 @@ import { sql } from './_lib/db.js';
 
 export const config={runtime:'nodejs'};
 const clean=(v,max=240)=>String(v??'').trim().slice(0,max);
+const MIN_EVIDENCE=3;
 const noStore={ 'Cache-Control':'private, no-store, max-age=0' };
 export default async function handler(req,res){
   if(req.method!=='GET')return json(res,405,{error:{code:'METHOD_NOT_ALLOWED',message:'GET required.'}},{Allow:'GET',...noStore});
@@ -21,8 +22,13 @@ export default async function handler(req,res){
       const item=grouped.get(key)||{concept:row.concept||'Unclassified',subject:row.subject||null,topic:row.topic||null,evidenceCount:0,correctCount:0,lastUpdated:null};
       item.evidenceCount++;if(row.correctness==='correct')item.correctCount++;if(!item.lastUpdated||String(row.createdAt)>String(item.lastUpdated))item.lastUpdated=row.createdAt;grouped.set(key,item);
     }
-    const competencies=[...grouped.values()].filter(x=>x.evidenceCount>0).map(x=>({...x,status:x.correctCount===x.evidenceCount&&x.evidenceCount>=2?'mastered':x.correctCount/x.evidenceCount>=.7?'strong':x.correctCount/x.evidenceCount>=.4?'developing':'support_needed',verifiedByEvidence:true}));
-    await writeAudit({actorUserId:session.user_id,action:'LEARNING_PASSPORT_VIEW',entityType:'learner',entityId:learnerId,metadata:{evidenceCount:evidence.rows.length,assessmentCount:attempts.rows.length}});
-    return json(res,200,{ok:true,schemaVersion:2,student:learner.rows[0].displayName,learnerId,issuedAt:new Date().toISOString(),status:'server_evidence_record',competencies,assessments:attempts.rows,evidenceCount:evidence.rows.length,limitations:['Evidence-backed inside BAA server records; not an external credential.','Only submitted assessment evidence is included.','This record must not be presented as an external accreditation or guarantee.']},noStore);
+    const competencies=[...grouped.values()].filter(x=>x.evidenceCount>0).map(x=>{
+      const sufficient=x.evidenceCount>=MIN_EVIDENCE;
+      const accuracy=sufficient?x.correctCount/x.evidenceCount:null;
+      const status=!sufficient?'insufficient_evidence':x.correctCount===x.evidenceCount?'mastered':accuracy>=.7?'strong':accuracy>=.4?'developing':'support_needed';
+      return {...x,status,accuracy,verifiedByEvidence:sufficient,evidenceSufficient:sufficient};
+    });
+    await writeAudit({actorUserId:session.user_id,action:'LEARNING_PASSPORT_VIEW',entityType:'learner',entityId:learnerId,metadata:{evidenceCount:evidence.rows.length,assessmentCount:attempts.rows.length,minEvidence:MIN_EVIDENCE}});
+    return json(res,200,{ok:true,schemaVersion:2,student:learner.rows[0].displayName,learnerId,issuedAt:new Date().toISOString(),status:'server_evidence_record',evidenceGate:{minimumEvidencePerConcept:MIN_EVIDENCE,sparseConceptsAreNotCharacterized:true},competencies,assessments:attempts.rows,evidenceCount:evidence.rows.length,limitations:['Evidence-backed inside BAA server records; not an external credential.','Only submitted assessment evidence is included.','Concept status is characterized only after the minimum evidence threshold is met.','This record must not be presented as an external accreditation or guarantee.']},noStore);
   }catch(e){return json(res,e.status||500,{error:{code:e.code||'LEARNING_PASSPORT_FAILED',message:e.status?e.message:'Unable to build learning passport.'}},noStore);}
 }
