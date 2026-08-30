@@ -11,6 +11,20 @@ function normalize(input){
   const projects=Array.isArray(x.projects)?x.projects.filter(p=>p&&typeof p==='object').slice(0,40).map(p=>({title:clean(p.title,160),description:clean(p.description,500),skills:strings(p.skills),evidenceIds:strings(p.evidenceIds)})):[];
   return {goal:clean(x.goal),skills:strings(x.skills),projects};
 }
+async function validateEvidenceReferences(learnerId, projects){
+  const requested=[...new Set(projects.flatMap(project=>project.evidenceIds||[]))];
+  if(!requested.length)return;
+  const result=await sql`SELECT id FROM learning_evidence WHERE learner_id=${learnerId} AND id = ANY(${requested})`;
+  const valid=new Set(result.rows.map(row=>String(row.id)));
+  const invalid=requested.filter(id=>!valid.has(String(id)));
+  if(invalid.length){
+    const error=new Error('One or more career-preparation evidence references are not valid for this learner.');
+    error.status=400;
+    error.code='INVALID_EVIDENCE_REFERENCE';
+    error.invalidEvidenceIds=invalid.slice(0,10);
+    throw error;
+  }
+}
 export default async function handler(req,res){
   res.setHeader('Cache-Control','private, no-store, max-age=0');
   try{
@@ -23,10 +37,14 @@ export default async function handler(req,res){
     }
     if(req.method==='PUT'){
       const profile=normalize(req.body||{});
+      await validateEvidenceReferences(learnerId,profile.projects);
       await sql`INSERT INTO career_prep_profiles(learner_id,goal,skills,projects,updated_at) VALUES(${learnerId},${profile.goal},${JSON.stringify(profile.skills)}::jsonb,${JSON.stringify(profile.projects)}::jsonb,NOW()) ON CONFLICT(learner_id) DO UPDATE SET goal=EXCLUDED.goal,skills=EXCLUDED.skills,projects=EXCLUDED.projects,updated_at=NOW()`;
-      await writeAudit({actorUserId:session.user_id,action:'CAREER_PREP_PROFILE_UPSERT',entityType:'learner',entityId:learnerId,metadata:{projectCount:profile.projects.length,skillCount:profile.skills.length}});
+      await writeAudit({actorUserId:session.user_id,action:'CAREER_PREP_PROFILE_UPSERT',entityType:'learner',entityId:learnerId,metadata:{projectCount:profile.projects.length,skillCount:profile.skills.length,evidenceReferenceCount:profile.projects.reduce((n,p)=>n+p.evidenceIds.length,0)}});
       return json(res,200,{ok:true,learnerId,profile},NO_STORE);
     }
     return json(res,405,{error:{code:'METHOD_NOT_ALLOWED',message:'GET or PUT required.'}},{Allow:'GET, PUT',...NO_STORE});
-  }catch(e){return json(res,e.status||500,{error:{code:e.code||'CAREER_PREP_FAILED',message:e.status?e.message:'Unable to load or save career preparation profile.'}},NO_STORE);}
+  }catch(e){
+    const details=e.code==='INVALID_EVIDENCE_REFERENCE'?{invalidEvidenceIds:e.invalidEvidenceIds}:{ };
+    return json(res,e.status||500,{error:{code:e.code||'CAREER_PREP_FAILED',message:e.status?e.message:'Unable to load or save career preparation profile.',...details}},NO_STORE);
+  }
 }
