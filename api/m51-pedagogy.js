@@ -3,8 +3,8 @@ import { requireAuth, requireLearnerAccess } from './_lib/auth.js';
 import { sql } from './_lib/db.js';
 
 export const config = { runtime: 'nodejs' };
+const MIN_EVIDENCE = 3;
 const clean=(v,max=160)=>String(v??'').trim().slice(0,max);
-const STATES=new Set(['struggling','needs_revision','learning','mastered','strong','unknown']);
 
 function chooseAction(state){
   if(['struggling','needs_revision'].includes(state)) return 'guided_reteach';
@@ -14,6 +14,7 @@ function chooseAction(state){
 }
 
 export default async function handler(req,res){
+  res.setHeader('Cache-Control','private, no-store, max-age=0');
   if(req.method!=='GET') return json(res,405,{error:{code:'METHOD_NOT_ALLOWED',message:'GET required.'}},{Allow:'GET'});
   try{
     const session=await requireAuth(req);
@@ -44,10 +45,11 @@ export default async function handler(req,res){
     }
     const concepts=Object.values(grouped).map(g=>{
       const accuracy=g.total?g.correct/g.total:0;
-      const state=g.total<2?'unknown':accuracy>=0.85?'strong':accuracy>=0.65?'learning':accuracy>=0.4?'needs_revision':'struggling';
+      const evidenceSufficient=g.total>=MIN_EVIDENCE;
+      const state=!evidenceSufficient?'unknown':accuracy>=0.85?'strong':accuracy>=0.65?'learning':accuracy>=0.4?'needs_revision':'struggling';
       const action=chooseAction(state);
-      return {...g,accuracy:Math.round(accuracy*1000)/10,state,action,evidenceSufficient:g.total>=1,reason:state==='unknown'?'Collect tagged evidence before adapting instruction.':action==='guided_reteach'?'Recent evidence indicates substantial difficulty; re-teach with a worked example before another independent attempt.':action==='retrieval_practice'?'Evidence indicates active learning; use short retrieval practice and treat the result as new evidence.':'Current evidence supports extension or continued development without claiming permanent mastery.'};
+      return {...g,accuracy:evidenceSufficient?Math.round(accuracy*1000)/10:null,state,action,evidenceSufficient,reason:!evidenceSufficient?`Collect at least ${MIN_EVIDENCE} tagged evidence points before adapting instruction.`:action==='guided_reteach'?'Recent evidence indicates substantial difficulty; re-teach with a worked example before another independent attempt.':action==='retrieval_practice'?'Evidence indicates active learning; use short retrieval practice and treat the result as new evidence.':'Current evidence supports extension or continued development without claiming permanent mastery.'};
     });
-    return json(res,200,{ok:true,learnerId,filters:{subject:subject||null,chapter:chapter||null},concepts,policy:{productiveStruggle:true,showWorkedExampleAfterAttempt:true,spacedReview:true,masteryRequiresEvidence:true,avoidShameLanguage:true},limitations:['Pedagogy recommendations are evidence-based instructional guidance, not diagnosis.','Teacher judgment remains authoritative for consequential instructional decisions.']});
+    return json(res,200,{ok:true,learnerId,filters:{subject:subject||null,chapter:chapter||null},concepts,evidenceGate:{minEvidence:MIN_EVIDENCE,sparseConceptsAreNotCharacterized:true},policy:{productiveStruggle:true,showWorkedExampleAfterAttempt:true,spacedReview:true,masteryRequiresEvidence:true,avoidShameLanguage:true},limitations:['Pedagogy recommendations are evidence-based instructional guidance, not diagnosis.','Teacher judgment remains authoritative for consequential instructional decisions.']});
   }catch(e){return json(res,e.status||500,{error:{code:e.code||'PEDAGOGY_FAILED',message:e.status?e.message:'Unable to load pedagogy guidance.'}});}
 }
