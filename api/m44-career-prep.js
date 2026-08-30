@@ -1,6 +1,6 @@
 import { json, writeAudit } from './_lib/security.js';
 import { requireAuth, requireLearnerAccess } from './_lib/auth.js';
-import { sql } from './_lib/db.js';
+import { sql, withTransaction } from './_lib/db.js';
 
 export const config = { runtime: 'nodejs' };
 const NO_STORE = { 'Cache-Control': 'private, no-store, max-age=0' };
@@ -44,13 +44,13 @@ export default async function handler(req,res){
       const expectedRaw=payload.expectedUpdatedAt;
       const expected=expectedRaw==null?'':String(expectedRaw).trim();
       if(expected&&Number.isNaN(Date.parse(expected))) return json(res,400,{ok:false,error:{code:'INVALID_VERSION',message:'expectedUpdatedAt must be a valid timestamp.'}},NO_STORE);
-      const result=await sql.begin(async tx=>{
+      const result=await withTransaction(async tx=>{
         const current=await tx`SELECT updated_at AS "updatedAt" FROM career_prep_profiles WHERE learner_id=${learnerId} FOR UPDATE`;
-        const currentUpdatedAt=iso(current.rows[0]?.updatedAt);
+        const currentUpdatedAt=iso(current[0]?.updatedAt);
         if(expected&&currentUpdatedAt!==expected)return {conflict:true,currentUpdatedAt};
         if(expected&&!currentUpdatedAt)return {conflict:true,currentUpdatedAt:null};
         const saved=await tx`INSERT INTO career_prep_profiles(learner_id,goal,skills,projects,updated_at) VALUES(${learnerId},${profile.goal},${JSON.stringify(profile.skills)}::jsonb,${JSON.stringify(profile.projects)}::jsonb,NOW()) ON CONFLICT(learner_id) DO UPDATE SET goal=EXCLUDED.goal,skills=EXCLUDED.skills,projects=EXCLUDED.projects,updated_at=NOW() RETURNING learner_id AS "learnerId",goal,skills,projects,updated_at AS "updatedAt"`;
-        return {conflict:false,row:saved.rows[0]};
+        return {conflict:false,row:saved[0]};
       });
       if(result.conflict)return json(res,409,{ok:false,error:{code:'CAREER_PREP_CONFLICT',message:'Career-preparation profile changed elsewhere. Refresh before saving again.'},current:{updatedAt:result.currentUpdatedAt}},NO_STORE);
       const evidenceReferenceCount=profile.projects.reduce((n,p)=>n+p.evidenceIds.length,0);
