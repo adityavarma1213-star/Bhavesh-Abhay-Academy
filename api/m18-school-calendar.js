@@ -31,6 +31,33 @@ function rowsToEvents(rows) {
   }));
 }
 
+function escapeIcs(value) {
+  return String(value ?? '')
+    .replace(/\\/g, '\\\\')
+    .replace(/;/g, '\\;')
+    .replace(/,/g, '\\,')
+    .replace(/\r?\n/g, '\\n');
+}
+
+function buildIcs(events) {
+  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Bhavesh Abhay Academy//School Calendar//EN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH'];
+  for (const event of events) {
+    const date = String(event.date).replace(/-/g, '');
+    const uid = `baa-${event.id}@bhaveshabhayacademy`;
+    lines.push('BEGIN:VEVENT');
+    lines.push(`UID:${escapeIcs(uid)}`);
+    lines.push(`DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z')}`);
+    lines.push(`DTSTART;VALUE=DATE:${date}`);
+    lines.push(`DTEND;VALUE=DATE:${date}`);
+    lines.push(`SUMMARY:${escapeIcs(event.title)}`);
+    lines.push(`CATEGORIES:${escapeIcs(event.type)}`);
+    if (event.subject) lines.push(`DESCRIPTION:${escapeIcs(`Subject: ${event.subject}`)}`);
+    lines.push('END:VEVENT');
+  }
+  lines.push('END:VCALENDAR');
+  return lines.join('\r\n') + '\r\n';
+}
+
 async function handler(req, res) {
   noStore(res);
   try {
@@ -49,7 +76,21 @@ async function handler(req, res) {
           AND (${to}::date IS NULL OR event_date <= ${to}::date)
         ORDER BY event_date ASC, created_at ASC
         LIMIT 500`;
-      return json(res, 200, { ok: true, learnerId, events: rowsToEvents(rows.rows), source: 'server_school_calendar' });
+      const events = rowsToEvents(rows.rows);
+      if (String(req.query?.format || '').toLowerCase() === 'ics') {
+        const ics = buildIcs(events);
+        res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
+        res.setHeader('Content-Disposition', 'attachment; filename="baa-school-calendar.ics"');
+        await writeAudit({
+          actorUserId: session.user_id,
+          action: 'school_calendar.export.ics',
+          entityType: 'learner',
+          entityId: learnerId,
+          metadata: { eventCount: events.length, from, to },
+        });
+        return res.status(200).send(ics);
+      }
+      return json(res, 200, { ok: true, learnerId, events, source: 'server_school_calendar', exportFormats: ['ics'] });
     }
 
     if (req.method === 'POST') {
