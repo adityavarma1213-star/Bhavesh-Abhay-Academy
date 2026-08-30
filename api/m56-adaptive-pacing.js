@@ -6,6 +6,8 @@ import { json } from './_lib/security.js';
 
 export const config = { runtime: 'nodejs' };
 
+const MAX_MINUTES = 24 * 60;
+
 function noStore(res) {
   if (typeof res?.setHeader === 'function') res.setHeader('Cache-Control', 'private, no-store, max-age=0');
 }
@@ -19,7 +21,7 @@ function recommend(input) {
   const available = Number(input.availableMinutes);
   const planned = Number(input.plannedMinutes);
   const energy = Number(input.energyLevel);
-  if (![available, planned, energy].every(Number.isFinite) || available < 0 || planned < 0 || energy < 1 || energy > 5) {
+  if (![available, planned, energy].every(Number.isFinite) || available < 0 || available > MAX_MINUTES || planned < 0 || planned > MAX_MINUTES || energy < 1 || energy > 5) {
     return null;
   }
   let action = 'maintain';
@@ -40,7 +42,7 @@ export default async function handler(req, res) {
     if (req.method !== 'POST') return json(res, 405, { ok: false, error: { code: 'METHOD_NOT_ALLOWED', message: 'Use POST.' } });
     await requireAuth(req);
     const result = recommend(body(req));
-    if (!result) return json(res, 400, { ok: false, error: { code: 'INVALID_PACING_VALUES', message: 'availableMinutes and plannedMinutes must be non-negative numbers; energyLevel must be between 1 and 5.' } });
+    if (!result) return json(res, 400, { ok: false, error: { code: 'INVALID_PACING_VALUES', message: `availableMinutes and plannedMinutes must be numbers from 0 to ${MAX_MINUTES}; energyLevel must be between 1 and 5.` } });
     return json(res, 200, result);
   } catch (err) {
     const status = Number(err?.status) || (err?.code === 'DATABASE_NOT_CONFIGURED' ? 503 : 500);
