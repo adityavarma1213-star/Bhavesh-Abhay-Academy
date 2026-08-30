@@ -1,7 +1,7 @@
 // BAA M41 — authenticated low-bandwidth preference persistence.
 // Stores explicit data-saver choices and uses optimistic concurrency so an
 // offline/stale client cannot silently overwrite a newer preference.
-import { sql } from './_lib/db.js';
+import { sql, withTransaction } from './_lib/db.js';
 import { json } from './_lib/security.js';
 import { requireAuth, requireLearnerAccess } from './_lib/auth.js';
 
@@ -55,37 +55,68 @@ export default async function handler(req, res) {
         return json(res, 400, { ok: false, error: { code: 'INVALID_EXPECTED_UPDATED_AT', message: 'expectedUpdatedAt must be a valid timestamp.' } });
       }
 
-      const current = await sql`
-        SELECT enabled, content_mode, updated_at
-        FROM learner_low_bandwidth_preferences
-        WHERE learner_id=${learnerId}
-        LIMIT 1
-      `;
-      const currentRow = current.rows[0];
-      if (expectedUpdatedAt && currentRow && asIso(currentRow.updated_at) !== expectedUpdatedAt) {
+      const result = await withTransaction(async tx => {
+        // Lock the learner preference row for the entire compare-and-write
+        // sequence. The previous implementation performed SELECT and UPSERT
+        // as separate transactions, leaving a race where two stale writers
+        // could both pass the version check and the last one would win.
+        const current = await tx`
+          SELECT enabled, content_mode, updated_at
+          FROM learner_low_bandwidth_preferences
+          WHERE learner_id=${learnerId}
+          FOR UPDATE
+        `;
+        const currentRow = current[0];
+        const currentUpdatedAt = asIso(currentRow?.updated_at);
+
+        // An expected version must match the locked row exactly. If the
+        // client expected an existing version but the row disappeared, treat
+        // that as a conflict rather than silently recreating it.
+        if (expectedUpdatedAt && currentUpdatedAt !== expectedUpdatedAt) {
+          return {
+            conflict: true,
+            current: currentRow ? {
+              schemaVersion: 1,
+              enabled: Boolean(currentRow.enabled),
+              contentMode: currentRow.content_mode,
+              updatedAt: currentUpdatedAt
+            } : null
+          };
+        }
+
+        if (currentRow) {
+          const updated = await tx`
+            UPDATE learner_low_bandwidth_preferences
+            SET enabled=${preference.enabled}, content_mode=${preference.contentMode}, updated_at=NOW()
+            WHERE learner_id=${learnerId}
+            RETURNING enabled, content_mode, updated_at
+          `;
+          return { row: updated[0] };
+        }
+
+        // No row exists. A client with no expected version is allowed to
+        // establish the initial preference. A client carrying a non-null
+        // expected version was handled above as a conflict.
+        const inserted = await tx`
+          INSERT INTO learner_low_bandwidth_preferences(learner_id, enabled, content_mode, updated_at)
+          VALUES(${learnerId}, ${preference.enabled}, ${preference.contentMode}, NOW())
+          RETURNING enabled, content_mode, updated_at
+        `;
+        return { row: inserted[0] };
+      });
+
+      if (result.conflict) {
         return json(res, 409, {
           ok: false,
           error: {
             code: 'LOW_BANDWIDTH_CONFLICT',
             message: 'A newer low-bandwidth preference exists. Reload before saving again.'
           },
-          current: {
-            schemaVersion: 1,
-            enabled: Boolean(currentRow.enabled),
-            contentMode: currentRow.content_mode,
-            updatedAt: asIso(currentRow.updated_at)
-          }
+          current: result.current
         });
       }
 
-      const result = await sql`
-        INSERT INTO learner_low_bandwidth_preferences(learner_id, enabled, content_mode, updated_at)
-        VALUES(${learnerId}, ${preference.enabled}, ${preference.contentMode}, NOW())
-        ON CONFLICT(learner_id) DO UPDATE
-          SET enabled=EXCLUDED.enabled, content_mode=EXCLUDED.content_mode, updated_at=NOW()
-        RETURNING enabled, content_mode, updated_at
-      `;
-      const row = result.rows[0];
+      const row = result.row;
       return json(res, 200, {
         ok: true,
         learnerId,
