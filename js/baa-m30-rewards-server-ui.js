@@ -31,7 +31,7 @@
       return;
     }
     const r=result.rewards||{};
-    const badges=Array.isArray(r.earnedBadgeIds)?r.earnedBadgeIds:[];
+    const earned=Array.isArray(r.earnedBadges)?r.earnedBadges:[];
     const xp=Number(r.xp||0), completed=Number(r.completedAttempts||0), correct=Number(r.correctAnswers||0), mastered=Number(r.masteredConcepts||0);
     mount.innerHTML=`<div style="border:1px solid rgba(245,185,66,.22);background:rgba(245,185,66,.045);border-radius:18px;padding:20px;">
       <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap;">
@@ -44,7 +44,7 @@
         <div style="padding:10px;border-radius:12px;background:rgba(253,249,240,.04);"><b style="font-size:1.2rem;">${correct}</b><span style="display:block;font-size:.68rem;color:rgba(253,249,240,.5);">Correct</span></div>
         <div style="padding:10px;border-radius:12px;background:rgba(253,249,240,.04);"><b style="font-size:1.2rem;">${mastered}</b><span style="display:block;font-size:.68rem;color:rgba(253,249,240,.5);">Mastered</span></div>
       </div>
-      <div style="margin-top:14px;font-size:.8rem;"><b>Earned badges</b><div style="margin-top:7px;color:rgba(253,249,240,.7);">${badges.length?badges.map(esc).join(' · '):'No server-recorded badges yet.'}</div></div>
+      <div style="margin-top:14px;font-size:.8rem;"><b>Earned badges</b><div style="margin-top:7px;color:rgba(253,249,240,.7);">${earned.length?earned.map(b=>`${esc(b.icon)} ${esc(b.name)}`).join(' · '):'No server-recorded badges yet.'}</div></div>
     </div>`;
     const btn=document.getElementById('baa-m30-refresh');
     if(btn) btn.addEventListener('click',async()=>{
