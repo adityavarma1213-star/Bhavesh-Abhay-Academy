@@ -49,12 +49,13 @@
     {id:'teacher-diagnostic',title:'Teacher Diagnostic',icon:'🩺',roles:['teacher','admin'],description:'Review evidence-derived instructional diagnostics; this is not a psychological diagnosis.',route:'teacher-os.html'},
     {id:'humane-ui',title:'Humane UI',icon:'❤️',roles:['student','parent','teacher','admin'],description:'Apply actionable interface-safety rules against manipulative, shaming or emotion-inference patterns.',route:'student-os.html'},
     {id:'parent-conversation',title:'Parent Learning Conversation',icon:'💬',roles:['parent'],description:'Generate supportive, non-diagnostic conversation prompts from the learner’s recorded academic evidence.',route:'parent-os.html'},
+    {id:'founder-lab',title:'Founder Lab',icon:'🧪',roles:['admin'],description:'Use the private testing and founder-lab lifecycle primitives for controlled cohorts, experiments and consented observations.',route:'admin.html'},
     {id:'trust',title:'Trust & Privacy',icon:'🔐',roles:['student','parent','teacher','admin'],description:'Review BAA trust, privacy and data-handling information.',route:'trust-privacy.html'},
     {id:'user-guide',title:'User Guide',icon:'📖',roles:['student','parent','teacher','admin'],description:'Read the written guide to the major BAA OS features.',route:'user-guide.html'},
     {id:'demo',title:'BAA Demo',icon:'▶️',roles:['student','parent','teacher','admin'],description:'Open the product demonstration experience.',route:'demo.html'}
   ];
   function clone(){return FEATURES.map(function(f){return Object.assign({},f,{roles:f.roles.slice()});});}
-  global.BAAGuideCatalogue={version:'m63.21',features:FEATURES.slice(),getFeatures:clone,getFeature:function(id){return FEATURES.find(function(f){return f.id===id;})||null;}};
+  global.BAAGuideCatalogue={version:'m63.22',features:FEATURES.slice(),getFeatures:clone,getFeature:function(id){return FEATURES.find(function(f){return f.id===id;})||null;}};
 
   function loadScript(src,attribute){
     if(document.querySelector('script['+attribute+']')) return;
@@ -66,22 +67,18 @@
   }
   function startBridges(){
     loadStyle('css/baa-guide-robot.css','data-baa-m63-style');loadScript('js/baa-guide-robot.js','data-baa-m63-robot');
-    loadScript('js/baa-m02-custom-mode-server-sync.js','data-baa-m02-server-sync');
-    loadScript('js/baa-m03-hybrid-mode-server-sync.js','data-baa-m03-server-sync');
+    loadScript('js/baa-m02-custom-mode-server-sync.js','data-baa-m02-server-sync');loadScript('js/baa-m03-hybrid-mode-server-sync.js','data-baa-m03-server-sync');
     loadScript('js/baa-m06-mastery-gate.js','data-baa-m06-mastery-gate');loadScript('js/baa-m06-assessment-fresh-sync.js','data-baa-m06-fresh-sync');loadScript('js/baa-m06-progression-guard.js','data-baa-m06-progression-guard');
-    loadScript('js/baa-m09-learning-memory-server-ui.js','data-baa-m09-server-ui');
-    loadScript('js/baa-m10-confidence-integration.js','data-baa-m10-integration');loadScript('js/baa-m10-confidence-ui.js','data-baa-m10-ui');
+    loadScript('js/baa-m09-learning-memory-server-ui.js','data-baa-m09-server-ui');loadScript('js/baa-m10-confidence-integration.js','data-baa-m10-integration');loadScript('js/baa-m10-confidence-ui.js','data-baa-m10-ui');
     loadScript('js/baa-m11-planner-integration.js','data-baa-m11-integration');loadScript('js/baa-planner-server-recommendations.js','data-baa-m11-server-recommendations');loadScript('js/baa-m11-planner-server-ui.js','data-baa-m11-server-ui');
     loadScript('js/baa-m13-prediction-integration.js','data-baa-m13-integration');loadScript('js/baa-m12-guardian-ui.js','data-baa-m12-ui');loadScript('js/baa-m12-guardian-server-ui.js','data-baa-m12-server-ui');
     loadScript('js/baa-m18-school-calendar-server.js','data-baa-m18-calendar-server');loadScript('js/baa-m21-23-server.js','data-baa-m21-23-server');
     loadScript('js/baa-m27-learning-resources-server.js','data-baa-m27-server');loadScript('js/baa-m27-learning-resources-ui.js','data-baa-m27-ui');loadScript('js/baa-m29-learning-paths-server.js','data-baa-m29-server');loadScript('js/baa-m29-learning-paths-ui.js','data-baa-m29-ui');
     loadScript('js/baa-m30-rewards-server-ui.js','data-baa-m30-rewards-ui');loadScript('js/baa-m36-insights-server-ui.js','data-baa-m36-insights-server-ui');loadScript('js/baa-m43-scholarship-server-ui.js','data-baa-m43-scholarship-server-ui');loadScript('js/baa-m48-collaboration-server.js','data-baa-m48-server');
     loadScript('js/baa-m04-ai-tutor-server.js','data-baa-m04-tutor-server');loadScript('js/baa-m52-mistake-server-ui.js','data-baa-m52-mistake-server-ui');loadScript('js/baa-server-learner-view.js','data-baa-server-learner-view');loadScript('js/baa-teacher-server-dashboard.js','data-baa-teacher-server-dashboard');
-    loadScript('js/baa-m58-teacher-diagnostic-ui.js','data-baa-m58-teacher-diagnostic-ui');loadScript('js/baa-m51-pedagogy-server-ui.js','data-baa-m51-pedagogy-server-ui');loadScript('js/baa-m26-notes-server-ui.js','data-baa-m26-notes-server-ui');
-    loadScript('js/baa-m56-adaptive-pacing-server.js','data-baa-m56-adaptive-pacing-server');
-    loadScript('js/baa-m31-language-server-sync.js','data-baa-m31-language-server-sync');
-    loadScript('js/baa-parent-conversation.js','data-baa-m57-parent-conversation');
-    loadScript('js/baa-purpose-design.js','data-baa-m60-purpose-design');
+    loadScript('js/baa-m58-teacher-diagnostic-ui.js','data-baa-m58-teacher-diagnostic-ui');loadScript('js/baa-m51-pedagogy-server-ui.js','data-baa-m51-pedagogy-server-ui');loadScript('js/baa-m26-notes-server-ui.js','data-baa-m26-notes-server-ui');loadScript('js/baa-m56-adaptive-pacing-server.js','data-baa-m56-adaptive-pacing-server');
+    loadScript('js/baa-m31-language-server-sync.js','data-baa-m31-language-server-sync');loadScript('js/baa-parent-conversation.js','data-baa-m57-parent-conversation');loadScript('js/baa-purpose-design.js','data-baa-m60-purpose-design');
+    loadScript('js/baa-founder-lab.js','data-baa-m61-founder-lab');
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',startBridges);else startBridges();
 })(window);
