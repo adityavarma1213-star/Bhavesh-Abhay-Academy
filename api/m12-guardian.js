@@ -23,9 +23,6 @@ function buildAcademicAlerts(memoryRows, assessmentRows) {
     const latest = rows[0];
     const evidenceCount = Number(latest?.evidence_count || 0);
     const correctCount = Number(latest?.correct_count || 0);
-    // BAA's evidence gate requires at least three answered questions before
-    // an academic concept can be characterized as needing revision. Sparse
-    // evidence must remain informational rather than becoming a Guardian alert.
     if (latest?.status === 'needs_revision' && evidenceCount >= 3) {
       alerts.push({
         id: `low_performance:${concept}`,
@@ -56,7 +53,7 @@ function buildAcademicAlerts(memoryRows, assessmentRows) {
         concept: null,
         subject: null,
         title: 'Recent assessment performance dipped',
-        reason: `The latest submitted assessment is ${Math.round(previousAverage - current)} percentage points below the recent average.`,
+        reason: `The latest completed assessment is ${Math.round(previousAverage - current)} percentage points below the recent average.`,
         action: { kind: 'review', href: 'assessment.html' },
         requiresHumanReview: false,
       });
@@ -71,7 +68,6 @@ export default async function handler(req, res) {
     const session = await requireAuth(req);
     const learnerId = String(req.query?.learnerId || '').trim();
     await requireLearnerAccess(session, learnerId);
-    // Guardian responses contain learner-specific academic evidence and must never be cached.
     res.setHeader('Cache-Control', 'private, no-store, max-age=0');
 
     if (!['GET', 'POST', 'DELETE'].includes(req.method)) {
@@ -99,7 +95,7 @@ export default async function handler(req, res) {
           SELECT score, max_score, COALESCE(end_time, start_time) AS completed_at
           FROM assessment_attempts
           WHERE learner_id=${learnerId}
-            AND status IN ('submitted','evaluated')
+            AND status IN ('submitted','evaluated','completed')
             AND score IS NOT NULL
             AND max_score > 0
           ORDER BY COALESCE(end_time, start_time) DESC
