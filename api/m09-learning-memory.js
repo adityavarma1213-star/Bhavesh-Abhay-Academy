@@ -26,7 +26,7 @@ function deriveState(rows) {
 }
 
 export default async function handler(req, res) {
-  if (req.method !== 'GET') return json(res, 405, { error: { code: 'METHOD_NOT_ALLOWED', message: 'GET required.' } }, { Allow: 'GET', 'Cache-Control': 'no-store' });
+  if (req.method !== 'GET') return json(res, 405, { error: { code: 'METHOD_NOT_ALLOWED', message: 'GET required.' } }, { Allow: 'GET', 'Cache-Control': 'private, no-store, max-age=0' });
   try {
     const session = await requireAuth(req);
     const learnerId = clean(req.query?.learnerId, 120);
@@ -51,7 +51,7 @@ export default async function handler(req, res) {
     const concepts = [...grouped.entries()].map(([concept, evidence]) => {
       const state = deriveState(evidence);
       const correct = evidence.filter(r => r.correctness === 'correct').length;
-      const reviewFlag = evidence.some(r => ['low', 'human_review_required'].includes(r.confidence));
+      const reviewFlag = evidence.some(r => ['low', 'human_review_required'].includes(String(r.confidence || '').toLowerCase()));
       const conf = confidence(evidence.length, reviewFlag);
       const recent = evidence.slice(0, 5);
       const recentCorrect = recent.filter(r => r.correctness === 'correct').length;
@@ -97,8 +97,8 @@ export default async function handler(req, res) {
         'Question-level evidence is included only when the corresponding server evidence rows exist.',
         'This endpoint does not claim that a production database is provisioned merely because the source path exists.'
       ]
-    }, { 'Cache-Control': 'no-store' });
+    }, { 'Cache-Control': 'private, no-store, max-age=0' });
   } catch (e) {
-    return json(res, e.status || 500, { error: { code: e.code || 'LEARNING_MEMORY_FAILED', message: e.status ? e.message : 'Unable to load learning memory.' } }, { 'Cache-Control': 'no-store' });
+    return json(res, e.status || 500, { error: { code: e.code || 'LEARNING_MEMORY_FAILED', message: e.status ? e.message : 'Unable to load learning memory.' } }, { 'Cache-Control': 'private, no-store, max-age=0' });
   }
 }
