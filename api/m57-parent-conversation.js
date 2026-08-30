@@ -3,7 +3,7 @@ import { requireAuth, hasRole } from './_lib/auth.js';
 import { sql } from './_lib/db.js';
 
 export const config = { runtime: 'nodejs' };
-
+const MIN_EVIDENCE = 3;
 function clean(v, max = 240) { return String(v ?? '').trim().slice(0, max); }
 function buildPrompts(topic, state) {
   return [
@@ -42,17 +42,20 @@ async function loadLearningContext(learnerId) {
   }
   const concepts = [...byConcept.values()].sort((a, b) => (b.total - a.total) || String(b.lastSeen).localeCompare(String(a.lastSeen)));
   const focus = concepts[0];
+  const evidenceSufficient = focus.total >= MIN_EVIDENCE;
   const accuracy = focus.total ? focus.correct / focus.total : 0;
-  let state = 'learning';
-  if (focus.total < 2) state = 'early evidence';
-  else if (accuracy >= 0.8) state = 'on track';
-  else if (accuracy < 0.5 || focus.incorrect >= 2) state = 'needs support';
-  else if (focus.partial || focus.uncertain) state = 'needs clarification';
+  let state = 'insufficient evidence';
+  if (evidenceSufficient) {
+    if (accuracy >= 0.8) state = 'on track';
+    else if (accuracy < 0.5 || focus.incorrect >= 2) state = 'needs support';
+    else if (focus.partial || focus.uncertain) state = 'needs clarification';
+    else state = 'learning';
+  }
   return {
     evidenceCount: concepts.reduce((sum, item) => sum + item.total, 0),
     topic: clean(focus.topic || focus.concept || 'the recent study work', 160),
     state,
-    evidence: concepts.slice(0, 8).map(item => ({ concept: item.concept, subject: item.subject, evidenceCount: item.total, accuracy: item.total ? Math.round((item.correct / item.total) * 100) : null }))
+    evidence: concepts.slice(0, 8).map(item => ({ concept: item.concept, subject: item.subject, evidenceCount: item.total, accuracy: item.total >= MIN_EVIDENCE ? Math.round((item.correct / item.total) * 100) : null, evidenceSufficient: item.total >= MIN_EVIDENCE }))
   };
 }
 
@@ -81,7 +84,7 @@ export default async function handler(req, res) {
     const conversationId = id('parentconv');
     await sql`INSERT INTO parent_conversation_prompts(id,parent_user_id,learner_id,topic,state,prompts) VALUES(${conversationId},${session.user_id},${learnerId},${topic},${state},${JSON.stringify(prompts)}::jsonb)`;
     await writeAudit({ actorUserId: session.user_id, action: 'parent.conversation.generate', entityType: 'parent_conversation_prompts', entityId: conversationId, metadata: { learnerId, evidenceCount: context.evidenceCount, evidence: context.evidence } });
-    return json(res, 201, { ok: true, id: conversationId, learnerId, topic, state, evidenceCount: context.evidenceCount, evidence: context.evidence, prompts, limitation: 'Conversation prompts are supportive guidance, not diagnosis or clinical advice. Learning state is derived from recorded academic evidence; it does not measure emotion or wellbeing.' });
+    return json(res, 201, { ok: true, id: conversationId, learnerId, topic, state, evidenceCount: context.evidenceCount, evidence: context.evidence, prompts, evidenceGate: { minEvidence: MIN_EVIDENCE, sparseEvidenceIsNotCharacterized: true }, limitation: 'Conversation prompts are supportive guidance, not diagnosis or clinical advice. Learning state is derived from recorded academic evidence; it does not measure emotion or wellbeing.' });
   } catch (e) {
     return json(res, e.status || 500, { error: { code: e.code || 'PARENT_CONVERSATION_FAILED', message: e.status ? e.message : 'Unable to create parent conversation prompts.' } });
   }
