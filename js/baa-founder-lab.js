@@ -26,9 +26,12 @@ function transition(record,next){
 }
 function observation(input){
   if(!input||typeof input!=='object'||!String(input.metric||'').trim())return {ok:false,error:'INVALID_OBSERVATION'};
+  if(input.consentGranted!==true)return {ok:false,error:'CONSENT_REQUIRED'};
+  if(!String(input.experimentId||'').trim())return {ok:false,error:'EXPERIMENT_ID_REQUIRED'};
   const value=input.value;
   if(typeof value!=='number'&&typeof value!=='string'&&typeof value!=='boolean')return {ok:false,error:'INVALID_OBSERVATION_VALUE'};
-  return {ok:true,error:null,observation:{experimentId:clean(input.experimentId,120),metric:clean(input.metric,120),value,participantRef:clean(input.participantRef,160)||null,observedAt:input.observedAt||new Date().toISOString()}};
+  if(typeof value==='number'&&!Number.isFinite(value))return {ok:false,error:'INVALID_OBSERVATION_VALUE'};
+  return {ok:true,error:null,observation:{experimentId:clean(input.experimentId,120),metric:clean(input.metric,120),value,participantRef:clean(input.participantRef,160)||null,consentGranted:true,observedAt:input.observedAt||new Date().toISOString()}};
 }
 global.BAAFounderLab={cohort,experiment,transition,observation,statuses:STATUSES};
 })(window);
