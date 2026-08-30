@@ -12,9 +12,7 @@ function body(req) {
   if (req.body && typeof req.body === 'object') return req.body;
   try { return JSON.parse(req.body || '{}'); } catch { return {}; }
 }
-function iso(value) {
-  return value ? new Date(value).toISOString() : null;
-}
+function iso(value) { return value ? new Date(value).toISOString() : null; }
 
 export default async function handler(req, res) {
   noStore(res);
@@ -33,31 +31,61 @@ export default async function handler(req, res) {
       `;
       const row = result.rows[0];
       return json(res, 200, {
-        ok:true,
-        learnerId,
+        ok:true, learnerId,
         preference:{ schemaVersion:1, code: row?.language_code || 'en' },
         updatedAt: iso(row?.updated_at)
       });
     }
 
     if (req.method === 'PUT') {
-      const code = String(body(req)?.code || '').trim().toLowerCase();
+      const payload = body(req) || {};
+      const code = String(payload.code || '').trim().toLowerCase();
       if (!LANGUAGES.has(code)) {
         return json(res, 400, { ok:false, error:{ code:'INVALID_LANGUAGE', message:'Unsupported Tutor response language.' } });
       }
-      const result = await sql`
-        INSERT INTO learner_language_preferences(learner_id, language_code, updated_at)
-        VALUES(${learnerId}, ${code}, NOW())
-        ON CONFLICT(learner_id) DO UPDATE
-          SET language_code=EXCLUDED.language_code, updated_at=NOW()
-        RETURNING language_code, updated_at
-      `;
-      const row = result.rows[0];
+      const expectedRaw = payload.expectedUpdatedAt;
+      const expected = expectedRaw == null ? null : String(expectedRaw).trim();
+      if (expected && Number.isNaN(Date.parse(expected))) {
+        return json(res, 400, { ok:false, error:{ code:'INVALID_VERSION', message:'expectedUpdatedAt must be a valid timestamp.' } });
+      }
+
+      const result = await sql.begin(async tx => {
+        const current = await tx`
+          SELECT language_code, updated_at
+          FROM learner_language_preferences
+          WHERE learner_id=${learnerId}
+          FOR UPDATE
+        `;
+        const row = current.rows[0];
+        const currentUpdatedAt = iso(row?.updated_at);
+        if (expected && currentUpdatedAt && expected !== currentUpdatedAt) {
+          return { conflict:true, current:{ code:row.language_code, updatedAt:currentUpdatedAt } };
+        }
+        if (expected && !currentUpdatedAt) {
+          return { conflict:true, current:null };
+        }
+        const saved = await tx`
+          INSERT INTO learner_language_preferences(learner_id, language_code, updated_at)
+          VALUES(${learnerId}, ${code}, NOW())
+          ON CONFLICT(learner_id) DO UPDATE
+            SET language_code=EXCLUDED.language_code, updated_at=NOW()
+          RETURNING language_code, updated_at
+        `;
+        const savedRow = saved.rows[0];
+        return { conflict:false, row:savedRow };
+      });
+
+      if (result.conflict) {
+        return json(res, 409, {
+          ok:false,
+          error:{ code:'LANGUAGE_PREFERENCE_CONFLICT', message:'Language preference changed elsewhere. Refresh before saving again.' },
+          current: result.current
+        });
+      }
       return json(res, 200, {
-        ok:true,
-        learnerId,
-        preference:{ schemaVersion:1, code:row.language_code },
-        updatedAt:iso(row.updated_at)
+        ok:true, learnerId,
+        preference:{ schemaVersion:1, code:result.row.language_code },
+        updatedAt:iso(result.row.updated_at)
       });
     }
 
