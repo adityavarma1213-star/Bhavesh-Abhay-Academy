@@ -10,6 +10,7 @@ const checks=[
  ['pending student posts',api.includes("moderationStateFor(s)")&&api.includes("'pending'")],
  ['staff moderation',api.includes("action==='moderate'")&&api.includes("'approved','blocked'" )],
  ['report endpoint',api.includes("action==='report'")&&api.includes('collaboration_reports')],
+ ['duplicate report guard',api.includes('REPORT_ALREADY_OPEN')&&api.includes("status='open'")],
  ['visibility enforcement',api.includes("p.moderationState==='approved'")],
  ['audit logging',api.includes('writeAudit')],
  ['migration moderation column',migration.includes('moderation_state')],
