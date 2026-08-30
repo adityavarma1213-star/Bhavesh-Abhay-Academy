@@ -1,5 +1,5 @@
 import { json, id, writeAudit } from './_lib/security.js';
-import { requireAuth, hasRole } from './_lib/auth.js';
+import { requireAuth, hasRole, requireLearnerAccess } from './_lib/auth.js';
 import { sql } from './_lib/db.js';
 
 export const config={runtime:'nodejs'};
@@ -72,11 +72,13 @@ export default async function handler(req,res){
       if(!hasRole(s,'admin')&&!hasRole(s,'teacher')) return json(res,403,{error:{code:'FORBIDDEN',message:'Administrator or teacher role required.'}});
       const requestId=String(req.query?.id||''); const status=String(req.body?.status||'');
       if(!requestId||!REQUEST_STATUS.includes(status)) return json(res,400,{error:{code:'INVALID_REQUEST_STATUS',message:'Valid request id and status are required.'}});
+      const request=await sql`SELECT id,mentor_id,learner_id,status FROM mentor_requests WHERE id=${requestId} LIMIT 1`;
+      if(!request.rows.length) return json(res,404,{error:{code:'MENTOR_REQUEST_NOT_FOUND',message:'Mentoring request not found.'}});
+      if(hasRole(s,'teacher')) await requireLearnerAccess(s,request.rows[0].learner_id);
       const updated=await sql`UPDATE mentor_requests SET status=${status},updated_at=NOW() WHERE id=${requestId} RETURNING id,mentor_id AS "mentorId",learner_id AS "learnerId",status`;
-      if(!updated.rows.length) return json(res,404,{error:{code:'MENTOR_REQUEST_NOT_FOUND',message:'Mentoring request not found.'}});
-      await writeAudit({actorUserId:s.user_id,action:'mentor.request.status',entityType:'mentor_request',entityId:requestId,metadata:{status}});
-      return json(res,200,{ok:true,request:updated.rows[0]});
+      await writeAudit({actorUserId:s.user_id,action:'mentor.request.status',entityType:'mentor_request',entityId:requestId,metadata:{status,learnerId:request.rows[0].learner_id}});
+      return json(res,200,{ok:true,request:updated.rows[0]},NO_STORE);
     }
-    return json(res,405,{error:{code:'METHOD_NOT_ALLOWED',message:'GET, POST, PATCH or request-status PUT required.'}},{Allow:'GET, POST, PATCH, PUT'});
-  }catch(e){return json(res,e.status||500,{error:{code:e.code||'MENTOR_FAILED',message:e.status?e.message:'Unable to process mentor request.'}});}
+    return json(res,405,{error:{code:'METHOD_NOT_ALLOWED',message:'GET, POST, PATCH or request-status PUT required.'}},{Allow:'GET, POST, PATCH, PUT',...NO_STORE});
+  }catch(e){return json(res,e.status||500,{error:{code:e.code||'MENTOR_FAILED',message:e.status?e.message:'Unable to process mentor request.'}},NO_STORE);}
 }
