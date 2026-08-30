@@ -32,7 +32,25 @@ async function buildGate(learnerId, subject, chapter) {
     for (const raw of details) {
       const label = clean(raw, 180) || 'general_error';
       const key = findingKey(row.subject, row.chapter, concept, label);
-      if (!findings.has(key)) findings.set(key, { key, type: clean(row.commonErrorType || 'concept_gap', 80) || 'concept_gap', text: label, concept, status: 'red', attemptId: row.attemptId, questionId: row.questionId, firstSeenAt: row.createdAt, lastSeenAt: row.createdAt, clearedAt: null });
+      const existing = findings.get(key);
+      if (!existing) {
+        findings.set(key, {
+          key,
+          type: clean(row.commonErrorType || 'concept_gap', 80) || 'concept_gap',
+          text: label,
+          concept,
+          status: 'red',
+          attemptId: row.attemptId,
+          questionId: row.questionId,
+          firstSeenAt: row.createdAt,
+          lastSeenAt: row.createdAt,
+          clearedAt: null,
+        });
+      } else if (new Date(row.createdAt).getTime() > new Date(existing.lastSeenAt).getTime()) {
+        existing.lastSeenAt = row.createdAt;
+        existing.attemptId = row.attemptId;
+        existing.questionId = row.questionId;
+      }
     }
   }
   for (const f of findings.values()) {
@@ -66,7 +84,7 @@ async function buildGate(learnerId, subject, chapter) {
       await sql`
         INSERT INTO learning_gate_findings(id,learner_id,subject,chapter,attempt_id,question_id,finding_key,finding_type,finding_text,status,first_seen_at,last_seen_at,cleared_at)
         VALUES(${id('gatefinding')},${learnerId},${subject},${chapter},${f.attemptId},${f.questionId},${f.key},${f.type},${f.text},${f.status},${f.firstSeenAt},${f.lastSeenAt},${f.clearedAt})
-        ON CONFLICT (learner_id,subject,chapter,finding_key) DO UPDATE SET status=EXCLUDED.status,last_seen_at=EXCLUDED.last_seen_at,cleared_at=EXCLUDED.cleared_at`;
+        ON CONFLICT (learner_id,subject,chapter,finding_key) DO UPDATE SET status=EXCLUDED.status,attempt_id=EXCLUDED.attempt_id,question_id=EXCLUDED.question_id,last_seen_at=EXCLUDED.last_seen_at,cleared_at=EXCLUDED.cleared_at`;
     }
   }
   return { learnerId, subject, chapter, status: gateStatus, redCount: red.length, greenCount: green.length, findings: list, bypass: activeBypass, evidenceCount: rows.length };
