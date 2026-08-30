@@ -22,14 +22,15 @@ async function deriveRewards(learnerId) {
     sql`SELECT COUNT(*)::int AS count
         FROM assessment_attempts
         WHERE learner_id=${learnerId}
-          AND status IN ('submitted','evaluated')`,
+          AND status IN ('submitted','evaluated','completed')`,
     sql`SELECT COUNT(*)::int AS answered,
                COUNT(*) FILTER (WHERE correctness='correct')::int AS correct
         FROM learning_evidence
         WHERE learner_id=${learnerId}`,
-    sql`SELECT COUNT(*) FILTER (WHERE status IN ('mastered','strong'))::int AS mastered
+    sql`SELECT COUNT(DISTINCT concept)::int AS mastered
         FROM learning_memory
-        WHERE learner_id=${learnerId}`,
+        WHERE learner_id=${learnerId}
+          AND status IN ('mastered','strong')`,
   ]);
 
   const completedAttempts = Number(attempts.rows[0]?.count || 0);
@@ -47,6 +48,7 @@ async function deriveRewards(learnerId) {
     five_masteries: masteredConcepts >= 5,
   };
   const earnedBadgeIds = BADGES.filter(badge => thresholds[badge.id]).map(badge => badge.id);
+  const earnedBadges = BADGES.filter(badge => thresholds[badge.id]);
 
   return {
     xp,
@@ -55,6 +57,7 @@ async function deriveRewards(learnerId) {
     correctAnswers,
     masteredConcepts,
     earnedBadgeIds,
+    earnedBadges,
     badges: BADGES.map(badge => ({ ...badge, earned: Boolean(thresholds[badge.id]) })),
     source: 'server_assessment_evidence',
     methodology: 'Activity rewards are derived only from authenticated assessment attempts, learning evidence, and evidence-backed Learning Memory states. They are motivational rewards, not academic marks.',
