@@ -4,6 +4,7 @@ import { sql } from './_lib/db.js';
 
 export const config = { runtime: 'nodejs' };
 const TYPES = new Set(['concept_gap','calculation','reading','procedure','careless','unknown']);
+const MIN_COMMON_EVIDENCE = 3;
 const clean = (v, max = 160) => String(v ?? '').trim().slice(0, max);
 
 export default async function handler(req, res) {
@@ -57,9 +58,23 @@ export default async function handler(req, res) {
       }
     }
     const groups = Object.values(map).map(g => ({ ...g, questions: g.questions.size, confidence: g.reviewRequired ? 'review_required' : 'evidence_based' })).sort((a,b) => b.count-a.count || String(a.subject).localeCompare(String(b.subject)));
-    const commonMistakes = Object.values(conceptMap).map(g => ({ ...g, reasonTypes: [...g.reasonTypes] })).sort((a,b) => b.count-a.count || String(a.concept).localeCompare(String(b.concept))).slice(0, 25);
+    const commonMistakes = Object.values(conceptMap)
+      .filter(g => g.count >= MIN_COMMON_EVIDENCE)
+      .map(g => ({ ...g, reasonTypes: [...g.reasonTypes] }))
+      .sort((a,b) => b.count-a.count || String(a.concept).localeCompare(String(b.concept)))
+      .slice(0, 25);
     const reasonSummary = groups.reduce((out,g) => { out[g.reasonType]=(out[g.reasonType]||0)+g.count; return out; }, {});
-    return json(res, 200, { ok: true, learnerId, filters: { subject: subject || null, chapter: chapter || null }, groups, commonMistakes, reasonSummary, evidenceCount: rows.rows.length, limitation: 'Mistake archeology reports recorded evidence only; it does not diagnose psychological causes.' });
+    return json(res, 200, {
+      ok: true,
+      learnerId,
+      filters: { subject: subject || null, chapter: chapter || null },
+      groups,
+      commonMistakes,
+      reasonSummary,
+      evidenceCount: rows.rows.length,
+      evidenceGate: { minimumCommonEvidence: MIN_COMMON_EVIDENCE, sparseEvidenceIsNotCommonPattern: true },
+      limitation: 'Mistake archeology reports recorded evidence only; it does not diagnose psychological causes.'
+    });
   } catch (e) {
     return json(res, e.status || 500, { error: { code: e.code || 'MISTAKE_ANALYTICS_FAILED', message: e.status ? e.message : 'Unable to load mistake analytics.' } });
   }
