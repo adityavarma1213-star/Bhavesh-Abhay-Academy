@@ -7,6 +7,7 @@ export const config={runtime:'nodejs'};
 const VERIFICATION=['unverified','pending','verified','rejected','suspended'];
 const SAFEGUARDING=['not_configured','pending','verified','expired'];
 const REQUEST_STATUS=['requested','accepted','declined','cancelled','completed'];
+const REQUEST_TRANSITIONS={requested:new Set(['accepted','declined','cancelled']),accepted:new Set(['completed','cancelled']),declined:new Set([]),cancelled:new Set([]),completed:new Set([])};
 
 function noStore(res){res.setHeader('Cache-Control','private, no-store, max-age=0');}
 
@@ -74,11 +75,13 @@ export default async function handler(req,res){
       if(!requestId||!REQUEST_STATUS.includes(status)) return json(res,400,{error:{code:'INVALID_REQUEST_STATUS',message:'Valid request id and status are required.'}});
       const request=await sql`SELECT id,mentor_id,learner_id,status FROM mentor_requests WHERE id=${requestId} LIMIT 1`;
       if(!request.rows.length) return json(res,404,{error:{code:'MENTOR_REQUEST_NOT_FOUND',message:'Mentoring request not found.'}});
+      const currentStatus=request.rows[0].status;
+      if(currentStatus!==status&&!REQUEST_TRANSITIONS[currentStatus]?.has(status)) return json(res,409,{error:{code:'INVALID_REQUEST_TRANSITION',message:`Mentoring request cannot transition from ${currentStatus} to ${status}.`}});
       if(hasRole(s,'teacher')) await requireLearnerAccess(s,request.rows[0].learner_id);
       const updated=await sql`UPDATE mentor_requests SET status=${status},updated_at=NOW() WHERE id=${requestId} RETURNING id,mentor_id AS "mentorId",learner_id AS "learnerId",status`;
-      await writeAudit({actorUserId:s.user_id,action:'mentor.request.status',entityType:'mentor_request',entityId:requestId,metadata:{status,learnerId:request.rows[0].learner_id}});
-      return json(res,200,{ok:true,request:updated.rows[0]},NO_STORE);
+      await writeAudit({actorUserId:s.user_id,action:'mentor.request.status',entityType:'mentor_request',entityId:requestId,metadata:{fromStatus:currentStatus,status,learnerId:request.rows[0].learner_id}});
+      return json(res,200,{ok:true,request:updated.rows[0]});
     }
-    return json(res,405,{error:{code:'METHOD_NOT_ALLOWED',message:'GET, POST, PATCH or request-status PUT required.'}},{Allow:'GET, POST, PATCH, PUT',...NO_STORE});
-  }catch(e){return json(res,e.status||500,{error:{code:e.code||'MENTOR_FAILED',message:e.status?e.message:'Unable to process mentor request.'}},NO_STORE);}
+    return json(res,405,{error:{code:'METHOD_NOT_ALLOWED',message:'GET, POST, PATCH or request-status PUT required.'}},{Allow:'GET, POST, PATCH, PUT'});
+  }catch(e){return json(res,e.status||500,{error:{code:e.code||'MENTOR_FAILED',message:e.status?e.message:'Unable to process mentor request.'}});}
 }
