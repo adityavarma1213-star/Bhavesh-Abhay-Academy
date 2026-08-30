@@ -16,6 +16,10 @@ function cleanText(value, max = 240) {
   return String(value ?? '').trim().slice(0, max);
 }
 
+function isHttpsUrl(value) {
+  return typeof value === 'string' && /^https:\/\//i.test(value);
+}
+
 function normalizeCompetition(item) {
   if (!item || typeof item !== 'object') return null;
   const url = cleanText(item.url || item.sourceUrl, 1000);
@@ -28,7 +32,7 @@ function normalizeCompetition(item) {
     country: cleanText(item.country, 80) || null,
     registrationDeadline: cleanText(item.registrationDeadline || item.deadline, 40) || null,
     eventDate: cleanText(item.eventDate || item.date, 40) || null,
-    url: /^https:\/\//i.test(url) ? url : null,
+    url: isHttpsUrl(url) ? url : null,
     eligibility: item.eligibility && typeof item.eligibility === 'object' ? item.eligibility : {},
   };
 }
@@ -38,16 +42,25 @@ async function fetchProvider(req) {
     return { configured: false, results: [], message: 'Competition provider is not configured. Live contest data is unavailable.' };
   }
 
+  let base;
+  try {
+    base = new URL(PROVIDER_URL);
+  } catch {
+    return { configured: true, results: [], message: 'Competition provider URL is invalid.' };
+  }
+  if (base.protocol !== 'https:') {
+    return { configured: true, results: [], message: 'Competition provider URL must use HTTPS.' };
+  }
+
+  for (const key of ['country', 'level', 'category']) {
+    const value = cleanText(req.query?.[key], 80);
+    if (value) base.searchParams.set(key, value);
+  }
+
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   try {
-    const params = new URLSearchParams();
-    for (const key of ['country', 'level', 'category']) {
-      const value = cleanText(req.query?.[key], 80);
-      if (value) params.set(key, value);
-    }
-    const target = `${PROVIDER_URL}${PROVIDER_URL.includes('?') ? '&' : '?'}${params.toString()}`;
-    const response = await fetch(target, {
+    const response = await fetch(base.toString(), {
       method: 'GET',
       headers: {
         Accept: 'application/json',
@@ -95,6 +108,7 @@ export default async function handler(req, res) {
       providerConfigured: payload.configured,
       live: payload.configured && payload.results.length > 0,
       results: payload.results,
+      sourcePolicy: { providerUrlRequiresHttps: true, resultUrlsRequireHttps: true },
       message: payload.message,
     });
   } catch (e) {
