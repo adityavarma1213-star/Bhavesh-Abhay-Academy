@@ -4,6 +4,7 @@ import { sql } from './_lib/db.js';
 
 export const config = { runtime: 'nodejs' };
 const MIN_EVIDENCE = 3;
+const VALID_CORRECTNESS = new Set(['correct', 'partially_correct', 'incorrect']);
 const clean = (v, max = 160) => String(v ?? '').trim().slice(0, max);
 
 export default async function handler(req, res) {
@@ -45,15 +46,17 @@ export default async function handler(req, res) {
       ORDER BY completed_at DESC NULLS LAST, created_at DESC
       LIMIT 5`;
 
-    const rows = evidence.rows;
+    const rows = evidence.rows.filter(row => VALID_CORRECTNESS.has(row.correctness));
+    const invalidEvidenceCount = evidence.rows.length - rows.length;
     if (!rows.length && !attempts.rows.length) {
-      await writeAudit({ actorUserId: session.user_id, action: 'teacher.notes.draft_view', entityType: 'learner', entityId: learnerId, metadata: { evidenceCount: 0, insufficientEvidence: true, minimumEvidence: MIN_EVIDENCE } });
+      await writeAudit({ actorUserId: session.user_id, action: 'teacher.notes.draft_view', entityType: 'learner', entityId: learnerId, metadata: { evidenceCount: 0, invalidEvidenceExcluded: invalidEvidenceCount, insufficientEvidence: true, minimumEvidence: MIN_EVIDENCE } });
       return json(res, 200, {
         ok: true,
         learnerId,
         draft: 'Teacher note draft: There is not enough recorded academic evidence yet to create a factual progress note.',
         evidenceCount: 0,
-        evidenceGate: { minimumEvidencePerConcept: MIN_EVIDENCE, sparseConceptsNotCharacterized: true },
+        invalidEvidenceExcluded: invalidEvidenceCount,
+        evidenceGate: { minimumEvidencePerConcept: MIN_EVIDENCE, sparseConceptsNotCharacterized: true, validCorrectnessStates: [...VALID_CORRECTNESS] },
         limitation: 'Deterministic evidence summary only; teacher review is required before saving or sharing.'
       });
     }
@@ -64,7 +67,7 @@ export default async function handler(req, res) {
       const g = groups.get(key) || { subject: row.subject || 'General', concept: row.concept || 'Unspecified concept', correct: 0, concern: 0, total: 0 };
       g.total += 1;
       if (row.correctness === 'correct') g.correct += 1;
-      if (['incorrect','partially_correct','uncertain'].includes(row.correctness)) g.concern += 1;
+      if (['incorrect','partially_correct'].includes(row.correctness)) g.concern += 1;
       groups.set(key, g);
     }
     const ordered = [...groups.values()].sort((a,b) => (b.concern-a.concern) || (b.total-a.total));
@@ -81,12 +84,13 @@ export default async function handler(req, res) {
       const score = Number(recent.score), max = Number(recent.max_score);
       lines.push(Number.isFinite(score) && Number.isFinite(max) && max > 0 ? `Most recent completed assessment: ${title} — ${score}/${max}.` : `Most recent completed assessment: ${title}.`);
     }
-    lines.push(`Evidence reviewed: ${rows.length} learning-evidence item(s)${attempts.rows.length ? ` and ${attempts.rows.length} recent assessment attempt(s)` : ''}.`);
-    lines.push(`Concept strengths/attention are characterized only when each concept has at least ${MIN_EVIDENCE} evidence items.`);
+    lines.push(`Evidence reviewed: ${rows.length} valid learning-evidence item(s)${attempts.rows.length ? ` and ${attempts.rows.length} recent assessment attempt(s)` : ''}.`);
+    if (invalidEvidenceCount) lines.push(`${invalidEvidenceCount} invalid or unscored evidence item(s) were excluded from characterization.`);
+    lines.push(`Concept strengths/attention are characterized only when each concept has at least ${MIN_EVIDENCE} valid evidence items.`);
     lines.push('Teacher review required before saving or sharing.');
 
-    await writeAudit({ actorUserId: session.user_id, action: 'teacher.notes.draft_view', entityType: 'learner', entityId: learnerId, metadata: { evidenceCount: rows.length, assessmentCount: attempts.rows.length, role: isAdmin ? 'admin' : 'teacher', minimumEvidence: MIN_EVIDENCE } });
-    return json(res, 200, { ok: true, learnerId, draft: lines.join(' '), evidenceCount: rows.length, assessmentCount: attempts.rows.length, evidenceGate: { minimumEvidencePerConcept: MIN_EVIDENCE, sparseConceptsNotCharacterized: true }, source: 'server_learning_evidence', limitation: 'Deterministic evidence summary only; teacher review is required before saving or sharing.' });
+    await writeAudit({ actorUserId: session.user_id, action: 'teacher.notes.draft_view', entityType: 'learner', entityId: learnerId, metadata: { evidenceCount: rows.length, invalidEvidenceExcluded: invalidEvidenceCount, assessmentCount: attempts.rows.length, role: isAdmin ? 'admin' : 'teacher', minimumEvidence: MIN_EVIDENCE } });
+    return json(res, 200, { ok: true, learnerId, draft: lines.join(' '), evidenceCount: rows.length, invalidEvidenceExcluded: invalidEvidenceCount, assessmentCount: attempts.rows.length, evidenceGate: { minimumEvidencePerConcept: MIN_EVIDENCE, sparseConceptsNotCharacterized: true, validCorrectnessStates: [...VALID_CORRECTNESS] }, source: 'server_learning_evidence', limitation: 'Deterministic evidence summary only; teacher review is required before saving or sharing.' });
   } catch (e) {
     return json(res, e.status || 500, { error: { code: e.code || 'M26_NOTES_FAILED', message: e.status ? e.message : 'Unable to generate the evidence-backed teacher note draft.' } });
   }
