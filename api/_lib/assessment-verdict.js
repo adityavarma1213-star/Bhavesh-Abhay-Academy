@@ -3,6 +3,7 @@
 import crypto from 'node:crypto';
 
 const VERDICT_TTL_SECONDS = 15 * 60;
+const CLOCK_SKEW_SECONDS = 60;
 
 function secret() {
   return String(process.env.ASSESSMENT_VERDICT_SECRET || '').trim();
@@ -16,6 +17,16 @@ function sign(payloadB64) {
   const key = secret();
   if (!key) return null;
   return crypto.createHmac('sha256', key).update(payloadB64).digest('base64url');
+}
+
+function verifyEnvelope(payload, now) {
+  const iat = Number(payload?.iat);
+  const exp = Number(payload?.exp);
+  if (!Number.isInteger(iat) || !Number.isInteger(exp)) return { ok: false, code: 'VERDICT_INVALID' };
+  if (exp <= iat || exp > iat + VERDICT_TTL_SECONDS) return { ok: false, code: 'VERDICT_INVALID' };
+  if (iat > now + CLOCK_SKEW_SECONDS) return { ok: false, code: 'VERDICT_INVALID' };
+  if (now > exp) return { ok: false, code: 'VERDICT_EXPIRED' };
+  return { ok: true };
 }
 
 export function issueAssessmentVerdict({ attemptId, questionId, gradingMode, score, maxScore, correctness, errors = [], missingConcepts = [], confidence = 'low', humanReviewRequired = false }) {
@@ -48,8 +59,8 @@ export function verifyAssessmentVerdict(token, { attemptId, questionId } = {}) {
   let payload;
   try { payload = JSON.parse(Buffer.from(encoded, 'base64url').toString('utf8')); }
   catch { return { ok: false, code: 'VERDICT_INVALID' }; }
-  const now = Math.floor(Date.now() / 1000);
-  if (!payload.exp || now > Number(payload.exp)) return { ok: false, code: 'VERDICT_EXPIRED' };
+  const envelope = verifyEnvelope(payload, Math.floor(Date.now() / 1000));
+  if (!envelope.ok) return envelope;
   if (attemptId != null && String(payload.attemptId) !== String(attemptId)) return { ok: false, code: 'VERDICT_ATTEMPT_MISMATCH' };
   if (questionId != null && String(payload.questionId) !== String(questionId)) return { ok: false, code: 'VERDICT_QUESTION_MISMATCH' };
   return { ok: true, verdict: payload };
@@ -111,8 +122,8 @@ export function verifyHomeworkVerdict(token, { submissionId, textHash } = {}) {
   let payload;
   try { payload = JSON.parse(Buffer.from(encoded, 'base64url').toString('utf8')); }
   catch { return { ok: false, code: 'VERDICT_INVALID' }; }
-  const now = Math.floor(Date.now() / 1000);
-  if (!payload.exp || now > Number(payload.exp)) return { ok: false, code: 'VERDICT_EXPIRED' };
+  const envelope = verifyEnvelope(payload, Math.floor(Date.now() / 1000));
+  if (!envelope.ok) return envelope;
   if (submissionId != null && String(payload.submissionId) !== String(submissionId)) return { ok: false, code: 'VERDICT_SUBMISSION_MISMATCH' };
   if (textHash != null && String(payload.textHash) !== String(textHash)) return { ok: false, code: 'VERDICT_TEXT_MISMATCH' };
   return { ok: true, verdict: payload };
