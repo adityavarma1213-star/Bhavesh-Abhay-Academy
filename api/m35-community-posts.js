@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { json, writeAudit } from './_lib/security.js';
 import { requireAuth, hasRole } from './_lib/auth.js';
 import { sql } from './_lib/db.js';
@@ -18,7 +19,7 @@ function moderate(text) {
 }
 
 function postId(userId) {
-  return `post_${Date.now().toString(36)}_${String(userId).slice(0, 8)}_${Math.random().toString(36).slice(2, 8)}`;
+  return `post_${Date.now().toString(36)}_${String(userId).slice(0, 8)}_${randomUUID().replace(/-/g, '').slice(0, 12)}`;
 }
 
 async function requireGroupAccess(session, groupId) {
