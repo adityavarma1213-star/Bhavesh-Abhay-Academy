@@ -15,16 +15,25 @@ function secureId(prefix){
   }
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,10)}`;
 }
+function validTimestamp(value){
+  if(value==null||value==='') return true;
+  if(typeof value!=='string'||value.length>64) return false;
+  const parsed=Date.parse(value);
+  return Number.isFinite(parsed);
+}
+function normalizedTimestamp(value){return value==null||value===''?new Date().toISOString():new Date(value).toISOString();}
 function cohort(input){
   if(!input||typeof input!=='object'||typeof input.id!=='string'||!input.id.trim())return {ok:false,error:'INVALID_COHORT'};
+  if(!validTimestamp(input.createdAt))return {ok:false,error:'INVALID_CREATED_AT'};
   const participants=Number.isInteger(input.participantLimit)&&input.participantLimit>0?Math.min(input.participantLimit,10000):null;
-  return {ok:true,error:null,cohort:{id:clean(input.id,120),label:clean(input.label||'Private cohort',160),consentRequired:true,participantLimit:participants,status:STATUSES.includes(input.status)?input.status:'planned',createdAt:input.createdAt||new Date().toISOString()}};
+  return {ok:true,error:null,cohort:{id:clean(input.id,120),label:clean(input.label||'Private cohort',160),consentRequired:true,participantLimit:participants,status:STATUSES.includes(input.status)?input.status:'planned',createdAt:normalizedTimestamp(input.createdAt)}};
 }
 function experiment(input){
   if(!input||typeof input!=='object'||typeof input.name!=='string'||!input.name.trim())return {ok:false,error:'INVALID_EXPERIMENT'};
+  if(!validTimestamp(input.createdAt))return {ok:false,error:'INVALID_CREATED_AT'};
   const metrics=Array.isArray(input.metrics)?[...new Set(input.metrics.map(v=>clean(v,120)).filter(Boolean))].slice(0,MAX_METRICS):[];
   if(!metrics.length)return {ok:false,error:'NO_EXPERIMENT_METRICS'};
-  return {ok:true,error:null,experiment:{id:clean(input.id||secureId('exp'),120),name:clean(input.name,200),hypothesis:clean(input.hypothesis,1000),status:STATUSES.includes(input.status)?input.status:'planned',metrics,owner:clean(input.owner||'',160)||null,createdAt:input.createdAt||new Date().toISOString(),updatedAt:new Date().toISOString()}};
+  return {ok:true,error:null,experiment:{id:clean(input.id||secureId('exp'),120),name:clean(input.name,200),hypothesis:clean(input.hypothesis,1000),status:STATUSES.includes(input.status)?input.status:'planned',metrics,owner:clean(input.owner||'',160)||null,createdAt:normalizedTimestamp(input.createdAt),updatedAt:new Date().toISOString()}};
 }
 function transition(record,next){
   if(!record||typeof record!=='object'||!STATUSES.includes(record.status))return {ok:false,error:'INVALID_RECORD'};
@@ -37,10 +46,11 @@ function observation(input){
   if(!input||typeof input!=='object'||!String(input.metric||'').trim())return {ok:false,error:'INVALID_OBSERVATION'};
   if(input.consentGranted!==true)return {ok:false,error:'CONSENT_REQUIRED'};
   if(!String(input.experimentId||'').trim())return {ok:false,error:'EXPERIMENT_ID_REQUIRED'};
+  if(!validTimestamp(input.observedAt))return {ok:false,error:'INVALID_OBSERVED_AT'};
   const value=input.value;
   if(typeof value!=='number'&&typeof value!=='string'&&typeof value!=='boolean')return {ok:false,error:'INVALID_OBSERVATION_VALUE'};
   if(typeof value==='number'&&!Number.isFinite(value))return {ok:false,error:'INVALID_OBSERVATION_VALUE'};
-  return {ok:true,error:null,observation:{experimentId:clean(input.experimentId,120),metric:clean(input.metric,120),value,participantRef:clean(input.participantRef,160)||null,consentGranted:true,observedAt:input.observedAt||new Date().toISOString()}};
+  return {ok:true,error:null,observation:{experimentId:clean(input.experimentId,120),metric:clean(input.metric,120),value,participantRef:clean(input.participantRef,160)||null,consentGranted:true,observedAt:normalizedTimestamp(input.observedAt)}};
 }
 global.BAAFounderLab={cohort,experiment,transition,observation,statuses:STATUSES};
 })(window);
