@@ -5,6 +5,7 @@ import { sql } from './_lib/db.js';
 export const config = { runtime: 'nodejs' };
 const TYPES = new Set(['concept_gap','calculation','reading','procedure','careless','unknown']);
 const MIN_COMMON_EVIDENCE = 3;
+const VALID_CORRECTNESS = ['incorrect','partially_correct'];
 const clean = (v, max = 160) => String(v ?? '').trim().slice(0, max);
 
 export default async function handler(req, res) {
@@ -28,7 +29,7 @@ export default async function handler(req, res) {
       LEFT JOIN assessment_results ar
         ON ar.attempt_id=le.attempt_id AND ar.question_id=le.question_id
       WHERE le.learner_id=${learnerId}
-        AND le.correctness IN ('incorrect','partially_correct','uncertain')
+        AND le.correctness IN ('incorrect','partially_correct')
         AND (${subject}='' OR le.subject=${subject})
         AND (${chapter}='' OR le.chapter=${chapter})
       ORDER BY le.created_at DESC
@@ -72,8 +73,8 @@ export default async function handler(req, res) {
       commonMistakes,
       reasonSummary,
       evidenceCount: rows.rows.length,
-      evidenceGate: { minimumCommonEvidence: MIN_COMMON_EVIDENCE, sparseEvidenceIsNotCommonPattern: true },
-      limitation: 'Mistake archeology reports recorded evidence only; it does not diagnose psychological causes.'
+      evidenceGate: { minimumCommonEvidence: MIN_COMMON_EVIDENCE, sparseEvidenceIsNotCommonPattern: true, validCorrectnessStates: VALID_CORRECTNESS },
+      limitation: 'Mistake archeology reports recorded incorrect or partially-correct evidence only; it does not diagnose psychological causes.'
     });
   } catch (e) {
     return json(res, e.status || 500, { error: { code: e.code || 'MISTAKE_ANALYTICS_FAILED', message: e.status ? e.message : 'Unable to load mistake analytics.' } });
