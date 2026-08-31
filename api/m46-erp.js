@@ -19,6 +19,10 @@ function safeProviderUrl(value) {
     const u = new URL(value);
     if (u.protocol !== 'https:') return false;
     const host = u.hostname.toLowerCase().replace(/[\[\]]/g, '');
+    // Require a DNS hostname for server-side connection tests. This prevents
+    // IPv6 literals (including loopback/private forms) from bypassing the
+    // existing IPv4/private-host checks and makes the outbound target stable.
+    if (host.includes(':')) return false;
     if (host === 'localhost' || host.endsWith('.localhost') || host === 'metadata.google.internal' || host === 'metadata') return false;
     if (host === '0.0.0.0' || host === '::' || host === '::1' || host === '127.0.0.1') return false;
     const ipv4 = host.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
@@ -61,7 +65,7 @@ export default async function handler(req, res) {
         const provider = clean(b.provider).toLowerCase();
         const baseUrl = clean(b.baseUrl, 1000);
         if (!PROVIDER.test(provider)) return json(res, 400, { error: { code: 'INVALID_PROVIDER', message: 'provider must be a simple provider identifier.' } });
-        if (!BASE_URL.test(baseUrl) || !safeProviderUrl(baseUrl)) return json(res, 400, { error: { code: 'INVALID_BASE_URL', message: 'baseUrl must be a public HTTPS URL.' } });
+        if (!BASE_URL.test(baseUrl) || !safeProviderUrl(baseUrl)) return json(res, 400, { error: { code: 'INVALID_BASE_URL', message: 'baseUrl must be a public HTTPS DNS URL.' } });
         const connectionId = clean(b.id) || id('erp');
         const credentialRef = clean(b.credentialRef, 240) || null;
         const metadata = b.metadata && typeof b.metadata === 'object' ? b.metadata : {};
@@ -74,7 +78,7 @@ export default async function handler(req, res) {
         if (!connectionId) return json(res, 400, { error: { code: 'ERP_CONNECTION_ID_REQUIRED', message: 'connectionId/id is required.' } });
         const connection = await sql`SELECT id,provider,base_url AS "baseUrl",credential_ref AS "credentialRef" FROM erp_connections WHERE id=${connectionId} AND owner_user_id=${session.user_id} LIMIT 1`;
         if (!connection.rows.length) return json(res, 404, { error: { code: 'ERP_CONNECTION_NOT_FOUND', message: 'ERP connection not found.' } });
-        if (!safeProviderUrl(connection.rows[0].baseUrl)) return json(res, 400, { error: { code: 'INVALID_BASE_URL', message: 'Stored ERP baseUrl is not an allowed public HTTPS URL.' } });
+        if (!safeProviderUrl(connection.rows[0].baseUrl)) return json(res, 400, { error: { code: 'INVALID_BASE_URL', message: 'Stored ERP baseUrl is not an allowed public HTTPS DNS URL.' } });
         const result = await testConnection(connection.rows[0].baseUrl, connection.rows[0].credentialRef);
         const status = result.ok ? 'configured' : 'error';
         await sql`UPDATE erp_connections SET status=${status},last_error=${result.ok ? null : (result.redirected ? 'ERP_PROVIDER_REDIRECT_BLOCKED' : result.timeout ? 'ERP_PROVIDER_TIMEOUT' : 'ERP_PROVIDER_UNREACHABLE')},updated_at=NOW() WHERE id=${connectionId} AND owner_user_id=${session.user_id}`;
