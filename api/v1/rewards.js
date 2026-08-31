@@ -27,10 +27,31 @@ async function deriveRewards(learnerId) {
                COUNT(*) FILTER (WHERE correctness='correct')::int AS correct
         FROM learning_evidence
         WHERE learner_id=${learnerId}`,
-    sql`SELECT COUNT(DISTINCT concept)::int AS mastered
-        FROM learning_memory
-        WHERE learner_id=${learnerId}
-          AND status IN ('mastered','strong')`,
+    sql`SELECT COUNT(*)::int AS mastered
+        FROM (
+          SELECT lm.subject, lm.concept
+          FROM learning_memory lm
+          WHERE lm.learner_id=${learnerId}
+            AND lm.status IN ('mastered','strong')
+            AND lm.concept IS NOT NULL
+            AND EXISTS (
+              SELECT 1
+              FROM learning_evidence le
+              WHERE le.learner_id=lm.learner_id
+                AND le.subject=lm.subject
+                AND le.concept=lm.concept
+            )
+          GROUP BY lm.subject, lm.concept
+          HAVING COUNT(*) FILTER (
+            WHERE EXISTS (
+              SELECT 1
+              FROM learning_evidence le2
+              WHERE le2.learner_id=lm.learner_id
+                AND le2.subject=lm.subject
+                AND le2.concept=lm.concept
+            )
+          ) >= 3
+        ) evidence_backed_mastery`,
   ]);
 
   const completedAttempts = Number(attempts.rows[0]?.count || 0);
