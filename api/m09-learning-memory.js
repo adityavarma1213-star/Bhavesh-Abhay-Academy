@@ -6,6 +6,7 @@ export const config = { runtime: 'nodejs' };
 
 const clean = (v, max = 160) => String(v ?? '').trim().slice(0, max);
 const human = v => clean(v, 100).replace(/[-_]+/g, ' ');
+const VALID_CORRECTNESS = ['correct', 'partially_correct', 'incorrect'];
 
 function confidence(count, hasReviewFlag) {
   if (count < 3) return { level: 'insufficient', label: 'Not enough evidence' };
@@ -37,6 +38,7 @@ export default async function handler(req, res) {
       SELECT id, concept, subject, topic, correctness, confidence, error_type, created_at
       FROM learning_evidence
       WHERE learner_id = ${learnerId}
+        AND correctness IN ('correct', 'partially_correct', 'incorrect')
       ORDER BY created_at DESC
       LIMIT 1000
     `;
@@ -46,9 +48,6 @@ export default async function handler(req, res) {
       const concept = clean(row.concept, 120);
       const subject = clean(row.subject, 80);
       if (!concept) continue;
-      // A concept label can legitimately recur across subjects. Keep evidence
-      // isolated by subject so Math "fractions" cannot affect English
-      // "fractions" (or another curriculum namespace) and vice versa.
       const key = `${subject}\u001f${concept}`;
       if (!grouped.has(key)) grouped.set(key, { concept, subject, evidence: [] });
       grouped.get(key).evidence.push(row);
@@ -97,7 +96,7 @@ export default async function handler(req, res) {
       learnerId,
       summary,
       concepts,
-      methodology: 'Learning Memory is derived only from authenticated learner-scoped academic evidence already stored in PostgreSQL. Evidence is grouped by subject and concept so identically named concepts in different curriculum namespaces remain isolated. It never invents evidence or treats missing evidence as weakness.',
+      methodology: 'Learning Memory is derived only from authenticated learner-scoped academic evidence already stored in PostgreSQL. Invalid or unscored evidence is excluded from learning-state calculations. Evidence is grouped by subject and concept so identically named concepts in different curriculum namespaces remain isolated. It never invents evidence or treats missing evidence as weakness.',
       limitations: [
         'Academic learning signals only; no psychological or emotional profiling.',
         'Question-level evidence is included only when the corresponding server evidence rows exist.',
