@@ -5,6 +5,7 @@ import { sql } from './_lib/db.js';
 export const config = { runtime: 'nodejs' };
 const clean = (v, max = 180) => String(v ?? '').trim().slice(0, max);
 const findingKey = (subject, chapter, concept, label) => `${subject}::${chapter}::${concept}::${label}`.toLowerCase();
+const VALID_CORRECTNESS = new Set(['correct','partially_correct','incorrect']);
 
 async function buildGate(learnerId, subject, chapter) {
   const evidence = await sql`
@@ -21,13 +22,15 @@ async function buildGate(learnerId, subject, chapter) {
     LIMIT 500`;
 
   const rows = Array.isArray(evidence.rows) ? evidence.rows : [];
+  const validRows = rows.filter(row => VALID_CORRECTNESS.has(String(row.correctness)));
+  const excludedEvidenceCount = rows.length - validRows.length;
   const findings = new Map();
   const latestConcept = new Map();
-  for (const row of rows) {
+  for (const row of validRows) {
     const concept = clean(row.concept, 180) || 'Unspecified concept';
     const conceptKey = `${row.subject}::${row.chapter}::${concept}`;
     if (!latestConcept.has(conceptKey)) latestConcept.set(conceptKey, row.correctness);
-    if (!['incorrect','partially_correct','uncertain'].includes(String(row.correctness))) continue;
+    if (!['incorrect','partially_correct'].includes(String(row.correctness))) continue;
     const details = Array.isArray(row.findingDetails) && row.findingDetails.length ? row.findingDetails : [row.commonErrorType || 'general_error'];
     for (const raw of details) {
       const label = clean(raw, 180) || 'general_error';
@@ -87,7 +90,7 @@ async function buildGate(learnerId, subject, chapter) {
         ON CONFLICT (learner_id,subject,chapter,finding_key) DO UPDATE SET status=EXCLUDED.status,attempt_id=EXCLUDED.attempt_id,question_id=EXCLUDED.question_id,last_seen_at=EXCLUDED.last_seen_at,cleared_at=EXCLUDED.cleared_at`;
     }
   }
-  return { learnerId, subject, chapter, status: gateStatus, redCount: red.length, greenCount: green.length, findings: list, bypass: activeBypass, evidenceCount: rows.length };
+  return { learnerId, subject, chapter, status: gateStatus, redCount: red.length, greenCount: green.length, findings: list, bypass: activeBypass, evidenceCount: validRows.length, excludedEvidenceCount, acceptedCorrectness:[...VALID_CORRECTNESS] };
 }
 
 export default async function handler(req, res) {
