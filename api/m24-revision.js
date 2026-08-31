@@ -4,6 +4,7 @@ import { sql } from './_lib/db.js';
 
 export const config = { runtime: 'nodejs' };
 const MIN_EVIDENCE = 3;
+const VALID_CORRECTNESS = ['correct', 'partially_correct', 'incorrect'];
 const clean = (v, max = 160) => String(v ?? '').trim().slice(0, max);
 const intervalFor = (incorrect, partial, evidence) => incorrect >= 2 ? 1 : partial >= 1 ? 3 : evidence >= 6 ? 30 : evidence >= MIN_EVIDENCE ? 14 : 7;
 
@@ -21,6 +22,7 @@ export default async function handler(req, res) {
              MAX(le.created_at) AS last_seen
       FROM learning_evidence le
       WHERE le.learner_id=${learnerId}
+        AND le.correctness IN ('correct','partially_correct','incorrect')
       GROUP BY le.subject, le.chapter, le.concept
       ORDER BY last_seen DESC
       LIMIT 200`;
@@ -35,7 +37,7 @@ export default async function handler(req, res) {
       const state = evidence < MIN_EVIDENCE ? 'insufficient_evidence' : incorrect >= 2 ? 'struggling' : partial >= 1 ? 'needs_revision' : 'stable';
       return { concept:r.concept || 'Unspecified concept', subject:r.subject || null, chapter:r.chapter || null, status:state, evidenceCount:evidence, reviewIntervalDays:interval, due:days>=interval, lastSeen:r.last_seen, reason:evidence < MIN_EVIDENCE ? `Not enough evidence yet (${evidence}/${MIN_EVIDENCE} required) to characterize revision need.` : `Review interval selected from ${state} server evidence.` };
     });
-    return json(res, 200, { ok:true, learnerId, plan, evidenceGate:{ minimumEvidence:MIN_EVIDENCE, sparseEvidenceStatus:'insufficient_evidence' }, source:'server_learning_evidence', limitation:'Revision timing is an evidence-based product heuristic, not a medically or scientifically validated timing claim.' }, { 'Cache-Control': 'private, no-store, max-age=0' });
+    return json(res, 200, { ok:true, learnerId, plan, evidenceGate:{ minimumEvidence:MIN_EVIDENCE, sparseEvidenceStatus:'insufficient_evidence', validCorrectnessStates:VALID_CORRECTNESS }, source:'server_learning_evidence', limitation:'Revision timing is an evidence-based product heuristic, not a medically or scientifically validated timing claim.' }, { 'Cache-Control': 'private, no-store, max-age=0' });
   } catch (e) {
     return json(res, e.status || 500, { error: { code:e.code || 'REVISION_FAILED', message:e.status ? e.message : 'Unable to load revision evidence.' } }, { 'Cache-Control': 'private, no-store, max-age=0' });
   }
