@@ -46,7 +46,8 @@ async function fetchProvider(req){
   const controller=new AbortController();
   const timer=setTimeout(()=>controller.abort(),PROVIDER_TIMEOUT_MS);
   try{
-    const response=await fetch(target.toString(),{method:'GET',headers:{Accept:'application/json',...(PROVIDER_TOKEN?{Authorization:`Bearer ${PROVIDER_TOKEN}`}:{})},signal:controller.signal});
+    const response=await fetch(target.toString(),{method:'GET',headers:{Accept:'application/json',...(PROVIDER_TOKEN?{Authorization:`Bearer ${PROVIDER_TOKEN}`}:{})},signal:controller.signal,redirect:'manual'});
+    if(response.status>=300&&response.status<400)return {configured:true,results:[],message:'Scholarship provider redirect blocked for security.'};
     if(!response.ok)return {configured:true,results:[],message:`Scholarship provider returned HTTP ${response.status}.`};
     const body=await response.json();
     const source=Array.isArray(body)?body:Array.isArray(body?.results)?body.results:Array.isArray(body?.scholarships)?body.scholarships:[];
@@ -70,7 +71,7 @@ export default async function handler(req,res){
       const seen=new Set();
       const results=[...provider.results,...local.rows].filter(item=>{const key=String(item.sourceUrl||item.id||'');if(!key||seen.has(key))return false;seen.add(key);return true;}).slice(0,MAX_RESULTS);
       if(provider.configured&&provider.results.length)await writeAudit({actorUserId:s.user_id,action:'scholarship.search',entityType:'scholarship_provider',entityId:'m43',metadata:{providerResultCount:provider.results.length}}).catch(()=>{});
-      return json(res,200,{ok:true,results,providerConfigured:provider.configured,live:provider.results.length>0,sourcePolicy:{publishedResultsRequireHttpsSource:true,providerResultsRequireHttpsSource:true},message:provider.message});
+      return json(res,200,{ok:true,results,providerConfigured:provider.configured,live:provider.results.length>0,sourcePolicy:{publishedResultsRequireHttpsSource:true,providerResultsRequireHttpsSource:true,providerRedirectsBlocked:true},message:provider.message});
     }
     if(!hasRole(s,'admin'))return json(res,403,{error:{code:'FORBIDDEN',message:'Administrator role required.'}});
     if(req.method==='POST'){
