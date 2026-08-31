@@ -26,7 +26,8 @@ function deriveState(rows) {
 }
 
 export default async function handler(req, res) {
-  if (req.method !== 'GET') return json(res, 405, { error: { code: 'METHOD_NOT_ALLOWED', message: 'GET required.' } }, { Allow: 'GET', 'Cache-Control': 'private, no-store, max-age=0' });
+  const NO_STORE = { 'Cache-Control': 'private, no-store, max-age=0' };
+  if (req.method !== 'GET') return json(res, 405, { error: { code: 'METHOD_NOT_ALLOWED', message: 'GET required.' } }, { Allow: 'GET', ...NO_STORE });
   try {
     const session = await requireAuth(req);
     const learnerId = clean(req.query?.learnerId, 120);
@@ -43,12 +44,17 @@ export default async function handler(req, res) {
     const grouped = new Map();
     for (const row of rows) {
       const concept = clean(row.concept, 120);
+      const subject = clean(row.subject, 80);
       if (!concept) continue;
-      if (!grouped.has(concept)) grouped.set(concept, []);
-      grouped.get(concept).push(row);
+      // A concept label can legitimately recur across subjects. Keep evidence
+      // isolated by subject so Math "fractions" cannot affect English
+      // "fractions" (or another curriculum namespace) and vice versa.
+      const key = `${subject}\u001f${concept}`;
+      if (!grouped.has(key)) grouped.set(key, { concept, subject, evidence: [] });
+      grouped.get(key).evidence.push(row);
     }
 
-    const concepts = [...grouped.entries()].map(([concept, evidence]) => {
+    const concepts = [...grouped.values()].map(({ concept, subject, evidence }) => {
       const state = deriveState(evidence);
       const correct = evidence.filter(r => r.correctness === 'correct').length;
       const reviewFlag = evidence.some(r => ['low', 'human_review_required'].includes(String(r.confidence || '').toLowerCase()));
@@ -60,7 +66,7 @@ export default async function handler(req, res) {
       return {
         concept,
         conceptLabel: human(concept),
-        subject: clean(evidence[0]?.subject, 80),
+        subject,
         topic: clean(evidence[0]?.topic, 100),
         state,
         evidenceCount: evidence.length,
@@ -70,7 +76,7 @@ export default async function handler(req, res) {
         repeatedErrorTypes: errorTypes,
         lastUpdated: evidence[0]?.created_at || null,
         explanation: evidence.length < 3
-          ? `Only ${evidence.length} recorded evidence item${evidence.length === 1 ? '' : 's'} exists for this concept; BAA will not draw a firm conclusion yet.`
+          ? `Only ${evidence.length} recorded evidence item${evidence.length === 1 ? '' : 's'} exists for this concept in ${subject || 'this subject'}; BAA will not draw a firm conclusion yet.`
           : `The ${recent.length} most recent evidence items show ${recentCorrect}/${recent.length} correct (${rate}%). Across all ${evidence.length} recorded items, ${correct} are correct.`
       };
     }).sort((a, b) => String(b.lastUpdated || '').localeCompare(String(a.lastUpdated || '')));
@@ -91,14 +97,15 @@ export default async function handler(req, res) {
       learnerId,
       summary,
       concepts,
-      methodology: 'Learning Memory is derived only from authenticated learner-scoped academic evidence already stored in PostgreSQL. It never invents evidence or treats missing evidence as weakness.',
+      methodology: 'Learning Memory is derived only from authenticated learner-scoped academic evidence already stored in PostgreSQL. Evidence is grouped by subject and concept so identically named concepts in different curriculum namespaces remain isolated. It never invents evidence or treats missing evidence as weakness.',
       limitations: [
         'Academic learning signals only; no psychological or emotional profiling.',
         'Question-level evidence is included only when the corresponding server evidence rows exist.',
+        'Concept evidence is isolated by subject to avoid cross-subject state contamination.',
         'This endpoint does not claim that a production database is provisioned merely because the source path exists.'
       ]
-    }, { 'Cache-Control': 'private, no-store, max-age=0' });
+    }, NO_STORE);
   } catch (e) {
-    return json(res, e.status || 500, { error: { code: e.code || 'LEARNING_MEMORY_FAILED', message: e.status ? e.message : 'Unable to load learning memory.' } }, { 'Cache-Control': 'private, no-store, max-age=0' });
+    return json(res, e.status || 500, { error: { code: e.code || 'LEARNING_MEMORY_FAILED', message: e.status ? e.message : 'Unable to load learning memory.' } }, NO_STORE);
   }
 }
