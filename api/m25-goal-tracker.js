@@ -5,6 +5,7 @@ import { sql } from './_lib/db.js';
 export const config = { runtime: 'nodejs' };
 
 const MIN_EVIDENCE = 3;
+const VALID_CORRECTNESS = new Set(['correct','partially_correct','incorrect']);
 const STOP_WORDS = new Set([
   'the','and','for','with','from','this','that','learn','learning','study','understand',
   'improve','goal','goals','better','more','practice','complete','finish','master'
@@ -19,6 +20,7 @@ function goalProgress(goalText, evidenceRows) {
   const goalTokens = new Set(tokens(goalText));
   const grouped = new Map();
   for (const row of evidenceRows) {
+    if (!VALID_CORRECTNESS.has(row.correctness)) continue;
     const concept = String(row.concept || row.chapter || '').trim();
     if (!concept) continue;
     const conceptTokens = tokens(`${concept} ${row.subject || ''}`);
@@ -85,7 +87,7 @@ async function handler(req, res) {
         text: goal.text,
         createdAt: goal.created_at,
         ...progress,
-      nextAssessment: nextAssessment ? {
+        nextAssessment: nextAssessment ? {
           title: nextAssessment.title,
           subject: nextAssessment.subject,
           date: nextAssessment.date,
@@ -94,14 +96,16 @@ async function handler(req, res) {
       };
     });
 
+    const excludedEvidenceCount = evidence.rows.length - evidence.rows.filter(row => VALID_CORRECTNESS.has(row.correctness)).length;
     return json(res, 200, {
       ok: true,
       learnerId,
       goals: goalResults,
-      evidencePoints: evidence.rows.length,
-      evidenceGate: { minEvidence: MIN_EVIDENCE },
+      evidencePoints: evidence.rows.length - excludedEvidenceCount,
+      excludedEvidenceCount,
+      evidenceGate: { minEvidence: MIN_EVIDENCE, validCorrectnessStates: [...VALID_CORRECTNESS] },
       source: 'server_planner_goals_and_learning_evidence',
-      limitations: ['Goal progress is reported only from matched concepts with at least three tagged evidence points.', 'This is an evidence-linked academic heuristic; it does not claim to predict outcomes or measure motivation.'],
+      limitations: ['Goal progress is reported only from matched concepts with at least three valid tagged evidence points.', 'Unscored or unknown correctness values are excluded from progress calculations.', 'This is an evidence-linked academic heuristic; it does not claim to predict outcomes or measure motivation.'],
     }, { 'Cache-Control': 'private, no-store, max-age=0' });
   } catch (error) {
     return json(res, error.status || 500, {
