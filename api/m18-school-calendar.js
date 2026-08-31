@@ -10,12 +10,19 @@ function noStore(res) {
   res.setHeader('Cache-Control', 'private, no-store, max-age=0');
 }
 
+function isValidIsoDate(value) {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const [year, month, day] = value.split('-').map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
+}
+
 function cleanEvent(input = {}) {
   const title = String(input.title || '').trim().slice(0, 120);
   const date = String(input.date || '').slice(0, 10);
   const type = String(input.type || 'school_event');
   const subject = input.subject == null ? null : String(input.subject).trim().slice(0, 80);
-  if (!title || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !ALLOWED_TYPES.has(type)) return null;
+  if (!title || !isValidIsoDate(date) || !ALLOWED_TYPES.has(type)) return null;
   if (subject && !/^[\w .&'()\/-]+$/u.test(subject)) return null;
   return { title, date, type, subject: subject || null };
 }
@@ -68,6 +75,12 @@ async function handler(req, res) {
     if (req.method === 'GET') {
       const from = req.query?.from ? String(req.query.from).slice(0, 10) : null;
       const to = req.query?.to ? String(req.query.to).slice(0, 10) : null;
+      if ((from && !isValidIsoDate(from)) || (to && !isValidIsoDate(to))) {
+        return json(res, 400, { error: { code: 'INVALID_DATE_RANGE', message: 'from and to must be valid ISO calendar dates (YYYY-MM-DD).' } });
+      }
+      if (from && to && from > to) {
+        return json(res, 400, { error: { code: 'INVALID_DATE_RANGE', message: 'from must be on or before to.' } });
+      }
       const rows = await sql`
         SELECT id,title,event_date,event_type,subject,created_at
         FROM school_calendar_events
