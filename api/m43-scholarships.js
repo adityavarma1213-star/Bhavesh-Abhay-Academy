@@ -27,13 +27,31 @@ function cleanRecord(x){
 
 function noStore(res){res.setHeader('Cache-Control','private, no-store, max-age=0');}
 function isHttpsUrl(value){return typeof value==='string'&&/^https:\/\//i.test(value);}
+function isSafeProviderUrl(value){
+  try{
+    const url=new URL(value);
+    if(url.protocol!=='https:')return false;
+    // Provider endpoints must use DNS hostnames. Reject IPv6 literals so
+    // loopback/private IPv6 forms cannot bypass the server-side target policy.
+    if(url.hostname.includes(':'))return false;
+    const host=url.hostname.toLowerCase();
+    if(host==='localhost'||host.endsWith('.localhost')||host==='metadata.google.internal'||host==='metadata')return false;
+    if(/^\d+\.\d+\.\d+\.\d+$/.test(host)){
+      const octets=host.split('.').map(Number);
+      if(octets.some(n=>n<0||n>255))return false;
+      const [a,b]=octets;
+      if(a===0||a===10||a===127||(a===169&&b===254)||(a===172&&b>=16&&b<=31)||(a===192&&b===168))return false;
+    }
+    return true;
+  }catch{return false;}
+}
 
 async function fetchProvider(req){
   if(!PROVIDER_URL)return {configured:false,results:[],message:'Scholarship provider is not configured. Live scholarship data is unavailable.'};
   let target;
   try{
     const base=new URL(PROVIDER_URL);
-    if(base.protocol!=='https:')return {configured:true,results:[],message:'Scholarship provider URL must use HTTPS.'};
+    if(!isSafeProviderUrl(base.toString()))return {configured:true,results:[],message:'Scholarship provider URL must use HTTPS and a DNS hostname.'};
     const params=new URLSearchParams();
     for(const key of ['country','level','field']){
       const value=String(req.query?.[key]||'').trim().slice(0,80);
@@ -71,7 +89,7 @@ export default async function handler(req,res){
       const seen=new Set();
       const results=[...provider.results,...local.rows].filter(item=>{const key=String(item.sourceUrl||item.id||'');if(!key||seen.has(key))return false;seen.add(key);return true;}).slice(0,MAX_RESULTS);
       if(provider.configured&&provider.results.length)await writeAudit({actorUserId:s.user_id,action:'scholarship.search',entityType:'scholarship_provider',entityId:'m43',metadata:{providerResultCount:provider.results.length}}).catch(()=>{});
-      return json(res,200,{ok:true,results,providerConfigured:provider.configured,live:provider.results.length>0,sourcePolicy:{publishedResultsRequireHttpsSource:true,providerResultsRequireHttpsSource:true,providerRedirectsBlocked:true},message:provider.message});
+      return json(res,200,{ok:true,results,providerConfigured:provider.configured,live:provider.results.length>0,sourcePolicy:{publishedResultsRequireHttpsSource:true,providerResultsRequireHttpsSource:true,providerRedirectsBlocked:true,providerHostMustBeDnsName:true},message:provider.message});
     }
     if(!hasRole(s,'admin'))return json(res,403,{error:{code:'FORBIDDEN',message:'Administrator role required.'}});
     if(req.method==='POST'){
