@@ -1,4 +1,4 @@
-// BAA M30 — server-authoritative Achievement & Rewards endpoint.
+// BAA M30 — Server-authoritative Achievement & Rewards endpoint.
 // Rewards are derived from authenticated learner assessment/evidence data.
 // Client-supplied reward numbers are intentionally ignored.
 import { json } from '../_lib/security.js';
@@ -7,6 +7,7 @@ import { sql } from '../_lib/db.js';
 
 export const config = { runtime: 'nodejs' };
 const NO_STORE = { 'Cache-Control': 'private, no-store, max-age=0' };
+const VALID_CORRECTNESS = ['correct', 'partially_correct', 'incorrect'];
 
 const BADGES = [
   { id: 'first_attempt', name: 'First Step', icon: '🌱', description: 'Complete your first assessment.' },
@@ -24,7 +25,10 @@ async function deriveRewards(learnerId) {
         WHERE learner_id=${learnerId}
           AND status IN ('submitted','evaluated','completed')`,
     sql`SELECT COUNT(*)::int AS answered,
-               COUNT(*) FILTER (WHERE correctness='correct')::int AS correct
+               COUNT(*) FILTER (WHERE correctness='correct')::int AS correct,
+               COUNT(*) FILTER (WHERE correctness='partially_correct')::int AS partially_correct,
+               COUNT(*) FILTER (WHERE correctness='incorrect')::int AS incorrect,
+               COUNT(*) FILTER (WHERE correctness NOT IN ('correct','partially_correct','incorrect') OR correctness IS NULL)::int AS excluded
         FROM learning_evidence
         WHERE learner_id=${learnerId}`,
     sql`SELECT COUNT(*)::int AS mastered
@@ -35,6 +39,7 @@ async function deriveRewards(learnerId) {
             ON le.learner_id=lm.learner_id
            AND le.subject=lm.subject
            AND le.concept=lm.concept
+           AND le.correctness IN ('correct','partially_correct','incorrect')
           WHERE lm.learner_id=${learnerId}
             AND lm.status IN ('mastered','strong')
             AND lm.concept IS NOT NULL
@@ -46,13 +51,17 @@ async function deriveRewards(learnerId) {
   const completedAttempts = Number(attempts.rows[0]?.count || 0);
   const answeredQuestions = Number(evidence.rows[0]?.answered || 0);
   const correctAnswers = Number(evidence.rows[0]?.correct || 0);
+  const partiallyCorrectAnswers = Number(evidence.rows[0]?.partially_correct || 0);
+  const incorrectAnswers = Number(evidence.rows[0]?.incorrect || 0);
+  const excludedEvidence = Number(evidence.rows[0]?.excluded || 0);
+  const validEvidence = correctAnswers + partiallyCorrectAnswers + incorrectAnswers;
   const masteredConcepts = Number(memory.rows[0]?.mastered || 0);
   const xp = completedAttempts * 10 + correctAnswers * 5 + masteredConcepts * 25;
 
   const thresholds = {
     first_attempt: completedAttempts >= 1,
     five_attempts: completedAttempts >= 5,
-    fifty_answers: answeredQuestions >= 50,
+    fifty_answers: validEvidence >= 50,
     hundred_correct: correctAnswers >= 100,
     first_mastery: masteredConcepts >= 1,
     five_masteries: masteredConcepts >= 5,
@@ -63,14 +72,19 @@ async function deriveRewards(learnerId) {
   return {
     xp,
     completedAttempts,
-    answeredQuestions,
+    answeredQuestions: validEvidence,
     correctAnswers,
     masteredConcepts,
     earnedBadgeIds,
     earnedBadges,
     badges: BADGES.map(badge => ({ ...badge, earned: Boolean(thresholds[badge.id]) })),
+    evidenceQuality: {
+      validEvidenceCount: validEvidence,
+      excludedEvidenceCount: excludedEvidence,
+      acceptedCorrectness: VALID_CORRECTNESS,
+    },
     source: 'server_assessment_evidence',
-    methodology: 'Activity rewards are derived only from authenticated assessment attempts, learning evidence, and evidence-backed Learning Memory states. They are motivational rewards, not academic marks.',
+    methodology: 'Activity rewards are derived only from authenticated assessment attempts, valid scored learning evidence, and evidence-backed Learning Memory states. They are motivational rewards, not academic marks.',
   };
 }
 
