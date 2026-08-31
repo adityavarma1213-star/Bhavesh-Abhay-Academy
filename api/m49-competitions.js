@@ -20,6 +20,27 @@ function isHttpsUrl(value) {
   return typeof value === 'string' && /^https:\/\//i.test(value);
 }
 
+function isSafeProviderUrl(value) {
+  try {
+    const url = new URL(value);
+    if (url.protocol !== 'https:') return false;
+    // Provider configuration is server-controlled, but reject literal IP hosts so
+    // private/loopback IPv6 forms cannot bypass the existing hostname policy.
+    if (url.hostname.includes(':')) return false;
+    const host = url.hostname.toLowerCase();
+    if (host === 'localhost' || host.endsWith('.localhost') || host === 'metadata.google.internal' || host === 'metadata') return false;
+    if (/^\d+\.\d+\.\d+\.\d+$/.test(host)) {
+      const octets = host.split('.').map(Number);
+      if (octets.some(n => n < 0 || n > 255)) return false;
+      const [a, b] = octets;
+      if (a === 0 || a === 10 || a === 127 || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168)) return false;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function normalizeCompetition(item) {
   if (!item || typeof item !== 'object') return null;
   const url = cleanText(item.url || item.sourceUrl, 1000);
@@ -48,8 +69,8 @@ async function fetchProvider(req) {
   } catch {
     return { configured: true, results: [], message: 'Competition provider URL is invalid.' };
   }
-  if (base.protocol !== 'https:') {
-    return { configured: true, results: [], message: 'Competition provider URL must use HTTPS.' };
+  if (!isSafeProviderUrl(base.toString())) {
+    return { configured: true, results: [], message: 'Competition provider URL must use HTTPS and a DNS hostname.' };
   }
 
   for (const key of ['country', 'level', 'category']) {
@@ -112,7 +133,7 @@ export default async function handler(req, res) {
       providerConfigured: payload.configured,
       live: payload.configured && payload.results.length > 0,
       results: payload.results,
-      sourcePolicy: { providerUrlRequiresHttps: true, resultUrlsRequireHttps: true, providerRedirectsBlocked: true },
+      sourcePolicy: { providerUrlRequiresHttps: true, providerHostMustBeDnsName: true, resultUrlsRequireHttps: true, providerRedirectsBlocked: true },
       message: payload.message,
     });
   } catch (e) {
