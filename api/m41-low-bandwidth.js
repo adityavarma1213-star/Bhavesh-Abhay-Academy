@@ -19,7 +19,9 @@ function normalize(body) {
   return { schemaVersion: 1, enabled: body.enabled, contentMode: body.contentMode };
 }
 function asIso(value) {
-  return value ? new Date(value).toISOString() : null;
+  if (value == null || value === '') return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
 export default async function handler(req, res) {
