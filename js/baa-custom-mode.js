@@ -6,6 +6,14 @@
   const VALID_TYPES = new Set(['learn', 'practice', 'review', 'assessment', 'tutor']);
   function getStorage() { return global.localStorage; }
   function cleanText(value, max = MAX_TITLE) { return typeof value === 'string' ? value.replace(/\s+/g, ' ').trim().slice(0, max) : ''; }
+  function createStepId(index = 0) {
+    if (global.crypto && typeof global.crypto.randomUUID === 'function') return `custom-${global.crypto.randomUUID()}`;
+    if (global.crypto && typeof global.crypto.getRandomValues === 'function') {
+      const bytes = new Uint8Array(12); global.crypto.getRandomValues(bytes);
+      return `custom-${Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('')}`;
+    }
+    return `custom-${Date.now().toString(36)}-${index}-${Math.random().toString(36).slice(2, 8)}`;
+  }
   function validateStep(step) {
     if (!step || typeof step !== 'object') return { ok: false, code: 'INVALID_STEP' };
     const title = cleanText(step.title), minutes = Number(step.minutes), type = cleanText(step.type, 20);
@@ -17,12 +25,24 @@
   function normalizePath(value) {
     if (!value || typeof value !== 'object' || value.schemaVersion !== SCHEMA_VERSION || value.mode !== 'custom') return { schemaVersion: SCHEMA_VERSION, mode: 'custom', steps: [] };
     const raw = Array.isArray(value.steps) ? value.steps.slice(0, MAX_STEPS) : [];
-    const steps = raw.reduce((normalized, step, rawIndex) => { const result = validateStep(step); if (!result.ok) return normalized; normalized.push({ id: cleanText(step?.id, 80) || `custom-${Date.now()}-${rawIndex}`, ...result.value, completed: Boolean(step?.completed) }); return normalized; }, []);
+    const usedIds = new Set();
+    const steps = raw.reduce((normalized, step, rawIndex) => {
+      const result = validateStep(step);
+      if (!result.ok) return normalized;
+      let id = cleanText(step?.id, 80);
+      if (!id || usedIds.has(id)) {
+        id = createStepId(rawIndex);
+        while (usedIds.has(id)) id = createStepId(rawIndex);
+      }
+      usedIds.add(id);
+      normalized.push({ id, ...result.value, completed: Boolean(step?.completed) });
+      return normalized;
+    }, []);
     return { schemaVersion: SCHEMA_VERSION, mode: 'custom', steps };
   }
   function getPath() { const storage = getStorage(); if (!storage) return { schemaVersion: SCHEMA_VERSION, mode: 'custom', steps: [] }; try { return normalizePath(JSON.parse(storage.getItem(STORAGE_KEY) || 'null')); } catch { return { schemaVersion: SCHEMA_VERSION, mode: 'custom', steps: [] }; } }
   function savePath(path) { const normalized = normalizePath(path), storage = getStorage(); if (!storage) return { ok: false, error: { code: 'STORAGE_UNAVAILABLE', message: 'Custom Mode storage is unavailable in this browser.' } }; try { storage.setItem(STORAGE_KEY, JSON.stringify(normalized)); return { ok: true, path: normalized }; } catch { return { ok: false, error: { code: 'STORAGE_WRITE_FAILED', message: 'Custom Mode could not save this path.' } }; } }
-  function addStep(title, minutes, type) { const checked = validateStep({ title, minutes, type }); if (!checked.ok) return { ok: false, error: checked }; const path = getPath(); if (path.steps.length >= MAX_STEPS) return { ok: false, error: { code: 'MAX_STEPS', message: `Custom Mode supports up to ${MAX_STEPS} steps.` } }; path.steps.push({ id: `custom-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, ...checked.value, completed: false }); return savePath(path); }
+  function addStep(title, minutes, type) { const checked = validateStep({ title, minutes, type }); if (!checked.ok) return { ok: false, error: checked }; const path = getPath(); if (path.steps.length >= MAX_STEPS) return { ok: false, error: { code: 'MAX_STEPS', message: `Custom Mode supports up to ${MAX_STEPS} steps.` } }; path.steps.push({ id: createStepId(path.steps.length), ...checked.value, completed: false }); return savePath(path); }
   function removeStep(id) { const path = getPath(); path.steps = path.steps.filter((step) => step.id !== id); return savePath(path); }
   function toggleStep(id) { const path = getPath(), step = path.steps.find((item) => item.id === id); if (!step) return { ok: false, error: { code: 'STEP_NOT_FOUND', message: 'Custom Mode step was not found.' } }; step.completed = !step.completed; return savePath(path); }
   function moveStep(id, direction) { const path = getPath(), index = path.steps.findIndex((step) => step.id === id); if (index < 0) return { ok: false, error: { code: 'STEP_NOT_FOUND', message: 'Custom Mode step was not found.' } }; const nextIndex = direction === 'up' ? index - 1 : direction === 'down' ? index + 1 : index; if (nextIndex < 0 || nextIndex >= path.steps.length) return { ok: true, path }; const [step] = path.steps.splice(index, 1); path.steps.splice(nextIndex, 0, step); return savePath(path); }
