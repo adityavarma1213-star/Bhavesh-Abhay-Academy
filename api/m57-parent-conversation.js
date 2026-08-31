@@ -30,14 +30,15 @@ async function loadLearningContext(learnerId) {
   if (!rows.rows.length) return { evidenceCount: 0, topic: 'the recent study work', state: 'insufficient evidence', evidence: [] };
   const byConcept = new Map();
   for (const row of rows.rows) {
-    const key = row.concept || 'recent study work';
-    const item = byConcept.get(key) || { concept: key, subject: row.subject || '', topic: row.topic || '', total: 0, correct: 0, incorrect: 0, partial: 0, uncertain: 0, lastSeen: row.last_seen };
+    const key = `${row.subject || 'Unknown'}::${row.concept || 'recent study work'}`;
+    const item = byConcept.get(key) || { concept: row.concept || 'recent study work', subject: row.subject || '', topic: row.topic || '', total: 0, correct: 0, incorrect: 0, partial: 0, uncertain: 0, lastSeen: row.last_seen };
     const count = Number(row.evidence_count) || 0;
     item.total += count;
     if (row.correctness === 'correct') item.correct += count;
     else if (row.correctness === 'incorrect') item.incorrect += count;
     else if (row.correctness === 'partially_correct') item.partial += count;
     else item.uncertain += count;
+    if (!item.topic && row.topic) item.topic = row.topic;
     byConcept.set(key, item);
   }
   const concepts = [...byConcept.values()].sort((a, b) => (b.total - a.total) || String(b.lastSeen).localeCompare(String(a.lastSeen)));
