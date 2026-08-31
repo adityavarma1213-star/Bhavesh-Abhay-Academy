@@ -31,26 +31,15 @@ async function deriveRewards(learnerId) {
         FROM (
           SELECT lm.subject, lm.concept
           FROM learning_memory lm
+          INNER JOIN learning_evidence le
+            ON le.learner_id=lm.learner_id
+           AND le.subject=lm.subject
+           AND le.concept=lm.concept
           WHERE lm.learner_id=${learnerId}
             AND lm.status IN ('mastered','strong')
             AND lm.concept IS NOT NULL
-            AND EXISTS (
-              SELECT 1
-              FROM learning_evidence le
-              WHERE le.learner_id=lm.learner_id
-                AND le.subject=lm.subject
-                AND le.concept=lm.concept
-            )
           GROUP BY lm.subject, lm.concept
-          HAVING COUNT(*) FILTER (
-            WHERE EXISTS (
-              SELECT 1
-              FROM learning_evidence le2
-              WHERE le2.learner_id=lm.learner_id
-                AND le2.subject=lm.subject
-                AND le2.concept=lm.concept
-            )
-          ) >= 3
+          HAVING COUNT(DISTINCT le.id) >= 3
         ) evidence_backed_mastery`,
   ]);
 
