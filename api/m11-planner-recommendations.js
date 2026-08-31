@@ -6,11 +6,13 @@ export const config = { runtime: 'nodejs' };
 
 const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
 const MIN_EVIDENCE = 3;
+const VALID_CORRECTNESS = new Set(['correct', 'partially_correct', 'incorrect']);
 const NO_STORE = { 'Cache-Control': 'private, no-store, max-age=0' };
 
 function stateForEvidence(rows) {
   const grouped = new Map();
   for (const row of rows) {
+    if (!VALID_CORRECTNESS.has(row.correctness)) continue;
     const key = `${row.subject || 'Unknown'}::${row.concept || row.chapter || 'General'}`;
     const item = grouped.get(key) || {
       subject: row.subject || 'Unknown',
@@ -123,16 +125,22 @@ async function handler(req, res) {
     }
 
     recommendations.sort((a, b) => (a.priority === 'high' ? -1 : 1) - (b.priority === 'high' ? -1 : 1));
+    const validEvidencePoints = states.reduce((sum, state) => sum + state.total, 0);
     return json(res, 200, {
       ok: true,
       learnerId,
       recommendations: recommendations.slice(0, 12),
-      evidencePoints: evidence.rows.length,
-      evidenceGate: { minEvidence: MIN_EVIDENCE, sparseConceptsExcluded: states.filter(x => !x.evidenceSufficient).length },
+      evidencePoints: validEvidencePoints,
+      evidenceGate: {
+        minEvidence: MIN_EVIDENCE,
+        sparseConceptsExcluded: states.filter(x => !x.evidenceSufficient).length,
+        invalidEvidenceExcluded: evidence.rows.length - validEvidencePoints,
+        validCorrectnessStates: [...VALID_CORRECTNESS],
+      },
       plannerDailyMinutes: policy.plannerDailyMinutes,
       scheduledMinutes: policy.plannerDailyMinutes - remainingMinutes,
       source: 'server_learning_evidence',
-      limitations: ['Recommendations require at least three tagged evidence points per concept.', 'Recommendations are evidence-based study guidance, not diagnosis or prediction of outcomes.'],
+      limitations: ['Recommendations require at least three valid tagged evidence points per concept.', 'Recommendations are evidence-based study guidance, not diagnosis or prediction of outcomes.'],
     }, NO_STORE);
   } catch (error) {
     return json(res, error.status || 500, {
