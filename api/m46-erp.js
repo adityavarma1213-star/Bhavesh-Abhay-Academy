@@ -1,6 +1,8 @@
 import { json, id, writeAudit } from './_lib/security.js';
 import { requireAuth, hasRole } from './_lib/auth.js';
 import { sql } from './_lib/db.js';
+import { lookup } from 'node:dns/promises';
+import net from 'node:net';
 
 export const config = { runtime: 'nodejs' };
 const ROLES = ['admin', 'teacher'];
@@ -14,24 +16,54 @@ function clean(v, max = 200) { return String(v ?? '').trim().slice(0, max); }
 function noStore(res) { if (typeof res?.setHeader === 'function') res.setHeader('Cache-Control', 'private, no-store, max-age=0'); }
 function body(req) { if (req.body && typeof req.body === 'object') return req.body; try { return JSON.parse(req.body || '{}'); } catch { return {}; } }
 
+function isPrivateIpv4(host) {
+  const octets = host.split('.').map(Number);
+  if (octets.length !== 4 || octets.some(n => !Number.isInteger(n) || n < 0 || n > 255)) return true;
+  const [a,b] = octets;
+  return a === 0 || a === 10 || (a === 100 && b >= 64 && b <= 127) || a === 127 || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || a >= 224;
+}
+function ipv6ToBigInt(value) {
+  const clean = value.split('%')[0].toLowerCase();
+  const parts = clean.split('::');
+  if (parts.length > 2) return null;
+  const left = parts[0] ? parts[0].split(':') : [];
+  const right = parts.length === 2 && parts[1] ? parts[1].split(':') : [];
+  if (left.some(x => !x || !/^[0-9a-f]{1,4}$/.test(x)) || right.some(x => !x || !/^[0-9a-f]{1,4}$/.test(x))) return null;
+  const missing = 8 - left.length - right.length;
+  if ((parts.length === 1 && missing !== 0) || (parts.length === 2 && missing < 1)) return null;
+  const words = [...left, ...Array(Math.max(0, missing)).fill('0'), ...right];
+  if (words.length !== 8) return null;
+  return words.reduce((n, w) => (n << 16n) + BigInt(parseInt(w, 16)), 0n);
+}
+function isPrivateIp(address) {
+  if (net.isIPv4(address)) return isPrivateIpv4(address);
+  if (!net.isIPv6(address)) return true;
+  const mapped = address.toLowerCase().replace(/^::ffff:/, '');
+  if (net.isIPv4(mapped)) return isPrivateIpv4(mapped);
+  const n = ipv6ToBigInt(address);
+  if (n === null) return true;
+  const top7 = n >> 121n;
+  const top10 = n >> 118n;
+  const top64 = n >> 64n;
+  return n === 0n || n === 1n || top7 === 0b1111110n || top7 === 0b1111111n || top10 === 0b1111111010n || top64 === 0n;
+}
+async function resolvesToPublicDnsHost(hostname) {
+  if (net.isIP(hostname)) return !isPrivateIp(hostname);
+  try {
+    const answers = await lookup(hostname, { all: true, verbatim: true });
+    if (!answers.length) return false;
+    return answers.every(answer => !isPrivateIp(answer.address));
+  } catch { return false; }
+}
 function safeProviderUrl(value) {
   try {
     const u = new URL(value);
     if (u.protocol !== 'https:') return false;
+    // Require a DNS hostname for outbound provider calls. IP literals are
+    // rejected here and DNS results are checked before the request below.
     const host = u.hostname.toLowerCase().replace(/[\[\]]/g, '');
-    // Require a DNS hostname for server-side connection tests. This prevents
-    // IPv6 literals (including loopback/private forms) from bypassing the
-    // existing IPv4/private-host checks and makes the outbound target stable.
-    if (host.includes(':')) return false;
+    if (net.isIP(host)) return false;
     if (host === 'localhost' || host.endsWith('.localhost') || host === 'metadata.google.internal' || host === 'metadata') return false;
-    if (host === '0.0.0.0' || host === '::' || host === '::1' || host === '127.0.0.1') return false;
-    const ipv4 = host.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
-    if (ipv4) {
-      const octets = ipv4.slice(1).map(Number);
-      if (octets.some(n => n < 0 || n > 255)) return false;
-      const [a,b] = octets;
-      if (a === 10 || a === 127 || a === 0 || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168)) return false;
-    }
     return true;
   } catch { return false; }
 }
@@ -66,6 +98,7 @@ export default async function handler(req, res) {
         const baseUrl = clean(b.baseUrl, 1000);
         if (!PROVIDER.test(provider)) return json(res, 400, { error: { code: 'INVALID_PROVIDER', message: 'provider must be a simple provider identifier.' } });
         if (!BASE_URL.test(baseUrl) || !safeProviderUrl(baseUrl)) return json(res, 400, { error: { code: 'INVALID_BASE_URL', message: 'baseUrl must be a public HTTPS DNS URL.' } });
+        if (!(await resolvesToPublicDnsHost(new URL(baseUrl).hostname))) return json(res, 400, { error: { code: 'INVALID_BASE_URL', message: 'baseUrl hostname must resolve exclusively to public addresses.' } });
         const connectionId = clean(b.id) || id('erp');
         const credentialRef = clean(b.credentialRef, 240) || null;
         const metadata = b.metadata && typeof b.metadata === 'object' ? b.metadata : {};
@@ -78,7 +111,7 @@ export default async function handler(req, res) {
         if (!connectionId) return json(res, 400, { error: { code: 'ERP_CONNECTION_ID_REQUIRED', message: 'connectionId/id is required.' } });
         const connection = await sql`SELECT id,provider,base_url AS "baseUrl",credential_ref AS "credentialRef" FROM erp_connections WHERE id=${connectionId} AND owner_user_id=${session.user_id} LIMIT 1`;
         if (!connection.rows.length) return json(res, 404, { error: { code: 'ERP_CONNECTION_NOT_FOUND', message: 'ERP connection not found.' } });
-        if (!safeProviderUrl(connection.rows[0].baseUrl)) return json(res, 400, { error: { code: 'INVALID_BASE_URL', message: 'Stored ERP baseUrl is not an allowed public HTTPS DNS URL.' } });
+        if (!safeProviderUrl(connection.rows[0].baseUrl) || !(await resolvesToPublicDnsHost(new URL(connection.rows[0].baseUrl).hostname))) return json(res, 400, { error: { code: 'INVALID_BASE_URL', message: 'Stored ERP baseUrl must use a public HTTPS DNS hostname.' } });
         const result = await testConnection(connection.rows[0].baseUrl, connection.rows[0].credentialRef);
         const status = result.ok ? 'configured' : 'error';
         await sql`UPDATE erp_connections SET status=${status},last_error=${result.ok ? null : (result.redirected ? 'ERP_PROVIDER_REDIRECT_BLOCKED' : result.timeout ? 'ERP_PROVIDER_TIMEOUT' : 'ERP_PROVIDER_UNREACHABLE')},updated_at=NOW() WHERE id=${connectionId} AND owner_user_id=${session.user_id}`;
