@@ -4,6 +4,7 @@ import { sql } from './_lib/db.js';
 
 export const config = { runtime: 'nodejs' };
 const MIN_EVIDENCE = 3;
+const VALID_CORRECTNESS = new Set(['correct','partially_correct','incorrect']);
 const clean=(v,max=160)=>String(v??'').trim().slice(0,max);
 
 function chooseAction(state){
@@ -30,6 +31,7 @@ export default async function handler(req,res){
       WHERE learner_id=${learnerId}
         AND (${subject}='' OR subject=${subject})
         AND (${chapter}='' OR chapter=${chapter})
+        AND correctness IN ('correct','partially_correct','incorrect')
       GROUP BY subject,chapter,correctness
       ORDER BY MAX(created_at) DESC`;
 
@@ -40,7 +42,7 @@ export default async function handler(req,res){
       const g=grouped[key]; const n=Number(r.evidence_count||0); g.total+=n; g.questions+=Number(r.question_count||0);
       if(r.correctness==='correct') g.correct+=n;
       else if(r.correctness==='partially_correct') g.partial+=n;
-      else g.incorrect+=n;
+      else if(r.correctness==='incorrect') g.incorrect+=n;
       if(!g.lastSeen||new Date(r.last_seen)>new Date(g.lastSeen)) g.lastSeen=r.last_seen;
     }
     const concepts=Object.values(grouped).map(g=>{
