@@ -8,6 +8,7 @@
   'use strict';
   const STORAGE_KEY='baa_school_calendar_v1';
   const SCHEMA_VERSION=1;
+  const ALLOWED_TYPES=['exam','deadline','holiday','school_event'];
   function load(){
     try{
       const raw=localStorage.getItem(STORAGE_KEY);
@@ -17,12 +18,24 @@
     }catch{return {meta:{schemaVersion:SCHEMA_VERSION},events:[]};}
   }
   function save(s){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(s));return true;}catch{return false;}}
+  function isValidDate(date){
+    if(typeof date!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(date))return false;
+    const [year,month,day]=date.split('-').map(Number);
+    const parsed=new Date(Date.UTC(year,month-1,day));
+    return parsed.getUTCFullYear()===year&&parsed.getUTCMonth()===month-1&&parsed.getUTCDate()===day;
+  }
+  function createId(){
+    if(global.crypto&&typeof global.crypto.randomUUID==='function')return `cal_${global.crypto.randomUUID()}`;
+    if(global.crypto&&typeof global.crypto.getRandomValues==='function'){
+      const bytes=new Uint8Array(16);global.crypto.getRandomValues(bytes);
+      return `cal_${Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('')}`;
+    }
+    return `cal_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,7)}`;
+  }
   function addEvent({title,date,type='school_event',subject=null}={}){
-    if(!title||!date)return null;
-    const allowed=['exam','deadline','holiday','school_event'];
-    if(!allowed.includes(type))return null;
+    if(!title||!isValidDate(date)||!ALLOWED_TYPES.includes(type))return null;
     const s=load();
-    const row={id:`cal_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,7)}`,title:String(title).slice(0,120),date, type,subject:subject?String(subject).slice(0,80):null};
+    const row={id:createId(),title:String(title).slice(0,120),date, type,subject:subject?String(subject).slice(0,80):null};
     s.events.push(row);save(s);return row;
   }
   function removeEvent(id){const s=load();s.events=s.events.filter(e=>e.id!==id);return save(s);}
