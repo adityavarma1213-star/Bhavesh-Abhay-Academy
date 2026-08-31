@@ -1,6 +1,8 @@
 import { json, id, writeAudit } from './_lib/security.js';
 import { requireAuth, hasRole } from './_lib/auth.js';
 import { sql } from './_lib/db.js';
+import { lookup } from 'node:dns/promises';
+import net from 'node:net';
 
 export const config={runtime:'nodejs'};
 
@@ -27,21 +29,57 @@ function cleanRecord(x){
 
 function noStore(res){res.setHeader('Cache-Control','private, no-store, max-age=0');}
 function isHttpsUrl(value){return typeof value==='string'&&/^https:\/\//i.test(value);}
+function isPrivateIpv4(host){
+  const octets=host.split('.').map(Number);
+  if(octets.length!==4||octets.some(n=>!Number.isInteger(n)||n<0||n>255))return true;
+  const [a,b]=octets;
+  return a===0||a===10||a===100&&b>=64&&b<=127||a===127||(a===169&&b===254)||(a===172&&b>=16&&b<=31)||(a===192&&b===168)||a>=224;
+}
+function ipv6ToBigInt(value){
+  const clean=value.split('%')[0].toLowerCase();
+  const mapped=clean.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);
+  if(mapped)return null;
+  const parts=clean.split('::');
+  if(parts.length>2)return null;
+  const left=parts[0]?parts[0].split(':'):[];
+  const right=parts.length===2&&parts[1]?parts[1].split(':'):[];
+  if(left.some(x=>!x||!/^[0-9a-f]{1,4}$/.test(x))||right.some(x=>!x||!/^[0-9a-f]{1,4}$/.test(x)))return null;
+  const missing=8-left.length-right.length;
+  if(parts.length===1&&missing!==0||parts.length===2&&missing<1)return null;
+  const words=[...left,...Array(Math.max(0,missing)).fill('0'),...right];
+  if(words.length!==8)return null;
+  return words.reduce((n,w)=>(n<<16n)+BigInt(parseInt(w,16)),0n);
+}
+function isPrivateIp(address){
+  if(net.isIPv4(address))return isPrivateIpv4(address);
+  if(!net.isIPv6(address))return true;
+  const mapped=address.toLowerCase().replace(/^::ffff:/,'');
+  if(net.isIPv4(mapped))return isPrivateIpv4(mapped);
+  const n=ipv6ToBigInt(address);
+  if(n===null)return true;
+  const mask=(1n<<128n)-1n;
+  const top7=n>>(128n-7n);
+  const top10=n>>(128n-10n);
+  const top64=n>>(128n-64n);
+  return n===0n||n===1n||top7===0b1111111n||top7===0b1111110n||top10===0b1111111010n||top7===0b1111110n&&((n>>(128n-8n))&1n)===1n||top64===0n;
+}
+async function resolvesToPublicDnsHost(hostname){
+  if(net.isIP(hostname))return !isPrivateIp(hostname);
+  try{
+    const answers=await lookup(hostname,{all:true,verbatim:true});
+    if(!answers.length)return false;
+    return answers.every(answer=>!isPrivateIp(answer.address));
+  }catch{return false;}
+}
 function isSafeProviderUrl(value){
   try{
     const url=new URL(value);
     if(url.protocol!=='https:')return false;
-    // Provider endpoints must use DNS hostnames. Reject IPv6 literals so
-    // loopback/private IPv6 forms cannot bypass the server-side target policy.
-    if(url.hostname.includes(':'))return false;
+    // Provider endpoints must use DNS hostnames. Reject IP literals so the
+    // outbound target cannot bypass the hostname policy.
+    if(net.isIP(url.hostname))return false;
     const host=url.hostname.toLowerCase();
     if(host==='localhost'||host.endsWith('.localhost')||host==='metadata.google.internal'||host==='metadata')return false;
-    if(/^\d+\.\d+\.\d+\.\d+$/.test(host)){
-      const octets=host.split('.').map(Number);
-      if(octets.some(n=>n<0||n>255))return false;
-      const [a,b]=octets;
-      if(a===0||a===10||a===127||(a===169&&b===254)||(a===172&&b>=16&&b<=31)||(a===192&&b===168))return false;
-    }
     return true;
   }catch{return false;}
 }
@@ -51,7 +89,8 @@ async function fetchProvider(req){
   let target;
   try{
     const base=new URL(PROVIDER_URL);
-    if(!isSafeProviderUrl(base.toString()))return {configured:true,results:[],message:'Scholarship provider URL must use HTTPS and a DNS hostname.'};
+    if(!isSafeProviderUrl(base.toString()))return {configured:true,results:[],message:'Scholarship provider URL must use HTTPS and a public DNS hostname.'};
+    if(!(await resolvesToPublicDnsHost(base.hostname)))return {configured:true,results:[],message:'Scholarship provider hostname does not resolve exclusively to public addresses.'};
     const params=new URLSearchParams();
     for(const key of ['country','level','field']){
       const value=String(req.query?.[key]||'').trim().slice(0,80);
@@ -59,7 +98,7 @@ async function fetchProvider(req){
     }
     target=new URL(base.toString());
     for(const [key,value] of params)target.searchParams.set(key,value);
-  }catch{return {configured:true,results:[],message:'Scholarship provider URL is invalid.'};}
+  }catch{return {configured:true,results:[],message:'Scholarship provider URL is invalid or not publicly reachable.'};}
 
   const controller=new AbortController();
   const timer=setTimeout(()=>controller.abort(),PROVIDER_TIMEOUT_MS);
@@ -89,7 +128,7 @@ export default async function handler(req,res){
       const seen=new Set();
       const results=[...provider.results,...local.rows].filter(item=>{const key=String(item.sourceUrl||item.id||'');if(!key||seen.has(key))return false;seen.add(key);return true;}).slice(0,MAX_RESULTS);
       if(provider.configured&&provider.results.length)await writeAudit({actorUserId:s.user_id,action:'scholarship.search',entityType:'scholarship_provider',entityId:'m43',metadata:{providerResultCount:provider.results.length}}).catch(()=>{});
-      return json(res,200,{ok:true,results,providerConfigured:provider.configured,live:provider.results.length>0,sourcePolicy:{publishedResultsRequireHttpsSource:true,providerResultsRequireHttpsSource:true,providerRedirectsBlocked:true,providerHostMustBeDnsName:true},message:provider.message});
+      return json(res,200,{ok:true,results,providerConfigured:provider.configured,live:provider.results.length>0,sourcePolicy:{publishedResultsRequireHttpsSource:true,providerResultsRequireHttpsSource:true,providerRedirectsBlocked:true,providerHostMustBeDnsName:true,providerDnsMustResolveToPublicAddresses:true},message:provider.message});
     }
     if(!hasRole(s,'admin'))return json(res,403,{error:{code:'FORBIDDEN',message:'Administrator role required.'}});
     if(req.method==='POST'){
