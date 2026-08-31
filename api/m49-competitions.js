@@ -67,7 +67,11 @@ async function fetchProvider(req) {
         ...(PROVIDER_TOKEN ? { Authorization: `Bearer ${PROVIDER_TOKEN}` } : {}),
       },
       signal: controller.signal,
+      redirect: 'manual',
     });
+    if (response.status >= 300 && response.status < 400) {
+      return { configured: true, results: [], message: 'Competition provider redirect blocked for security.' };
+    }
     if (!response.ok) {
       return { configured: true, results: [], message: `Competition provider returned HTTP ${response.status}.` };
     }
@@ -108,7 +112,7 @@ export default async function handler(req, res) {
       providerConfigured: payload.configured,
       live: payload.configured && payload.results.length > 0,
       results: payload.results,
-      sourcePolicy: { providerUrlRequiresHttps: true, resultUrlsRequireHttps: true },
+      sourcePolicy: { providerUrlRequiresHttps: true, resultUrlsRequireHttps: true, providerRedirectsBlocked: true },
       message: payload.message,
     });
   } catch (e) {
