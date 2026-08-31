@@ -67,7 +67,7 @@ export default async function handler(req, res) {
       ORDER BY COALESCE(end_time, start_time) DESC LIMIT 20`;
     const memory = await sql`
       SELECT subject, concept, status, evidence_count, correct_count FROM learning_memory
-      WHERE learner_id=${learnerId} AND status IN ('mastered','learning','needs_revision')
+      WHERE learner_id=${learnerId} AND status IN ('mastered','strong','learning','needs_revision')
       ORDER BY last_updated DESC LIMIT 200`;
     const evidence = await sql`SELECT COUNT(*)::int AS count FROM learning_evidence WHERE learner_id=${learnerId}`;
     const evidenceCount = Number(evidence.rows[0]?.count || 0);
@@ -88,7 +88,7 @@ export default async function handler(req, res) {
     const previous = percentages.slice(1, 5);
     const previousAvg = previous.length ? previous.reduce((sum, value) => sum + value, 0) / previous.length : current;
     const delta = current - previousAvg;
-    const mastered = conceptRows.filter(row => row.status === 'mastered').length;
+    const mastered = conceptRows.filter(row => row.status === 'mastered' || row.status === 'strong').length;
     const needsRevision = conceptRows.filter(row => row.status === 'needs_revision').length;
     const masteryRate = mastered / conceptRows.length;
     let readiness = Math.round(clamp((masteryRate * 70) + (current * 0.3), 0, 100));
