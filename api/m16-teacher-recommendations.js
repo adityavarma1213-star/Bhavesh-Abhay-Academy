@@ -6,6 +6,7 @@ export const config = { runtime: 'nodejs' };
 const clean = (v, max = 160) => String(v ?? '').trim().slice(0, max);
 const noStore = { 'Cache-Control': 'private, no-store, max-age=0' };
 const MIN_EVIDENCE = 3;
+const VALID_CORRECTNESS = ['incorrect', 'partially_correct'];
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') return json(res, 405, { error: { code: 'METHOD_NOT_ALLOWED', message: 'GET required.' } }, { Allow: 'GET', ...noStore });
@@ -38,7 +39,7 @@ export default async function handler(req, res) {
              MAX(le.created_at) AS last_seen
       FROM learning_evidence le
       WHERE le.learner_id=${learnerId}
-        AND le.correctness IN ('incorrect','partially_correct','uncertain')
+        AND le.correctness IN ('incorrect','partially_correct')
       GROUP BY le.subject, le.chapter, le.concept
       HAVING COUNT(*) >= ${MIN_EVIDENCE}
       ORDER BY incorrect_count DESC, evidence_count DESC, last_seen DESC
@@ -55,7 +56,7 @@ export default async function handler(req, res) {
         concept: r.concept || 'Unspecified concept',
         priority,
         assignmentType: priority === 'high' ? 'targeted_remediation' : 'targeted_practice',
-        reason: `${incorrect} incorrect and ${Number(r.partial_count || 0)} partially-correct recorded evidence item(s) across ${evidence} recorded evidence item(s).`,
+        reason: `${incorrect} incorrect and ${Number(r.partial_count || 0)} partially-correct recorded evidence item(s) across ${evidence} valid evidence item(s).`,
         evidenceCount: evidence,
         lastSeen: r.last_seen,
         rank: index + 1,
@@ -63,12 +64,12 @@ export default async function handler(req, res) {
       };
     });
 
-    await writeAudit({ actorUserId: session.user_id, action: 'teacher.recommendations.view', entityType: 'learner', entityId: learnerId, metadata: { recommendationCount: recommendations.length, role: isAdmin ? 'admin' : 'teacher', minEvidence: MIN_EVIDENCE } });
+    await writeAudit({ actorUserId: session.user_id, action: 'teacher.recommendations.view', entityType: 'learner', entityId: learnerId, metadata: { recommendationCount: recommendations.length, role: isAdmin ? 'admin' : 'teacher', minEvidence: MIN_EVIDENCE, validCorrectnessStates: VALID_CORRECTNESS } });
     return json(res, 200, {
       ok: true,
       learnerId,
       recommendations,
-      evidenceGate: { minEvidence: MIN_EVIDENCE, sparseEvidenceExcluded: true },
+      evidenceGate: { minEvidence: MIN_EVIDENCE, sparseEvidenceExcluded: true, validCorrectnessStates: VALID_CORRECTNESS },
       source: 'server_learning_evidence',
       limitation: 'Recommendations are evidence-based instructional suggestions, not diagnoses or automatic assignments.'
     }, noStore);
