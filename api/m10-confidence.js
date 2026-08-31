@@ -3,34 +3,38 @@ import { json } from './_lib/security.js';
 import { requireAuth, requireLearnerAccess } from './_lib/auth.js';
 
 export const config = { runtime: 'nodejs' };
+const VALID_CORRECTNESS = ['correct', 'partially_correct', 'incorrect'];
+const NO_STORE = { 'Cache-Control': 'private, no-store, max-age=0' };
 
 export default async function handler(req, res) {
   try {
     if (req.method !== 'GET') {
-      return json(res, 405, { error: { code: 'METHOD_NOT_ALLOWED', message: 'GET required.' } }, { Allow: 'GET', 'Cache-Control': 'no-store' });
+      return json(res, 405, { error: { code: 'METHOD_NOT_ALLOWED', message: 'GET required.' } }, { Allow: 'GET', ...NO_STORE });
     }
     const session = await requireAuth(req);
     const learnerId = String(req.query?.learnerId || '').trim();
     await requireLearnerAccess(session, learnerId);
 
     const result = await sql`
-      SELECT concept,
+      SELECT subject, concept,
              COUNT(*)::int AS evidence_count,
              COUNT(*) FILTER (WHERE confidence IN ('low','human_review_required'))::int AS low_confidence_count
       FROM learning_evidence
       WHERE learner_id=${learnerId}
-      GROUP BY concept
-      ORDER BY concept ASC
+        AND correctness IN ('correct','partially_correct','incorrect')
+      GROUP BY subject, concept
+      ORDER BY subject ASC NULLS LAST, concept ASC
     `;
 
     const concepts = result.rows.map(row => ({
+      subject: row.subject || null,
       concept: row.concept,
       evidenceCount: Number(row.evidence_count || 0),
-      confidence: Number(row.low_confidence_count || 0) > 0
-        ? 'low'
-        : Number(row.evidence_count || 0) >= 6 ? 'high'
-        : Number(row.evidence_count || 0) >= 3 ? 'medium'
-        : 'insufficient_evidence'
+      confidence: Number(row.evidence_count || 0) < 3
+        ? 'insufficient_evidence'
+        : Number(row.low_confidence_count || 0) > 0
+          ? 'low'
+          : Number(row.evidence_count || 0) >= 6 ? 'high' : 'medium'
     }));
     const eligible = concepts.filter(c => ['high','medium','low'].includes(c.confidence));
     const band = !eligible.length ? 'insufficient_evidence'
@@ -46,17 +50,22 @@ export default async function handler(req, res) {
       totalTrackedConcepts: concepts.length,
       concepts,
       scope: 'academic_evidence_confidence_only',
+      evidenceGate: {
+        minimumEvidence: 3,
+        validCorrectnessStates: VALID_CORRECTNESS,
+        invalidEvidenceExcluded: 'Learning evidence with unknown or unscored correctness does not contribute to confidence.'
+      },
       explanation: band === 'insufficient_evidence'
-        ? 'BAA needs at least 3 evidence rows for a concept before it contributes to the confidence meter.'
+        ? 'BAA needs at least 3 valid evidence rows for a subject-and-concept pair before it contributes to the confidence meter.'
         : band === 'low'
-          ? 'At least one tracked concept contains low-confidence or human-review-required evidence.'
+          ? 'At least one tracked subject-and-concept pair contains low-confidence or human-review-required evidence.'
           : band === 'medium'
             ? 'Tracked concepts have enough evidence to judge, but some still have fewer than 6 evidence rows.'
             : 'Most tracked concepts have at least 6 evidence rows and no low-confidence AI evidence.'
-    }, { 'Cache-Control': 'no-store' });
+    }, NO_STORE);
   } catch (e) {
     return json(res, e.status || 500, {
       error: { code: e.code || 'CONFIDENCE_API_FAILED', message: e.status ? e.message : 'Confidence service unavailable.' }
-    }, { 'Cache-Control': 'no-store' });
+    }, NO_STORE);
   }
 }
