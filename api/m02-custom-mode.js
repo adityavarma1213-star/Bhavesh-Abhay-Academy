@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { sql } from './_lib/db.js';
 import { json, writeAudit } from './_lib/security.js';
 import { requireAuth, requireLearnerAccess } from './_lib/auth.js';
@@ -13,10 +14,14 @@ function cleanText(value, max = MAX_TITLE) { return typeof value === 'string' ? 
 function normalizeSteps(value) {
   if (!Array.isArray(value) || value.length > MAX_STEPS) return null;
   const steps = [];
+  const usedIds = new Set();
   for (const raw of value) {
     const title = cleanText(raw?.title), minutes = Number(raw?.minutes), type = cleanText(raw?.type, 20);
     if (!title || !Number.isInteger(minutes) || minutes < MIN_MINUTES || minutes > MAX_MINUTES || !VALID_TYPES.has(type)) return null;
-    steps.push({ id: cleanText(raw?.id, 80) || crypto.randomUUID(), title, minutes, type, completed: Boolean(raw?.completed) });
+    let id = cleanText(raw?.id, 80) || randomUUID();
+    if (usedIds.has(id)) return null;
+    usedIds.add(id);
+    steps.push({ id, title, minutes, type, completed: Boolean(raw?.completed) });
   }
   return steps;
 }
@@ -41,7 +46,7 @@ export default async function handler(req, res) {
 
     if (req.method === 'PUT') {
       const steps = normalizeSteps(req.body?.steps);
-      if (!steps) return json(res, 400, { error: { code: 'INVALID_CUSTOM_PATH', message: 'A valid custom path with up to 20 bounded steps is required.' } });
+      if (!steps) return json(res, 400, { error: { code: 'INVALID_CUSTOM_PATH', message: 'A valid custom path with up to 20 bounded steps and unique step ids is required.' } });
       const expectedUpdatedAt = req.body?.expectedUpdatedAt ? String(req.body.expectedUpdatedAt).trim() : null;
       const path = { schemaVersion: 1, mode: 'custom', steps };
 
