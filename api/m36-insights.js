@@ -10,27 +10,23 @@ export default async function handler(req,res){
   try{
     const session=await requireAuth(req),learnerId=clean(req.query?.learnerId);
     await requireLearnerAccess(session,learnerId);
-    // An assessment that has moved from submitted to evaluated/completed is
-    // still a real outcome. Counting only the transient submitted state made
-    // the dashboard silently lose completed work after evaluation.
     const attempts=await sql`SELECT COUNT(*) FILTER (WHERE status IN ('submitted','evaluated','completed'))::int AS completed FROM assessment_attempts WHERE learner_id=${learnerId}`;
-    const evidence=await sql`SELECT COUNT(*)::int AS answered,COUNT(*) FILTER (WHERE correctness='correct')::int AS correct,COUNT(DISTINCT concept)::int AS concepts FROM learning_evidence WHERE learner_id=${learnerId}`;
-    // Insight states must respect the same minimum-evidence rule used by
-    // Learning Memory/Mistake Archeology: one or two answers can be a
-    // signal for the UI, but are not enough to call a concept weak.
+    const evidence=await sql`SELECT COUNT(*)::int AS answered,COUNT(*) FILTER (WHERE correctness='correct')::int AS correct,COUNT(DISTINCT (COALESCE(subject,'') || ':' || concept))::int AS concepts FROM learning_evidence WHERE learner_id=${learnerId}`;
+    // Concept labels can recur in different subjects. Keep each curriculum
+    // namespace isolated so one subject cannot contaminate another's insight.
     const weak=await sql`SELECT COUNT(*)::int AS weak FROM (
-      SELECT concept
+      SELECT COALESCE(subject,'') AS subject, concept
       FROM learning_evidence
       WHERE learner_id=${learnerId}
-      GROUP BY concept
+      GROUP BY COALESCE(subject,''), concept
       HAVING COUNT(*) >= 3
          AND COUNT(*) FILTER (WHERE correctness='correct') < COUNT(*) * 0.5
     ) q`;
     const strong=await sql`SELECT COUNT(*)::int AS strong FROM (
-      SELECT concept
+      SELECT COALESCE(subject,'') AS subject, concept
       FROM learning_evidence
       WHERE learner_id=${learnerId}
-      GROUP BY concept
+      GROUP BY COALESCE(subject,''), concept
       HAVING COUNT(*) >= 3
          AND COUNT(*) FILTER (WHERE correctness='correct') >= COUNT(*) * 0.8
     ) q`;
@@ -39,6 +35,6 @@ export default async function handler(req,res){
     const answered=Number(e.answered||0),correct=Number(e.correct||0);
     const accuracy=answered?Number((correct/answered*100).toFixed(1)):null;
     await writeAudit({actorUserId:session.user_id,action:'INSIGHTS_VIEW',entityType:'learner',entityId:learnerId,metadata:{answered,accuracy,completedAssessments:Number(a.completed||0)}});
-    return json(res,200,{ok:true,learnerId,metrics:{completedAssessments:Number(a.completed||0),answeredQuestions:answered,accuracyPercent:accuracy,weakConceptCount:Number(w.weak||0),strongConceptCount:Number(s.strong||0),trackedConceptCount:Number(e.concepts||0),xp:r.xp==null?null:Number(r.xp)},evidenceQuality:answered?'measured':'insufficient_evidence',limitations:['Concept-level weak/strong counts require at least 3 evidence rows for that concept.','Metrics are derived from server assessment evidence.','Submitted, evaluated, and completed assessment states are counted as completed outcomes.','Missing evidence is not treated as a weakness.','Insights are learning-support signals, not psychological or future-outcome predictions.']});
+    return json(res,200,{ok:true,learnerId,metrics:{completedAssessments:Number(a.completed||0),answeredQuestions:answered,accuracyPercent:accuracy,weakConceptCount:Number(w.weak||0),strongConceptCount:Number(s.strong||0),trackedConceptCount:Number(e.concepts||0),xp:r.xp==null?null:Number(r.xp)},evidenceQuality:answered?'measured':'insufficient_evidence',limitations:['Concept-level weak/strong counts require at least 3 evidence rows for that concept within its subject namespace.','Metrics are derived from server assessment evidence.','Submitted, evaluated, and completed assessment states are counted as completed outcomes.','Missing evidence is not treated as a weakness.','Insights are learning-support signals, not psychological or future-outcome predictions.']});
   }catch(e){return json(res,e.status||500,{error:{code:e.code||'INSIGHTS_FAILED',message:e.status?e.message:'Unable to load learning insights.'}},{'Cache-Control':'private, no-store, max-age=0'});}
 }
