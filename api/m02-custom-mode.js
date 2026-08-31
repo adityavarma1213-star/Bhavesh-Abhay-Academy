@@ -22,6 +22,10 @@ function normalizeSteps(value) {
 }
 function noStore(res) { res.setHeader('Cache-Control', 'private, no-store, max-age=0'); }
 
+function conflict(res, updatedAt) {
+  return json(res, 409, { error: { code: 'CUSTOM_MODE_CONFLICT', message: 'This learning path changed in another session. Reload before saving.', updatedAt } });
+}
+
 export default async function handler(req, res) {
   try {
     const session = await requireAuth(req);
@@ -44,18 +48,27 @@ export default async function handler(req, res) {
       const current = await sql`SELECT updated_at FROM custom_learning_paths WHERE learner_id=${learnerId}`;
       const currentUpdatedAt = current.rows[0]?.updated_at || null;
       if (currentUpdatedAt && (!expectedUpdatedAt || new Date(expectedUpdatedAt).getTime() !== new Date(currentUpdatedAt).getTime())) {
-        return json(res, 409, { error: { code: 'CUSTOM_MODE_CONFLICT', message: 'This learning path changed in another session. Reload before saving.', updatedAt: currentUpdatedAt } });
+        return conflict(res, currentUpdatedAt);
       }
       if (!currentUpdatedAt && expectedUpdatedAt) {
-        return json(res, 409, { error: { code: 'CUSTOM_MODE_CONFLICT', message: 'This learning path was created in another session. Reload before saving.', updatedAt: null } });
+        return conflict(res, null);
       }
 
+      let saved;
       if (currentUpdatedAt) {
-        await sql`UPDATE custom_learning_paths SET path=${JSON.stringify(path)}::jsonb, updated_at=NOW() WHERE learner_id=${learnerId} AND updated_at=${currentUpdatedAt}`;
+        saved = await sql`UPDATE custom_learning_paths SET path=${JSON.stringify(path)}::jsonb, updated_at=NOW() WHERE learner_id=${learnerId} AND updated_at=${currentUpdatedAt} RETURNING updated_at`;
+        if (!saved.rows[0]) {
+          const latest = await sql`SELECT updated_at FROM custom_learning_paths WHERE learner_id=${learnerId}`;
+          return conflict(res, latest.rows[0]?.updated_at || null);
+        }
       } else {
-        await sql`INSERT INTO custom_learning_paths(learner_id, path, updated_at) VALUES(${learnerId}, ${JSON.stringify(path)}::jsonb, NOW()) ON CONFLICT(learner_id) DO UPDATE SET path=EXCLUDED.path, updated_at=NOW()`;
+        saved = await sql`INSERT INTO custom_learning_paths(learner_id, path, updated_at) VALUES(${learnerId}, ${JSON.stringify(path)}::jsonb, NOW()) ON CONFLICT(learner_id) DO NOTHING RETURNING updated_at`;
+        if (!saved.rows[0]) {
+          const latest = await sql`SELECT updated_at FROM custom_learning_paths WHERE learner_id=${learnerId}`;
+          return conflict(res, latest.rows[0]?.updated_at || null);
+        }
       }
-      const saved = await sql`SELECT updated_at FROM custom_learning_paths WHERE learner_id=${learnerId}`;
+
       const updatedAt = saved.rows[0]?.updated_at || null;
       await writeAudit({ actorUserId: session.user_id, action: 'CUSTOM_MODE_PATH_SAVED', entityType: 'learner', entityId: learnerId, metadata: { stepCount: steps.length, expectedUpdatedAt } });
       return json(res, 200, { ok: true, learnerId, path, updatedAt });
