@@ -1,5 +1,5 @@
 import { sql } from './_lib/db.js';
-import { json } from './_lib/security.js';
+import { json, writeAudit } from './_lib/security.js';
 import { requireAuth, requireLearnerAccess } from './_lib/auth.js';
 
 export const config = { runtime: 'nodejs' };
@@ -7,6 +7,7 @@ const MAX_STEPS = 14;
 const VALID_TYPES = new Set(['learn', 'practice', 'review', 'assessment', 'tutor', 'custom']);
 const VALID_SOURCES = new Set(['ai', 'custom']);
 const VALID_PRIORITIES = new Set(['student', 'balanced', 'ai']);
+const NO_STORE = { 'Cache-Control': 'private, no-store, max-age=0' };
 
 function text(value, max = 180) { return typeof value === 'string' ? value.replace(/\s+/g, ' ').trim().slice(0, max) : ''; }
 function normalizePath(value) {
@@ -25,6 +26,16 @@ function normalizePath(value) {
   return { schemaVersion: 1, mode: 'hybrid', priority, conflictPolicy: text(value.conflictPolicy, 180), steps, totalMinutes: steps.filter(s => s.included).reduce((sum, s) => sum + s.minutes, 0) };
 }
 
+function conflict(res, updatedAt) {
+  return json(res, 409, { error: { code: 'HYBRID_MODE_CONFLICT', message: 'This Hybrid Mode path changed in another session. Reload before saving.', updatedAt } }, NO_STORE);
+}
+
+function parseExpectedUpdatedAt(value) {
+  if (value === undefined || value === null || value === '') return null;
+  const parsed = new Date(String(value).trim());
+  return Number.isNaN(parsed.getTime()) ? '__invalid__' : parsed.toISOString();
+}
+
 export default async function handler(req, res) {
   try {
     const session = await requireAuth(req);
@@ -33,24 +44,44 @@ export default async function handler(req, res) {
     if (req.method === 'GET') {
       const result = await sql`SELECT path, updated_at FROM hybrid_learning_paths WHERE learner_id=${learnerId}`;
       const row = result.rows[0];
-      return json(res, 200, { ok: true, learnerId, path: row?.path || { schemaVersion: 1, mode: 'hybrid', steps: [], totalMinutes: 0 }, updatedAt: row?.updated_at || null });
+      return json(res, 200, { ok: true, learnerId, path: row?.path || { schemaVersion: 1, mode: 'hybrid', steps: [], totalMinutes: 0 }, updatedAt: row?.updated_at || null }, NO_STORE);
     }
     if (req.method === 'PUT') {
       const path = normalizePath(req.body);
-      if (!path) return json(res, 400, { error: { code: 'INVALID_HYBRID_PATH', message: 'A valid bounded Hybrid Mode path is required.' } });
-      await sql`
-        INSERT INTO hybrid_learning_paths(learner_id, path, updated_at)
-        VALUES(${learnerId}, ${JSON.stringify(path)}::jsonb, NOW())
-        ON CONFLICT(learner_id) DO UPDATE SET path=EXCLUDED.path, updated_at=NOW()
-      `;
-      return json(res, 200, { ok: true, learnerId, path });
+      if (!path) return json(res, 400, { error: { code: 'INVALID_HYBRID_PATH', message: 'A valid bounded Hybrid Mode path is required.' } }, NO_STORE);
+      const expectedUpdatedAt = parseExpectedUpdatedAt(req.body?.expectedUpdatedAt);
+      if (expectedUpdatedAt === '__invalid__') return json(res, 400, { error: { code: 'INVALID_EXPECTED_UPDATED_AT', message: 'expectedUpdatedAt must be a valid timestamp.' } }, NO_STORE);
+
+      const current = await sql`SELECT updated_at FROM hybrid_learning_paths WHERE learner_id=${learnerId}`;
+      const currentUpdatedAt = current.rows[0]?.updated_at || null;
+      if (currentUpdatedAt && (!expectedUpdatedAt || new Date(expectedUpdatedAt).getTime() !== new Date(currentUpdatedAt).getTime())) return conflict(res, currentUpdatedAt);
+      if (!currentUpdatedAt && expectedUpdatedAt) return conflict(res, null);
+
+      let saved;
+      if (currentUpdatedAt) {
+        saved = await sql`UPDATE hybrid_learning_paths SET path=${JSON.stringify(path)}::jsonb, updated_at=NOW() WHERE learner_id=${learnerId} AND updated_at=${currentUpdatedAt} RETURNING updated_at`;
+        if (!saved.rows[0]) {
+          const latest = await sql`SELECT updated_at FROM hybrid_learning_paths WHERE learner_id=${learnerId}`;
+          return conflict(res, latest.rows[0]?.updated_at || null);
+        }
+      } else {
+        saved = await sql`INSERT INTO hybrid_learning_paths(learner_id, path, updated_at) VALUES(${learnerId}, ${JSON.stringify(path)}::jsonb, NOW()) ON CONFLICT(learner_id) DO NOTHING RETURNING updated_at`;
+        if (!saved.rows[0]) {
+          const latest = await sql`SELECT updated_at FROM hybrid_learning_paths WHERE learner_id=${learnerId}`;
+          return conflict(res, latest.rows[0]?.updated_at || null);
+        }
+      }
+      const updatedAt = saved.rows[0]?.updated_at || null;
+      await writeAudit({ actorUserId: session.user_id, action: 'HYBRID_MODE_PATH_SAVED', entityType: 'learner', entityId: learnerId, metadata: { stepCount: path.steps.length, expectedUpdatedAt } });
+      return json(res, 200, { ok: true, learnerId, path, updatedAt }, NO_STORE);
     }
     if (req.method === 'DELETE') {
       await sql`DELETE FROM hybrid_learning_paths WHERE learner_id=${learnerId}`;
-      return json(res, 200, { ok: true, learnerId });
+      await writeAudit({ actorUserId: session.user_id, action: 'HYBRID_MODE_PATH_CLEARED', entityType: 'learner', entityId: learnerId, metadata: {} });
+      return json(res, 200, { ok: true, learnerId }, NO_STORE);
     }
-    return json(res, 405, { error: { code: 'METHOD_NOT_ALLOWED', message: 'GET, PUT or DELETE required.' } }, { Allow: 'GET, PUT, DELETE' });
+    return json(res, 405, { error: { code: 'METHOD_NOT_ALLOWED', message: 'GET, PUT or DELETE required.' } }, { Allow: 'GET, PUT, DELETE', ...NO_STORE });
   } catch (e) {
-    return json(res, e.status || 500, { error: { code: e.code || 'HYBRID_MODE_API_FAILED', message: e.status ? e.message : 'Hybrid Mode service unavailable.' } });
+    return json(res, e.status || 500, { error: { code: e.code || 'HYBRID_MODE_API_FAILED', message: e.status ? e.message : 'Hybrid Mode service unavailable.' } }, NO_STORE);
   }
 }
