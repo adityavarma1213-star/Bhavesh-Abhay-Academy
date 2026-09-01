@@ -159,5 +159,5 @@ export default async function handler(req,res){
       return json(res,200,{ok:true,id:scholarshipId,status});
     }
     return json(res,405,{error:{code:'METHOD_NOT_ALLOWED',message:'GET, POST or PUT required.'}},{Allow:'GET, POST, PUT'});
-  }catch(e){return json(res,e.status||500,{error:{code:e.code||'SCHOLARSHIP_FAILED',message:e.status?'': 'Unable to process scholarship request.'}});}
+  }catch(e){return json(res,e.status||500,{error:{code:e.code||'SCHOLARSHIP_FAILED',message:e.status?e.message:'Unable to process scholarship request.'}});}
 }
