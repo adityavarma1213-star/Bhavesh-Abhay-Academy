@@ -100,7 +100,7 @@ export default async function handler(req, res) {
         LIMIT 1
       `;
       const currentUpdatedAt = updatedAtFrom(current.rows[0]);
-      if (currentUpdatedAt && currentUpdatedAt !== expectedUpdatedAt) {
+      if (currentUpdatedAt !== expectedUpdatedAt) {
         return json(res, 409, {
           error: { code: 'POLICY_CONFLICT', message: 'Parent policy changed elsewhere. Reload the current policy before saving.' },
           learnerId,
