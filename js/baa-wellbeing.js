@@ -90,9 +90,11 @@
   const PREF_KEY = 'baa_section_e_wellbeing_prefs_v1';
   const SESSION_FLAG_KEY = 'baa_section_e_wellbeing_session_v1'; // sessionStorage — resets per tab
 
-  // A healthy default: gently suggest a break after 25 continuous minutes
-  // in one sitting (not a hard rule — see getDefaultPrefs()).
+  // Keep the pacing interval bounded so local preference tampering cannot
+  // turn a supportive nudge into a rapid-repeat notification loop.
   const DEFAULT_INTERVAL_MINUTES = 25;
+  const MIN_INTERVAL_MINUTES = 5;
+  const MAX_INTERVAL_MINUTES = 180;
 
   const sessionStartedAt = Date.now();
 
@@ -101,6 +103,12 @@
   }
   function hasSessionStorage() {
     return typeof global.sessionStorage !== 'undefined' && global.sessionStorage !== null;
+  }
+  function normalizeInterval(value) {
+    const minutes = Number(value);
+    return Number.isFinite(minutes) && minutes >= MIN_INTERVAL_MINUTES && minutes <= MAX_INTERVAL_MINUTES
+      ? Math.floor(minutes)
+      : DEFAULT_INTERVAL_MINUTES;
   }
 
   function getPrefs() {
@@ -112,7 +120,7 @@
       const parsed = JSON.parse(raw);
       return {
         remindersEnabled: typeof parsed.remindersEnabled === 'boolean' ? parsed.remindersEnabled : true,
-        intervalMinutes: Number.isFinite(parsed.intervalMinutes) ? parsed.intervalMinutes : DEFAULT_INTERVAL_MINUTES,
+        intervalMinutes: normalizeInterval(parsed.intervalMinutes),
       };
     } catch {
       return fallback;
@@ -121,6 +129,7 @@
   function setPrefs(next) {
     if (!hasLocalStorage()) return false;
     const merged = { ...getPrefs(), ...next };
+    merged.intervalMinutes = normalizeInterval(merged.intervalMinutes);
     try {
       global.localStorage.setItem(PREF_KEY, JSON.stringify(merged));
       return true;
@@ -188,7 +197,7 @@
 
   function setReminderPreference(enabled, intervalMinutes) {
     const next = { remindersEnabled: !!enabled };
-    if (Number.isFinite(intervalMinutes) && intervalMinutes >= 0) next.intervalMinutes = intervalMinutes;
+    if (Number.isFinite(Number(intervalMinutes))) next.intervalMinutes = normalizeInterval(intervalMinutes);
     return setPrefs(next);
   }
 
