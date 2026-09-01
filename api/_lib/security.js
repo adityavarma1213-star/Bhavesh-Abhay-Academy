@@ -20,7 +20,11 @@ export function verifyPassword(password, encoded) {
   try {
     const [meta, salt, expected] = String(encoded).split('$');
     if (!meta || !salt || !expected) return false;
-    const iterations = Number(meta.split('-').pop());
+    const metaParts = meta.split('-');
+    if (metaParts.length !== 3 || metaParts[0] !== 'pbkdf2' || metaParts[1] !== PASSWORD_DIGEST) return false;
+    const iterations = Number(metaParts[2]);
+    if (!Number.isSafeInteger(iterations) || iterations !== PASSWORD_ITERATIONS) return false;
+    if (!/^[0-9a-f]{32}$/.test(salt) || !/^[0-9a-f]{64}$/.test(expected)) return false;
     const actual = crypto.pbkdf2Sync(String(password), salt, iterations, PASSWORD_KEYLEN, PASSWORD_DIGEST);
     const expectedBuf = Buffer.from(expected, 'hex');
     return expectedBuf.length === actual.length && crypto.timingSafeEqual(expectedBuf, actual);
