@@ -51,6 +51,30 @@ function aggregate(rows) {
   return [...map.values()].map(x => ({ ...x, accuracy: pct(x.correctCount, x.evidenceCount), insufficientEvidence: x.evidenceCount < MIN_EVIDENCE }));
 }
 
+async function loadPracticeQuestions(learnerId) {
+  return sql`
+    WITH eligible_concepts AS (
+      SELECT subject, concept,
+             COUNT(*)::int AS evidence_count,
+             COUNT(*) FILTER (WHERE correctness = 'correct')::int AS correct_count
+      FROM learning_evidence
+      WHERE learner_id=${learnerId}
+      GROUP BY subject, concept
+      HAVING COUNT(*) >= ${MIN_EVIDENCE}
+    )
+    SELECT q.id, q.subject, q.chapter, q.topic, q.concept, q.difficulty, q.type, q.marks,
+           q.time_estimate_sec AS "timeEstimateSec", q.text, q.options
+    FROM questions q
+    JOIN eligible_concepts e
+      ON q.subject IS NOT DISTINCT FROM e.subject
+     AND q.concept IS NOT DISTINCT FROM e.concept
+    ORDER BY
+      (e.correct_count::double precision / NULLIF(e.evidence_count, 0)) ASC,
+      e.evidence_count DESC,
+      q.subject, q.chapter, q.concept, q.id
+    LIMIT 20`;
+}
+
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'private, no-store, max-age=0');
   if (req.method !== 'GET') return json(res, 405, { error: { code: 'METHOD_NOT_ALLOWED', message: 'GET required.' } }, { Allow: 'GET' });
@@ -60,12 +84,7 @@ export default async function handler(req, res) {
     await requireLearnerAccess(session, learnerId);
     const [evidenceRows, questionResult] = await Promise.all([
       loadAllEvidence(learnerId),
-      sql`
-        SELECT id, subject, chapter, topic, concept, difficulty, type, marks,
-               time_estimate_sec AS "timeEstimateSec", text, options
-        FROM questions
-        ORDER BY subject, chapter, concept, id
-        LIMIT 1000`
+      loadPracticeQuestions(learnerId)
     ]);
     const concepts = aggregate(evidenceRows);
     const weaknesses = concepts.filter(x => x.evidenceCount >= MIN_EVIDENCE && x.accuracy < 0.6)
@@ -77,12 +96,7 @@ export default async function handler(req, res) {
     const prioritizedConcepts = concepts.filter(x => x.evidenceCount >= MIN_EVIDENCE)
       .sort((a,b) => a.accuracy-b.accuracy || b.evidenceCount-a.evidenceCount)
       .map(x => ({ subject: x.subject, concept: x.concept, accuracy: x.accuracy, evidenceCount: x.evidenceCount }));
-    const rank = new Map(prioritizedConcepts.map((x,i) => [`${x.subject || 'Unknown'}::${x.concept}`, i]));
-    const practiceQuestions = questionResult.rows
-      .filter(q => rank.has(`${q.subject || 'Unknown'}::${q.concept}`))
-      .sort((a,b) => rank.get(`${a.subject || 'Unknown'}::${a.concept}`) - rank.get(`${b.subject || 'Unknown'}::${b.concept}`) || String(a.id).localeCompare(String(b.id)))
-      .slice(0, 20);
-    return json(res, 200, { ok: true, learnerId, evidenceCount: evidenceRows.length, weaknesses, strengths, prioritizedConcepts, practiceQuestions, evidenceGate: { minimumEvidence: MIN_EVIDENCE, sparseEvidenceStatus: 'insufficient_evidence' }, limitation: 'M21–M23 summarize recorded academic evidence only; they do not diagnose ability, motivation, personality, or psychological traits. Evidence is read with keyset pagination so older records are not silently dropped at an arbitrary row limit.' });
+    return json(res, 200, { ok: true, learnerId, evidenceCount: evidenceRows.length, weaknesses, strengths, prioritizedConcepts, practiceQuestions: questionResult.rows, evidenceGate: { minimumEvidence: MIN_EVIDENCE, sparseEvidenceStatus: 'insufficient_evidence' }, limitation: 'M21–M23 summarize recorded academic evidence only; they do not diagnose ability, motivation, personality, or psychological traits. Evidence is read with keyset pagination so older records are not silently dropped at an arbitrary row limit.' });
   } catch (e) {
     return json(res, e.status || 500, { error: { code: e.code || 'M21_23_EVIDENCE_FAILED', message: e.status ? e.message : 'Unable to load learning evidence.' } });
   }
