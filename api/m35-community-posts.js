@@ -7,6 +7,7 @@ export const config = { runtime: 'nodejs' };
 const noStore = { 'Cache-Control': 'private, no-store, max-age=0' };
 const BLOCKED = ['self-harm', 'suicide', 'sexual exploitation', 'buy drugs'];
 const clean = (value, max) => String(value ?? '').trim().slice(0, max);
+const clampLimit = value => Math.min(Math.max(Number(value || 100), 1), 100);
 
 function moderate(text) {
   const value = clean(text, 4000);
@@ -69,21 +70,53 @@ async function requireGroupAccess(session, groupId) {
   throw err;
 }
 
+function readCursor(query) {
+  const createdAt = query?.cursorCreatedAt ? String(query.cursorCreatedAt).trim() : '';
+  const id = query?.cursorId ? clean(query.cursorId, 180) : '';
+  if (!createdAt && !id) return null;
+  if (!createdAt || !id || Number.isNaN(Date.parse(createdAt))) {
+    const err = new Error('cursorCreatedAt and cursorId must identify a valid post cursor.');
+    err.status = 400;
+    err.code = 'INVALID_CURSOR';
+    throw err;
+  }
+  return { createdAt, id };
+}
+
 export default async function handler(req, res) {
   try {
     const session = await requireAuth(req);
     if (req.method === 'GET') {
       const groupId = clean(req.query?.groupId, 120) || 'general';
       await requireGroupAccess(session, groupId);
-      const result = await sql`
-        SELECT p.id, p.group_id AS "groupId", p.body AS text, p.status,
-               p.created_at AS "createdAt", p.author_user_id AS "authorUserId"
-        FROM community_posts p
-        WHERE p.group_id = ${groupId} AND p.status = 'visible'
-        ORDER BY p.created_at DESC
-        LIMIT 100
-      `;
-      return json(res, 200, { ok: true, posts: result.rows || [] }, noStore);
+      const limit = clampLimit(req.query?.limit);
+      const cursor = readCursor(req.query);
+      const result = cursor
+        ? await sql`
+          SELECT p.id, p.group_id AS "groupId", p.body AS text, p.status,
+                 p.created_at AS "createdAt", p.author_user_id AS "authorUserId"
+          FROM community_posts p
+          WHERE p.group_id = ${groupId} AND p.status = 'visible'
+            AND (p.created_at, p.id) < (${cursor.createdAt}, ${cursor.id})
+          ORDER BY p.created_at DESC, p.id DESC
+          LIMIT ${limit + 1}
+        `
+        : await sql`
+          SELECT p.id, p.group_id AS "groupId", p.body AS text, p.status,
+                 p.created_at AS "createdAt", p.author_user_id AS "authorUserId"
+          FROM community_posts p
+          WHERE p.group_id = ${groupId} AND p.status = 'visible'
+          ORDER BY p.created_at DESC, p.id DESC
+          LIMIT ${limit + 1}
+        `;
+      const rows = result.rows || [];
+      const hasMore = rows.length > limit;
+      const posts = hasMore ? rows.slice(0, limit) : rows;
+      const last = posts[posts.length - 1];
+      const nextCursor = hasMore && last
+        ? { cursorCreatedAt: last.createdAt, cursorId: last.id }
+        : null;
+      return json(res, 200, { ok: true, posts, nextCursor }, noStore);
     }
     if (req.method !== 'POST') {
       return json(res, 405, { error: { code: 'METHOD_NOT_ALLOWED', message: 'GET or POST required.' } }, { Allow: 'GET, POST', ...noStore });
