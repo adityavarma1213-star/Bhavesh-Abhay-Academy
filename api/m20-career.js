@@ -4,6 +4,7 @@ import { sql } from './_lib/db.js';
 
 export const config = { runtime: 'nodejs' };
 const NO_STORE = { 'Cache-Control': 'private, no-store, max-age=0' };
+const PAGE_SIZE = 500;
 const MIN_EVIDENCE = 3;
 const VALID_CORRECTNESS = new Set(['correct','partially_correct','incorrect']);
 const TRACKS = {
@@ -17,6 +18,32 @@ const normalize = v => clean(v).toLowerCase().replace(/[_\s]+/g,'-');
 const humanize = v => clean(v,80).replace(/-/g,' ');
 const label = r => r.title ? clean(r.title,120) : r.concept ? clean(r.concept,120) : 'Academic evidence';
 
+async function loadAllEvidence(learnerId) {
+  const rows=[];
+  let cursor=null;
+  for (;;) {
+    const page = cursor
+      ? await sql`SELECT id,concept,correctness,title,attempt_id,created_at
+                  FROM learning_evidence
+                  WHERE learner_id=${learnerId}
+                    AND (created_at < ${cursor.createdAt}
+                         OR (created_at = ${cursor.createdAt} AND id < ${cursor.id}))
+                  ORDER BY created_at DESC,id DESC
+                  LIMIT ${PAGE_SIZE}`
+      : await sql`SELECT id,concept,correctness,title,attempt_id,created_at
+                  FROM learning_evidence
+                  WHERE learner_id=${learnerId}
+                  ORDER BY created_at DESC,id DESC
+                  LIMIT ${PAGE_SIZE}`;
+    const batch=Array.isArray(page?.rows)?page.rows:[];
+    rows.push(...batch);
+    if (batch.length < PAGE_SIZE) break;
+    const last=batch[batch.length-1];
+    cursor={createdAt:last.created_at,id:last.id};
+  }
+  return rows;
+}
+
 export default async function handler(req,res){
   res.setHeader('Cache-Control','private, no-store, max-age=0');
   if(req.method !== 'GET') return json(res,405,{error:{code:'METHOD_NOT_ALLOWED',message:'GET required.'}},{Allow:'GET',...NO_STORE});
@@ -26,9 +53,9 @@ export default async function handler(req,res){
     await requireLearnerAccess(session,learnerId);
     const track=clean(req.query?.track,80);
     if(!TRACKS[track]) return json(res,400,{error:{code:'INVALID_TRACK',message:'A supported career track is required.'}},NO_STORE);
-    const rows=await sql`SELECT id,concept,correctness,title,attempt_id,created_at FROM learning_evidence WHERE learner_id=${learnerId} ORDER BY created_at DESC LIMIT 500`;
-    const excludedEvidence=rows.rows.filter(r=>!VALID_CORRECTNESS.has(r.correctness));
-    const validRows=rows.rows.filter(r=>VALID_CORRECTNESS.has(r.correctness));
+    const rows=await loadAllEvidence(learnerId);
+    const excludedEvidence=rows.filter(r=>!VALID_CORRECTNESS.has(r.correctness));
+    const validRows=rows.filter(r=>VALID_CORRECTNESS.has(r.correctness));
     const skills=TRACKS[track].map(skill=>{
       const target=normalize(skill);
       const evidence=validRows.filter(r=>{const concept=normalize(r.concept);return concept&&(concept===target||concept.includes(target)||target.includes(concept)||concept.split('-')[0]===target.split('-')[0]);});
@@ -46,6 +73,6 @@ export default async function handler(req,res){
     const tracked=skills.filter(x=>x.status!=='not_yet_tracked');
     const strengths=skills.filter(x=>x.status==='strength_evidence');
     const summary=!tracked.length?'Not enough evidence':strengths.length===skills.length?'Strong current alignment':strengths.length>=Math.ceil(skills.length*.6)?'Promising current alignment':'Mixed alignment — explore further';
-    return json(res,200,{ok:true,learnerId,track,summary,coverage:skills.length?tracked.length/skills.length:0,skills,evidenceGate:{minEvidence:MIN_EVIDENCE,acceptedCorrectness:[...VALID_CORRECTNESS],validEvidenceCount:validRows.length,excludedEvidenceCount:excludedEvidence.length,sparseSkillsExcluded:skills.filter(x=>x.status==='not_yet_tracked').length},methodology:'Career alignment compares selected track skills only with valid tagged academic evidence already stored for the learner. Unknown or unscored evidence is excluded. A skill must have at least three valid tagged evidence items before BAA assigns an evidence-backed status; missing evidence is not treated as weakness.',limitations:['Exploratory guidance only; not a prediction or guarantee.','No job, salary, admission, or future outcome is inferred.','Consequential decisions should be reviewed with a parent, teacher, or qualified career professional.'],disclaimer:'Career alignment is exploratory guidance, not a prediction or guarantee.'},NO_STORE);
+    return json(res,200,{ok:true,learnerId,track,summary,coverage:skills.length?tracked.length/skills.length:0,skills,evidenceGate:{minEvidence:MIN_EVIDENCE,acceptedCorrectness:[...VALID_CORRECTNESS],validEvidenceCount:validRows.length,excludedEvidenceCount:excludedEvidence.length,sparseSkillsExcluded:skills.filter(x=>x.status==='not_yet_tracked').length},methodology:'Career alignment compares selected track skills only with all valid tagged academic evidence stored for the learner. Evidence is read with keyset pagination so older records are not silently dropped at an arbitrary row limit. Unknown or unscored evidence is excluded. A skill must have at least three valid tagged evidence items before BAA assigns an evidence-backed status; missing evidence is not treated as weakness.',limitations:['Exploratory guidance only; not a prediction or guarantee.','No job, salary, admission, or future outcome is inferred.','Consequential decisions should be reviewed with a parent, teacher, or qualified career professional.'],disclaimer:'Career alignment is exploratory guidance, not a prediction or guarantee.'},NO_STORE);
   }catch(e){return json(res,e.status||500,{error:{code:e.code||'CAREER_ANALYTICS_FAILED',message:e.status?e.message:'Unable to load career evidence.'}},NO_STORE);}
 }
