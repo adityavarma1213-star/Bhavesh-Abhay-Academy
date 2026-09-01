@@ -4,7 +4,10 @@ import { sql } from './_lib/db.js';
 
 export const config = { runtime: 'nodejs' };
 const MIN_EVIDENCE = 3;
+const HISTORY_PAGE_SIZE = 20;
 function clean(v, max = 240) { return String(v ?? '').trim().slice(0, max); }
+function parseCursor(value) { if (!value) return null; try { const parsed = JSON.parse(Buffer.from(String(value), 'base64url').toString('utf8')); if (!parsed?.createdAt || !parsed?.id) throw new Error(); return parsed; } catch { const e = new Error('Invalid conversation cursor.'); e.status = 400; e.code = 'INVALID_CONVERSATION_CURSOR'; throw e; } }
+function encodeCursor(row) { return Buffer.from(JSON.stringify({ createdAt: String(row.createdAt), id: String(row.id) }), 'utf8').toString('base64url'); }
 function buildPrompts(topic, state) {
   return [
     `Ask what felt easiest about ${topic}.`,
@@ -58,7 +61,6 @@ async function loadLearningContext(learnerId) {
     evidence: concepts.slice(0, 8).map(item => ({ concept: item.concept, subject: item.subject, evidenceCount: item.total, accuracy: item.total >= MIN_EVIDENCE ? Math.round((item.correct / item.total) * 100) : null, evidenceSufficient: item.total >= MIN_EVIDENCE }))
   };
 }
-
 function noStore(res) { res.setHeader('Cache-Control', 'private, no-store, max-age=0'); }
 
 export default async function handler(req, res) {
@@ -70,8 +72,14 @@ export default async function handler(req, res) {
       const learnerId = clean(req.query?.learnerId, 128);
       if (!learnerId) return json(res, 400, { error: { code: 'INVALID_LEARNER', message: 'learnerId is required.' } });
       if (!await requireParentLearner(session, learnerId)) return json(res, 403, { error: { code: 'LEARNER_ACCESS_DENIED', message: 'Parent is not linked to this learner.' } });
-      const rows = await sql`SELECT id, learner_id AS "learnerId", topic, state, prompts, created_at AS "createdAt" FROM parent_conversation_prompts WHERE learner_id=${learnerId} AND parent_user_id=${session.user_id} ORDER BY created_at DESC LIMIT 20`;
-      return json(res, 200, { ok: true, conversations: rows.rows });
+      const cursor = parseCursor(req.query?.cursor);
+      const rows = cursor
+        ? await sql`SELECT id, learner_id AS "learnerId", topic, state, prompts, created_at AS "createdAt" FROM parent_conversation_prompts WHERE learner_id=${learnerId} AND parent_user_id=${session.user_id} AND (created_at,id)<(${cursor.createdAt},${cursor.id}::uuid) ORDER BY created_at DESC,id DESC LIMIT ${HISTORY_PAGE_SIZE + 1}`
+        : await sql`SELECT id, learner_id AS "learnerId", topic, state, prompts, created_at AS "createdAt" FROM parent_conversation_prompts WHERE learner_id=${learnerId} AND parent_user_id=${session.user_id} ORDER BY created_at DESC,id DESC LIMIT ${HISTORY_PAGE_SIZE + 1}`;
+      const conversations = rows.rows.slice(0, HISTORY_PAGE_SIZE);
+      const hasMore = rows.rows.length > HISTORY_PAGE_SIZE;
+      const nextCursor = hasMore && conversations.length ? encodeCursor(conversations[conversations.length - 1]) : null;
+      return json(res, 200, { ok: true, conversations, pagination: { limit: HISTORY_PAGE_SIZE, hasMore, nextCursor } });
     }
     if (req.method !== 'POST') return json(res, 405, { error: { code: 'METHOD_NOT_ALLOWED', message: 'GET or POST required.' } }, { Allow: 'GET, POST' });
     const learnerId = clean(req.body?.learnerId, 128);
