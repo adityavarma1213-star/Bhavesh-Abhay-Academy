@@ -25,7 +25,6 @@ async function loadLearningContext(learnerId) {
     WHERE learner_id=${learnerId}
     GROUP BY concept, subject, topic, correctness
     ORDER BY last_seen DESC
-    LIMIT 24
   `;
   if (!rows.rows.length) return { evidenceCount: 0, topic: 'the recent study work', state: 'insufficient evidence', evidence: [] };
   const byConcept = new Map();
