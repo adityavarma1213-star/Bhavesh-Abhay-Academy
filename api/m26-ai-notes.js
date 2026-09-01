@@ -11,6 +11,7 @@ const MAX_NOTE_CHARS = 2200;
 const MIN_EVIDENCE = 3;
 const EVIDENCE_PAGE_SIZE = 500;
 const MAX_EVIDENCE_PER_CONCEPT = 12;
+const MAX_PROVIDER_BYTES = 1024 * 1024;
 const clean = (v, max = 160) => String(v ?? '').trim().slice(0, max);
 
 function promptFor({ evidence, attempts }) {
@@ -78,6 +79,38 @@ async function callGemini(prompt, apiKey) {
   }
 }
 
+async function readJsonWithinLimit(response) {
+  const contentLength = Number(response.headers.get('content-length'));
+  if (Number.isFinite(contentLength) && contentLength > MAX_PROVIDER_BYTES) return { ok: false, code: 'PAYLOAD_TOO_LARGE' };
+  const reader = response.body?.getReader?.();
+  if (!reader) {
+    const text = await response.text();
+    if (new TextEncoder().encode(text).byteLength > MAX_PROVIDER_BYTES) return { ok: false, code: 'PAYLOAD_TOO_LARGE' };
+    try { return { ok: true, body: JSON.parse(text) }; } catch { return { ok: false, code: 'INVALID_JSON' }; }
+  }
+  const chunks = [];
+  let total = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > MAX_PROVIDER_BYTES) {
+        await reader.cancel().catch(() => {});
+        return { ok: false, code: 'PAYLOAD_TOO_LARGE' };
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock?.();
+  }
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
+  try { return { ok: true, body: JSON.parse(new TextDecoder().decode(bytes)) }; }
+  catch { return { ok: false, code: 'INVALID_JSON' }; }
+}
+
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'private, no-store, max-age=0');
   if (req.method !== 'POST') return json(res, 405, { error: { code: 'METHOD_NOT_ALLOWED', message: 'POST required.' } }, { Allow: 'POST' });
@@ -143,7 +176,9 @@ export default async function handler(req, res) {
 
     const response = await callGemini(promptFor({ evidence: gatedEvidence, attempts: attempts.rows }), apiKey);
     if (!response.ok) return json(res, 502, { error: { code: 'AI_UPSTREAM_FAILED', message: 'AI note generation failed. Use the evidence-backed draft instead.' } });
-    const payload = await response.json().catch(() => null);
+    const parsed = await readJsonWithinLimit(response);
+    if (!parsed.ok) return json(res, 502, { error: { code: 'AI_UPSTREAM_INVALID', message: parsed.code === 'PAYLOAD_TOO_LARGE' ? 'AI note provider response exceeded the 1 MiB safety limit.' : 'AI note provider returned invalid JSON.' } });
+    const payload = parsed.body;
     const draft = payload?.candidates?.[0]?.content?.parts?.map((p) => p?.text || '').join('').trim().slice(0, MAX_NOTE_CHARS);
     if (!draft) return json(res, 502, { error: { code: 'AI_EMPTY_RESPONSE', message: 'AI returned no usable teacher note. Use the evidence-backed draft instead.' } });
 
