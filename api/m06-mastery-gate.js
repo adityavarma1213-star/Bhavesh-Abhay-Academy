@@ -6,22 +6,50 @@ export const config = { runtime: 'nodejs' };
 const clean = (v, max = 180) => String(v ?? '').trim().slice(0, max);
 const findingKey = (subject, chapter, concept, label) => `${subject}::${chapter}::${concept}::${label}`.toLowerCase();
 const VALID_CORRECTNESS = new Set(['correct','partially_correct','incorrect']);
+const PAGE_SIZE = 500;
+
+async function loadAllEvidence(learnerId, subject, chapter) {
+  const rows = [];
+  let cursor = null;
+  for (;;) {
+    const page = cursor
+      ? await sql`
+        SELECT le.id, le.attempt_id AS "attemptId", le.question_id AS "questionId",
+               le.subject, le.chapter, le.concept, le.correctness,
+               le.finding_details AS "findingDetails", le.created_at AS "createdAt",
+               q.common_error_type AS "commonErrorType"
+        FROM learning_evidence le
+        JOIN questions q ON q.id=le.question_id
+        WHERE le.learner_id=${learnerId}
+          AND le.subject=${subject}
+          AND le.chapter=${chapter}
+          AND (le.created_at < ${cursor.createdAt}
+               OR (le.created_at = ${cursor.createdAt} AND le.id < ${cursor.id}))
+        ORDER BY le.created_at DESC, le.id DESC
+        LIMIT ${PAGE_SIZE}`
+      : await sql`
+        SELECT le.id, le.attempt_id AS "attemptId", le.question_id AS "questionId",
+               le.subject, le.chapter, le.concept, le.correctness,
+               le.finding_details AS "findingDetails", le.created_at AS "createdAt",
+               q.common_error_type AS "commonErrorType"
+        FROM learning_evidence le
+        JOIN questions q ON q.id=le.question_id
+        WHERE le.learner_id=${learnerId}
+          AND le.subject=${subject}
+          AND le.chapter=${chapter}
+        ORDER BY le.created_at DESC, le.id DESC
+        LIMIT ${PAGE_SIZE}`;
+    const batch = Array.isArray(page?.rows) ? page.rows : [];
+    rows.push(...batch);
+    if (batch.length < PAGE_SIZE) break;
+    const last = batch[batch.length - 1];
+    cursor = { createdAt: last.createdAt, id: last.id };
+  }
+  return rows;
+}
 
 async function buildGate(learnerId, subject, chapter) {
-  const evidence = await sql`
-    SELECT le.id, le.attempt_id AS "attemptId", le.question_id AS "questionId",
-           le.subject, le.chapter, le.concept, le.correctness,
-           le.finding_details AS "findingDetails", le.created_at AS "createdAt",
-           q.common_error_type AS "commonErrorType"
-    FROM learning_evidence le
-    JOIN questions q ON q.id=le.question_id
-    WHERE le.learner_id=${learnerId}
-      AND le.subject=${subject}
-      AND le.chapter=${chapter}
-    ORDER BY le.created_at DESC
-    LIMIT 500`;
-
-  const rows = Array.isArray(evidence.rows) ? evidence.rows : [];
+  const rows = await loadAllEvidence(learnerId, subject, chapter);
   const validRows = rows.filter(row => VALID_CORRECTNESS.has(String(row.correctness)));
   const excludedEvidenceCount = rows.length - validRows.length;
   const findings = new Map();
