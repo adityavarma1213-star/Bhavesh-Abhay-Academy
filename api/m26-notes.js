@@ -5,7 +5,35 @@ import { sql } from './_lib/db.js';
 export const config = { runtime: 'nodejs' };
 const MIN_EVIDENCE = 3;
 const VALID_CORRECTNESS = new Set(['correct', 'partially_correct', 'incorrect']);
+const EVIDENCE_PAGE_SIZE = 500;
 const clean = (v, max = 160) => String(v ?? '').trim().slice(0, max);
+
+async function loadAllEvidence(learnerId) {
+  const rows = [];
+  let cursor = null;
+  for (;;) {
+    const result = cursor
+      ? await sql`
+          SELECT subject, chapter, concept, correctness, created_at, id
+          FROM learning_evidence
+          WHERE learner_id=${learnerId}
+            AND (created_at < ${cursor.createdAt} OR (created_at=${cursor.createdAt} AND id < ${cursor.id}))
+          ORDER BY created_at DESC, id DESC
+          LIMIT ${EVIDENCE_PAGE_SIZE}`
+      : await sql`
+          SELECT subject, chapter, concept, correctness, created_at, id
+          FROM learning_evidence
+          WHERE learner_id=${learnerId}
+          ORDER BY created_at DESC, id DESC
+          LIMIT ${EVIDENCE_PAGE_SIZE}`;
+    const batch = Array.isArray(result?.rows) ? result.rows : [];
+    rows.push(...batch);
+    if (batch.length < EVIDENCE_PAGE_SIZE) break;
+    const last = batch[batch.length - 1];
+    cursor = { createdAt: last.created_at, id: last.id };
+  }
+  return rows;
+}
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'private, no-store, max-age=0');
@@ -32,22 +60,19 @@ export default async function handler(req, res) {
           LIMIT 1`;
     if (!accessRows.rows.length) return json(res, 404, { error: { code: 'LEARNER_NOT_FOUND', message: 'Learner not found or not accessible.' } });
 
-    const evidence = await sql`
-      SELECT subject, chapter, concept, correctness, created_at
-      FROM learning_evidence
-      WHERE learner_id=${learnerId}
-      ORDER BY created_at DESC
-      LIMIT 60`;
-    const attempts = await sql`
-      SELECT assessment_title, score, max_score, completed_at
-      FROM assessment_attempts
-      WHERE learner_id=${learnerId}
-        AND status IN ('submitted','evaluated','completed')
-      ORDER BY completed_at DESC NULLS LAST, created_at DESC
-      LIMIT 5`;
+    const [evidenceRows, attempts] = await Promise.all([
+      loadAllEvidence(learnerId),
+      sql`
+        SELECT assessment_title, score, max_score, completed_at
+        FROM assessment_attempts
+        WHERE learner_id=${learnerId}
+          AND status IN ('submitted','evaluated','completed')
+        ORDER BY completed_at DESC NULLS LAST, created_at DESC
+        LIMIT 5`
+    ]);
 
-    const rows = evidence.rows.filter(row => VALID_CORRECTNESS.has(row.correctness));
-    const invalidEvidenceCount = evidence.rows.length - rows.length;
+    const rows = evidenceRows.filter(row => VALID_CORRECTNESS.has(row.correctness));
+    const invalidEvidenceCount = evidenceRows.length - rows.length;
     if (!rows.length && !attempts.rows.length) {
       await writeAudit({ actorUserId: session.user_id, action: 'teacher.notes.draft_view', entityType: 'learner', entityId: learnerId, metadata: { evidenceCount: 0, invalidEvidenceExcluded: invalidEvidenceCount, insufficientEvidence: true, minimumEvidence: MIN_EVIDENCE } });
       return json(res, 200, {
