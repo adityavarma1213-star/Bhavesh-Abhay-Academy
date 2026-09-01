@@ -63,6 +63,41 @@ function buildAcademicAlerts(memoryRows, assessmentRows) {
   return alerts.sort((a, b) => ({ high: 0, medium: 1, low: 2 }[a.severity] ?? 9) - ({ high: 0, medium: 1, low: 2 }[b.severity] ?? 9));
 }
 
+async function loadAllAcknowledgements(learnerId) {
+  const rows = [];
+  const batchSize = 500;
+  let cursorAt = null;
+  let cursorId = null;
+
+  while (true) {
+    const batch = cursorAt === null
+      ? await sql`
+          SELECT alert_id, acknowledged_at
+          FROM guardian_alert_acknowledgements
+          WHERE learner_id=${learnerId}
+          ORDER BY acknowledged_at DESC, alert_id DESC
+          LIMIT ${batchSize}
+        `
+      : await sql`
+          SELECT alert_id, acknowledged_at
+          FROM guardian_alert_acknowledgements
+          WHERE learner_id=${learnerId}
+            AND (acknowledged_at, alert_id) < (${cursorAt}::timestamptz, ${cursorId})
+          ORDER BY acknowledged_at DESC, alert_id DESC
+          LIMIT ${batchSize}
+        `;
+
+    rows.push(...batch.rows);
+    if (batch.rows.length < batchSize) break;
+
+    const last = batch.rows[batch.rows.length - 1];
+    cursorAt = last.acknowledged_at;
+    cursorId = last.alert_id;
+  }
+
+  return rows;
+}
+
 export default async function handler(req, res) {
   try {
     const session = await requireAuth(req);
@@ -76,13 +111,7 @@ export default async function handler(req, res) {
 
     if (req.method === 'GET') {
       const [acknowledgements, memory, assessments] = await Promise.all([
-        sql`
-          SELECT alert_id, acknowledged_at
-          FROM guardian_alert_acknowledgements
-          WHERE learner_id=${learnerId}
-          ORDER BY acknowledged_at DESC
-          LIMIT 500
-        `,
+        loadAllAcknowledgements(learnerId),
         sql`
           SELECT concept, subject, status, evidence_count, correct_count, last_updated
           FROM learning_memory
@@ -109,7 +138,7 @@ export default async function handler(req, res) {
         alerts,
         alertCount: alerts.length,
         highestSeverity: alerts[0]?.severity || 'none',
-        acknowledgements: acknowledgements.rows.map(row => ({ alertId: row.alert_id, acknowledgedAt: row.acknowledged_at })),
+        acknowledgements: acknowledgements.map(row => ({ alertId: row.alert_id, acknowledgedAt: row.acknowledged_at })),
         evidence: { trackedConcepts: memory.rows.length, assessments: assessments.rows.length },
         evaluatedAt: new Date().toISOString(),
         scope: 'academic_support_only',
