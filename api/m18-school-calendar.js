@@ -5,6 +5,7 @@ import { sql } from './_lib/db.js';
 export const config = { runtime: 'nodejs' };
 
 const ALLOWED_TYPES = new Set(['exam', 'deadline', 'holiday', 'school_event']);
+const PAGE_SIZE = 500;
 
 function noStore(res) {
   res.setHeader('Cache-Control', 'private, no-store, max-age=0');
@@ -36,6 +37,41 @@ function rowsToEvents(rows) {
     subject: row.subject,
     createdAt: row.created_at,
   }));
+}
+
+async function loadAllEvents(learnerId, from, to) {
+  const rows = [];
+  let cursor = null;
+  for (;;) {
+    const page = cursor
+      ? await sql`
+          SELECT id,title,event_date,event_type,subject,created_at
+          FROM school_calendar_events
+          WHERE learner_id=${learnerId}
+            AND (${from}::date IS NULL OR event_date >= ${from}::date)
+            AND (${to}::date IS NULL OR event_date <= ${to}::date)
+            AND (
+              event_date > ${cursor.eventDate}
+              OR (event_date = ${cursor.eventDate} AND created_at > ${cursor.createdAt})
+              OR (event_date = ${cursor.eventDate} AND created_at = ${cursor.createdAt} AND id > ${cursor.id})
+            )
+          ORDER BY event_date ASC, created_at ASC, id ASC
+          LIMIT ${PAGE_SIZE}`
+      : await sql`
+          SELECT id,title,event_date,event_type,subject,created_at
+          FROM school_calendar_events
+          WHERE learner_id=${learnerId}
+            AND (${from}::date IS NULL OR event_date >= ${from}::date)
+            AND (${to}::date IS NULL OR event_date <= ${to}::date)
+          ORDER BY event_date ASC, created_at ASC, id ASC
+          LIMIT ${PAGE_SIZE}`;
+    const batch = Array.isArray(page?.rows) ? page.rows : [];
+    rows.push(...batch);
+    if (batch.length < PAGE_SIZE) break;
+    const last = batch[batch.length - 1];
+    cursor = { eventDate: last.event_date, createdAt: last.created_at, id: last.id };
+  }
+  return rows;
 }
 
 function escapeIcs(value) {
@@ -81,15 +117,8 @@ async function handler(req, res) {
       if (from && to && from > to) {
         return json(res, 400, { error: { code: 'INVALID_DATE_RANGE', message: 'from must be on or before to.' } });
       }
-      const rows = await sql`
-        SELECT id,title,event_date,event_type,subject,created_at
-        FROM school_calendar_events
-        WHERE learner_id=${learnerId}
-          AND (${from}::date IS NULL OR event_date >= ${from}::date)
-          AND (${to}::date IS NULL OR event_date <= ${to}::date)
-        ORDER BY event_date ASC, created_at ASC
-        LIMIT 500`;
-      const events = rowsToEvents(rows.rows);
+      const rows = await loadAllEvents(learnerId, from, to);
+      const events = rowsToEvents(rows);
       if (String(req.query?.format || '').toLowerCase() === 'ics') {
         const ics = buildIcs(events);
         res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
