@@ -8,6 +8,7 @@ const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
 const MIN_EVIDENCE = 3;
 const VALID_CORRECTNESS = new Set(['correct', 'partially_correct', 'incorrect']);
 const NO_STORE = { 'Cache-Control': 'private, no-store, max-age=0' };
+const EVIDENCE_PAGE_SIZE = 500;
 
 function stateForEvidence(rows) {
   const grouped = new Map();
@@ -40,6 +41,33 @@ function stateForEvidence(rows) {
           : 'learning';
     return { ...item, accuracy, state, evidenceSufficient };
   });
+}
+
+async function loadAllEvidence(learnerId) {
+  const rows = [];
+  let cursor = null;
+  for (;;) {
+    const result = cursor
+      ? await sql`
+          SELECT subject,chapter,concept,correctness,created_at,id
+          FROM learning_evidence
+          WHERE learner_id=${learnerId}
+            AND (created_at < ${cursor.createdAt} OR (created_at=${cursor.createdAt} AND id < ${cursor.id}))
+          ORDER BY created_at DESC,id DESC
+          LIMIT ${EVIDENCE_PAGE_SIZE}`
+      : await sql`
+          SELECT subject,chapter,concept,correctness,created_at,id
+          FROM learning_evidence
+          WHERE learner_id=${learnerId}
+          ORDER BY created_at DESC,id DESC
+          LIMIT ${EVIDENCE_PAGE_SIZE}`;
+    const batch = Array.isArray(result?.rows) ? result.rows : [];
+    rows.push(...batch);
+    if (batch.length < EVIDENCE_PAGE_SIZE) break;
+    const last = batch[batch.length - 1];
+    cursor = { createdAt: last.created_at, id: last.id };
+  }
+  return rows;
 }
 
 async function getPolicy(learnerId) {
@@ -76,12 +104,8 @@ async function handler(req, res) {
       }, NO_STORE);
     }
 
-    const [evidence, upcoming, goals] = await Promise.all([
-      sql`SELECT subject,chapter,concept,correctness,created_at
-          FROM learning_evidence
-          WHERE learner_id=${learnerId}
-          ORDER BY created_at DESC
-          LIMIT 300`,
+    const [evidenceRows, upcoming, goals] = await Promise.all([
+      loadAllEvidence(learnerId),
       sql`SELECT title,subject,date,assessment_id
           FROM planner_upcoming_assessments
           WHERE learner_id=${learnerId} AND date>=CURRENT_DATE
@@ -90,7 +114,7 @@ async function handler(req, res) {
       sql`SELECT text FROM planner_goals WHERE learner_id=${learnerId} ORDER BY created_at ASC LIMIT 20`,
     ]);
 
-    const states = stateForEvidence(evidence.rows);
+    const states = stateForEvidence(evidenceRows);
     const recommendations = [];
     let remainingMinutes = policy.plannerDailyMinutes;
 
@@ -134,7 +158,7 @@ async function handler(req, res) {
       evidenceGate: {
         minEvidence: MIN_EVIDENCE,
         sparseConceptsExcluded: states.filter(x => !x.evidenceSufficient).length,
-        invalidEvidenceExcluded: evidence.rows.length - validEvidencePoints,
+        invalidEvidenceExcluded: evidenceRows.length - validEvidencePoints,
         validCorrectnessStates: [...VALID_CORRECTNESS],
       },
       plannerDailyMinutes: policy.plannerDailyMinutes,
