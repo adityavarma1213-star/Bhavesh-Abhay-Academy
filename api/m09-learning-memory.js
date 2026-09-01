@@ -7,6 +7,7 @@ export const config = { runtime: 'nodejs' };
 const clean = (v, max = 160) => String(v ?? '').trim().slice(0, max);
 const human = v => clean(v, 100).replace(/[-_]+/g, ' ');
 const VALID_CORRECTNESS = ['correct', 'partially_correct', 'incorrect'];
+const PAGE_SIZE = 500;
 
 function confidence(count, hasReviewFlag) {
   if (count < 3) return { level: 'insufficient', label: 'Not enough evidence' };
@@ -26,6 +27,37 @@ function deriveState(rows) {
   return 'needs_revision';
 }
 
+async function loadAllEvidence(learnerId) {
+  const rows = [];
+  let cursor = null;
+  for (;;) {
+    const result = cursor
+      ? await sql`
+          SELECT id, concept, subject, topic, correctness, confidence, error_type, created_at
+          FROM learning_evidence
+          WHERE learner_id = ${learnerId}
+            AND correctness IN ('correct', 'partially_correct', 'incorrect')
+            AND (created_at < ${cursor.createdAt} OR (created_at = ${cursor.createdAt} AND id < ${cursor.id}))
+          ORDER BY created_at DESC, id DESC
+          LIMIT ${PAGE_SIZE}
+        `
+      : await sql`
+          SELECT id, concept, subject, topic, correctness, confidence, error_type, created_at
+          FROM learning_evidence
+          WHERE learner_id = ${learnerId}
+            AND correctness IN ('correct', 'partially_correct', 'incorrect')
+          ORDER BY created_at DESC, id DESC
+          LIMIT ${PAGE_SIZE}
+        `;
+    const batch = Array.isArray(result?.rows) ? result.rows : [];
+    rows.push(...batch);
+    if (batch.length < PAGE_SIZE) break;
+    const last = batch[batch.length - 1];
+    cursor = { createdAt: last.created_at, id: last.id };
+  }
+  return rows;
+}
+
 export default async function handler(req, res) {
   const NO_STORE = { 'Cache-Control': 'private, no-store, max-age=0' };
   if (req.method !== 'GET') return json(res, 405, { error: { code: 'METHOD_NOT_ALLOWED', message: 'GET required.' } }, { Allow: 'GET', ...NO_STORE });
@@ -34,15 +66,7 @@ export default async function handler(req, res) {
     const learnerId = clean(req.query?.learnerId, 120);
     await requireLearnerAccess(session, learnerId);
 
-    const result = await sql`
-      SELECT id, concept, subject, topic, correctness, confidence, error_type, created_at
-      FROM learning_evidence
-      WHERE learner_id = ${learnerId}
-        AND correctness IN ('correct', 'partially_correct', 'incorrect')
-      ORDER BY created_at DESC
-      LIMIT 1000
-    `;
-    const rows = result.rows || [];
+    const rows = await loadAllEvidence(learnerId);
     const grouped = new Map();
     for (const row of rows) {
       const concept = clean(row.concept, 120);
@@ -101,6 +125,7 @@ export default async function handler(req, res) {
         'Academic learning signals only; no psychological or emotional profiling.',
         'Question-level evidence is included only when the corresponding server evidence rows exist.',
         'Concept evidence is isolated by subject to avoid cross-subject state contamination.',
+        'This endpoint processes the complete stored evidence history rather than silently truncating at an arbitrary row limit.',
         'This endpoint does not claim that a production database is provisioned merely because the source path exists.'
       ]
     }, NO_STORE);
