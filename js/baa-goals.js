@@ -39,13 +39,24 @@ function renderServerGoals(payload){
 async function loadServerGoals(learnerId){
  const id=String(learnerId||global.BAA_LEARNER_ID||'').trim();
  if(!id) return {ok:false,error:{code:'LEARNER_ID_REQUIRED'}};
- const response=await fetch(`/api/m25-goal-tracker?learnerId=${encodeURIComponent(id)}`,{credentials:'include',cache:'no-store',headers:{Accept:'application/json'}});
- const payload=await response.json().catch(()=>({}));
- if(!response.ok) throw new Error(payload?.error?.message||'Unable to load server goal progress.');
- serverSnapshot=payload;
- renderServerGoals(payload);
- try{global.dispatchEvent(new CustomEvent('baa:goals-server-updated',{detail:payload}));}catch(_){ }
- return payload;
+ const goals=[];
+ let cursor='';
+ let firstPayload=null;
+ do {
+   const query=new URLSearchParams({learnerId:id,goalLimit:'100'});
+   if(cursor)query.set('goalCursor',cursor);
+   const response=await fetch(`/api/m25-goal-tracker?${query.toString()}`,{credentials:'include',cache:'no-store',headers:{Accept:'application/json'}});
+   const payload=await response.json().catch(()=>({}));
+   if(!response.ok) throw new Error(payload?.error?.message||'Unable to load server goal progress.');
+   if(!firstPayload)firstPayload=payload;
+   if(Array.isArray(payload.goals))goals.push(...payload.goals);
+   cursor=payload.goalPagination?.hasMore?String(payload.goalPagination.nextCursor||''):'';
+ } while(cursor);
+ const combined={...(firstPayload||{ok:true}),goals,goalPagination:{limit:100,hasMore:false,nextCursor:null}};
+ serverSnapshot=combined;
+ renderServerGoals(combined);
+ try{global.dispatchEvent(new CustomEvent('baa:goals-server-updated',{detail:combined}));}catch(_){ }
+ return combined;
 }
 function getServerGoals(){return serverSnapshot?.goals||[];}
 function autoLoad(){
