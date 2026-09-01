@@ -6,6 +6,32 @@ export const config = { runtime: 'nodejs' };
 const noStore = { 'Cache-Control': 'private, no-store, max-age=0' };
 const clean = (value, max) => String(value ?? '').trim().slice(0, max);
 
+function clampLimit(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return 100;
+  return Math.min(Math.max(Math.floor(parsed), 1), 100);
+}
+
+function readCursor(query) {
+  const createdAt = clean(query?.cursorCreatedAt, 80);
+  const id = clean(query?.cursorId, 80);
+  if (!createdAt && !id) return null;
+  if (!createdAt || !id) {
+    const error = new Error('cursorCreatedAt and cursorId are both required.');
+    error.status = 400;
+    error.code = 'INVALID_CURSOR';
+    throw error;
+  }
+  const parsed = new Date(createdAt);
+  if (Number.isNaN(parsed.getTime())) {
+    const error = new Error('cursorCreatedAt must be a valid timestamp.');
+    error.status = 400;
+    error.code = 'INVALID_CURSOR';
+    throw error;
+  }
+  return { createdAt: parsed.toISOString(), id };
+}
+
 async function requireModerator(req) {
   const session = await requireAuth(req);
   const roles = Array.isArray(session.roles) ? session.roles : [];
@@ -22,16 +48,36 @@ export default async function handler(req, res) {
   try {
     const session = await requireModerator(req);
     if (req.method === 'GET') {
-      const result = await sql`
-        SELECT r.id, r.post_id AS "postId", r.reported_text AS "reportedText",
-               r.reason, r.status, r.created_at AS "createdAt",
-               r.reviewed_at AS "reviewedAt", r.reviewed_by_user_id AS "reviewedByUserId"
-        FROM community_reports r
-        WHERE r.status = 'open'
-        ORDER BY r.created_at ASC
-        LIMIT 100
-      `;
-      return json(res, 200, { ok: true, reports: result.rows || [] }, noStore);
+      const limit = clampLimit(req.query?.limit);
+      const cursor = readCursor(req.query);
+      const result = cursor
+        ? await sql`
+            SELECT r.id, r.post_id AS "postId", r.reported_text AS "reportedText",
+                   r.reason, r.status, r.created_at AS "createdAt",
+                   r.reviewed_at AS "reviewedAt", r.reviewed_by_user_id AS "reviewedByUserId"
+            FROM community_reports r
+            WHERE r.status = 'open'
+              AND (r.created_at, r.id) > (${cursor.createdAt}::timestamptz, ${cursor.id})
+            ORDER BY r.created_at ASC, r.id ASC
+            LIMIT ${limit + 1}
+          `
+        : await sql`
+            SELECT r.id, r.post_id AS "postId", r.reported_text AS "reportedText",
+                   r.reason, r.status, r.created_at AS "createdAt",
+                   r.reviewed_at AS "reviewedAt", r.reviewed_by_user_id AS "reviewedByUserId"
+            FROM community_reports r
+            WHERE r.status = 'open'
+            ORDER BY r.created_at ASC, r.id ASC
+            LIMIT ${limit + 1}
+          `;
+      const rows = result.rows || [];
+      const hasMore = rows.length > limit;
+      const reports = hasMore ? rows.slice(0, limit) : rows;
+      const last = reports[reports.length - 1];
+      const nextCursor = hasMore && last
+        ? { cursorCreatedAt: new Date(last.createdAt).toISOString(), cursorId: last.id }
+        : null;
+      return json(res, 200, { ok: true, reports, nextCursor }, noStore);
     }
     if (req.method !== 'PATCH') {
       return json(res, 405, { error: { code: 'METHOD_NOT_ALLOWED', message: 'GET or PATCH required.' } }, { Allow: 'GET, PATCH', ...noStore });
