@@ -5,6 +5,7 @@ import { sql } from './_lib/db.js';
 export const config = { runtime: 'nodejs' };
 
 const MIN_EVIDENCE = 3;
+const PAGE_SIZE = 500;
 const VALID_CORRECTNESS = new Set(['correct','partially_correct','incorrect']);
 const STOP_WORDS = new Set([
   'the','and','for','with','from','this','that','learn','learning','study','understand',
@@ -55,6 +56,32 @@ function goalProgress(goalText, evidenceRows) {
   return { status, accuracy, evidenceCount, matchedConcepts: evidenceBackedConcepts, sparseConcepts: concepts.filter(item => !item.evidenceSufficient), nextAction };
 }
 
+async function loadAllEvidence(learnerId) {
+  const rows = [];
+  let cursor = null;
+  for (;;) {
+    const page = cursor
+      ? await sql`SELECT subject,chapter,concept,correctness,created_at,id
+          FROM learning_evidence
+          WHERE learner_id=${learnerId}
+            AND (created_at < ${cursor.createdAt}
+              OR (created_at = ${cursor.createdAt} AND id < ${cursor.id}))
+          ORDER BY created_at DESC,id DESC
+          LIMIT ${PAGE_SIZE}`
+      : await sql`SELECT subject,chapter,concept,correctness,created_at,id
+          FROM learning_evidence
+          WHERE learner_id=${learnerId}
+          ORDER BY created_at DESC,id DESC
+          LIMIT ${PAGE_SIZE}`;
+    const batch = Array.isArray(page?.rows) ? page.rows : [];
+    rows.push(...batch);
+    if (batch.length < PAGE_SIZE) break;
+    const last = batch[batch.length - 1];
+    cursor = { createdAt: last.created_at, id: last.id };
+  }
+  return rows;
+}
+
 async function handler(req, res) {
   if (req.method !== 'GET') {
     return json(res, 405, { error: { code: 'METHOD_NOT_ALLOWED', message: 'GET required.' } }, { Allow: 'GET', 'Cache-Control': 'no-store' });
@@ -67,9 +94,7 @@ async function handler(req, res) {
 
     const [goals, evidence, upcoming] = await Promise.all([
       sql`SELECT id,text,created_at FROM planner_goals WHERE learner_id=${learnerId} ORDER BY created_at ASC LIMIT 50`,
-      sql`SELECT subject,chapter,concept,correctness,created_at
-          FROM learning_evidence WHERE learner_id=${learnerId}
-          ORDER BY created_at DESC LIMIT 500`,
+      loadAllEvidence(learnerId),
       sql`SELECT title,subject,date,assessment_id
           FROM planner_upcoming_assessments
           WHERE learner_id=${learnerId} AND date>=CURRENT_DATE
@@ -77,7 +102,7 @@ async function handler(req, res) {
     ]);
 
     const goalResults = goals.rows.map(goal => {
-      const progress = goalProgress(goal.text, evidence.rows);
+      const progress = goalProgress(goal.text, evidence);
       const nextAssessment = upcoming.rows.find(item => {
         const text = `${goal.text} ${progress.matchedConcepts.map(c => c.concept).join(' ')}`.toLowerCase();
         return item.subject && text.includes(String(item.subject).toLowerCase());
@@ -96,16 +121,16 @@ async function handler(req, res) {
       };
     });
 
-    const excludedEvidenceCount = evidence.rows.length - evidence.rows.filter(row => VALID_CORRECTNESS.has(row.correctness)).length;
+    const excludedEvidenceCount = evidence.length - evidence.filter(row => VALID_CORRECTNESS.has(row.correctness)).length;
     return json(res, 200, {
       ok: true,
       learnerId,
       goals: goalResults,
-      evidencePoints: evidence.rows.length - excludedEvidenceCount,
+      evidencePoints: evidence.length - excludedEvidenceCount,
       excludedEvidenceCount,
       evidenceGate: { minEvidence: MIN_EVIDENCE, validCorrectnessStates: [...VALID_CORRECTNESS] },
       source: 'server_planner_goals_and_learning_evidence',
-      limitations: ['Goal progress is reported only from matched concepts with at least three valid tagged evidence points.', 'Unscored or unknown correctness values are excluded from progress calculations.', 'This is an evidence-linked academic heuristic; it does not claim to predict outcomes or measure motivation.'],
+      limitations: ['Goal progress is reported only from matched concepts with at least three valid tagged evidence points.', 'Unscored or unknown correctness values are excluded from progress calculations.', 'This is an evidence-linked academic heuristic; it does not claim to predict outcomes or measure motivation.', 'Evidence is read with keyset pagination so older records are not silently dropped at an arbitrary row limit.'],
     }, { 'Cache-Control': 'private, no-store, max-age=0' });
   } catch (error) {
     return json(res, error.status || 500, {
