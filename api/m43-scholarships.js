@@ -9,6 +9,7 @@ export const config={runtime:'nodejs'};
 const PROVIDER_URL=String(process.env.BAA_SCHOLARSHIPS_PROVIDER_URL||'').trim();
 const PROVIDER_TOKEN=String(process.env.BAA_SCHOLARSHIPS_PROVIDER_TOKEN||'').trim();
 const PROVIDER_TIMEOUT_MS=8000;
+const MAX_PROVIDER_BYTES=1024*1024;
 const MAX_RESULTS=200;
 
 function cleanRecord(x){
@@ -57,7 +58,6 @@ function isPrivateIp(address){
   if(net.isIPv4(mapped))return isPrivateIpv4(mapped);
   const n=ipv6ToBigInt(address);
   if(n===null)return true;
-  const mask=(1n<<128n)-1n;
   const top7=n>>(128n-7n);
   const top10=n>>(128n-10n);
   const top64=n>>(128n-64n);
@@ -75,8 +75,6 @@ function isSafeProviderUrl(value){
   try{
     const url=new URL(value);
     if(url.protocol!=='https:')return false;
-    // Provider endpoints must use DNS hostnames. Reject IP literals so the
-    // outbound target cannot bypass the hostname policy.
     if(net.isIP(url.hostname))return false;
     const host=url.hostname.toLowerCase();
     if(host==='localhost'||host.endsWith('.localhost')||host==='metadata.google.internal'||host==='metadata')return false;
@@ -106,7 +104,13 @@ async function fetchProvider(req){
     const response=await fetch(target.toString(),{method:'GET',headers:{Accept:'application/json',...(PROVIDER_TOKEN?{Authorization:`Bearer ${PROVIDER_TOKEN}`}:{})},signal:controller.signal,redirect:'manual'});
     if(response.status>=300&&response.status<400)return {configured:true,results:[],message:'Scholarship provider redirect blocked for security.'};
     if(!response.ok)return {configured:true,results:[],message:`Scholarship provider returned HTTP ${response.status}.`};
-    const body=await response.json();
+    const declaredLength=Number(response.headers.get('content-length')||0);
+    if(Number.isFinite(declaredLength)&&declaredLength>MAX_PROVIDER_BYTES)return {configured:true,results:[],message:'Scholarship provider response is too large.'};
+    const bytes=await response.arrayBuffer();
+    if(bytes.byteLength>MAX_PROVIDER_BYTES)return {configured:true,results:[],message:'Scholarship provider response is too large.'};
+    let body;
+    try{body=JSON.parse(new TextDecoder().decode(bytes));}
+    catch{return {configured:true,results:[],message:'Scholarship provider returned invalid JSON.'};}
     const source=Array.isArray(body)?body:Array.isArray(body?.results)?body.results:Array.isArray(body?.scholarships)?body.scholarships:[];
     const results=source.map(cleanRecord).filter(x=>x.title&&x.provider&&isHttpsUrl(x.sourceUrl)).slice(0,MAX_RESULTS);
     return {configured:true,results,message:null};
@@ -128,7 +132,7 @@ export default async function handler(req,res){
       const seen=new Set();
       const results=[...provider.results,...local.rows].filter(item=>{const key=String(item.sourceUrl||item.id||'');if(!key||seen.has(key))return false;seen.add(key);return true;}).slice(0,MAX_RESULTS);
       if(provider.configured&&provider.results.length)await writeAudit({actorUserId:s.user_id,action:'scholarship.search',entityType:'scholarship_provider',entityId:'m43',metadata:{providerResultCount:provider.results.length}}).catch(()=>{});
-      return json(res,200,{ok:true,results,providerConfigured:provider.configured,live:provider.results.length>0,sourcePolicy:{publishedResultsRequireHttpsSource:true,providerResultsRequireHttpsSource:true,providerRedirectsBlocked:true,providerHostMustBeDnsName:true,providerDnsMustResolveToPublicAddresses:true},message:provider.message});
+      return json(res,200,{ok:true,results,providerConfigured:provider.configured,live:provider.results.length>0,sourcePolicy:{publishedResultsRequireHttpsSource:true,providerResultsRequireHttpsSource:true,providerRedirectsBlocked:true,providerHostMustBeDnsName:true,providerDnsMustResolveToPublicAddresses:true,providerPayloadMaxBytes:MAX_PROVIDER_BYTES},message:provider.message});
     }
     if(!hasRole(s,'admin'))return json(res,403,{error:{code:'FORBIDDEN',message:'Administrator role required.'}});
     if(req.method==='POST'){
@@ -155,5 +159,5 @@ export default async function handler(req,res){
       return json(res,200,{ok:true,id:scholarshipId,status});
     }
     return json(res,405,{error:{code:'METHOD_NOT_ALLOWED',message:'GET, POST or PUT required.'}},{Allow:'GET, POST, PUT'});
-  }catch(e){return json(res,e.status||500,{error:{code:e.code||'SCHOLARSHIP_FAILED',message:e.status?e.message:'Unable to process scholarship request.'}});}
+  }catch(e){return json(res,e.status||500,{error:{code:e.code||'SCHOLARSHIP_FAILED',message:e.status?'': 'Unable to process scholarship request.'}});}
 }
