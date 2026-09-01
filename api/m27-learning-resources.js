@@ -49,7 +49,7 @@ export default async function handler(req,res){
       COUNT(*) FILTER (WHERE correctness='partially_correct')::int AS partial_count,
       MAX(created_at) AS last_seen
       FROM learning_evidence WHERE learner_id=${learnerId}
-      GROUP BY subject,chapter,concept ORDER BY last_seen DESC LIMIT 100`;
+      GROUP BY subject,chapter,concept ORDER BY last_seen DESC`;
     const recommendations=[];
     for(const r of rows.rows){
       const evidence=Number(r.evidence_count||0), incorrect=Number(r.incorrect_count||0), partial=Number(r.partial_count||0);
