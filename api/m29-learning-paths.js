@@ -6,6 +6,23 @@ export const config = { runtime: 'nodejs' };
 
 const ORDER={needs_revision:0,struggling:0,learning:1,insufficient_evidence:2,mastered:3,strong:4};
 const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
+const PAGE_SIZE=500;
+
+async function loadAllEvidence(learnerId){
+  const rows=[];
+  let cursor=null;
+  for(;;){
+    const page=cursor
+      ? await sql`SELECT id,subject,chapter,concept,correctness,created_at FROM learning_evidence WHERE learner_id=${learnerId} AND (created_at>${cursor.createdAt} OR (created_at=${cursor.createdAt} AND id>${cursor.id})) ORDER BY created_at ASC,id ASC LIMIT ${PAGE_SIZE}`
+      : await sql`SELECT id,subject,chapter,concept,correctness,created_at FROM learning_evidence WHERE learner_id=${learnerId} ORDER BY created_at ASC,id ASC LIMIT ${PAGE_SIZE}`;
+    const batch=Array.isArray(page?.rows)?page.rows:[];
+    rows.push(...batch);
+    if(batch.length<PAGE_SIZE)break;
+    const last=batch[batch.length-1];
+    cursor={createdAt:last.created_at,id:last.id};
+  }
+  return rows;
+}
 
 function buildStates(rows){
   const grouped=new Map();
@@ -29,10 +46,6 @@ function buildStates(rows){
       else if(recentAccuracy>=60) state='learning';
       else state='needs_revision';
       if(recentAccuracy<=25 || recentIncorrect>=4) state='struggling';
-      // "strong" is deliberately stricter than mastered: it needs a larger
-      // evidence base and consistently correct recent evidence, matching the
-      // server Learning Memory confidence distinction rather than inventing a
-      // new mastery threshold.
       if(item.total>=6 && recent.length>=4 && recentAccuracy>=80 && recent.every(x=>x==='correct')) state='strong';
     }
     return {...item,accuracy,recentAccuracy,state,confidence:item.total>=6?'high':item.total>=3?'observed':'insufficient_evidence'};
@@ -48,8 +61,8 @@ export default async function handler(req,res){
     await requireLearnerAccess(session,learnerId);
     const subject=req.query?.subject?String(req.query.subject):null;
     const limit=clamp(Number(req.query?.limit)||12,1,30);
-    const evidence=await sql`SELECT subject,chapter,concept,correctness,created_at FROM learning_evidence WHERE learner_id=${learnerId} ORDER BY created_at DESC LIMIT 300`;
-    let states=buildStates(evidence.rows);
+    const evidenceRows=await loadAllEvidence(learnerId);
+    let states=buildStates(evidenceRows);
     if(subject)states=states.filter(s=>s.subject===subject);
     states.sort((a,b)=>(ORDER[a.state]??2)-(ORDER[b.state]??2)||(a.total-b.total));
     const nodes=states.slice(0,limit).map((s,index)=>({
@@ -58,7 +71,7 @@ export default async function handler(req,res){
       action:s.state==='struggling'||s.state==='needs_revision'?'Review and retry':s.state==='learning'?'Practice next':s.state==='mastered'||s.state==='strong'?'Extend or reassess':'Build evidence',
       current:index===0,prerequisiteClaim:null
     }));
-    return json(res,200,{ok:true,learnerId,subject,nodes,hasEvidence:Boolean(nodes.length),pathType:'evidence_priority_queue',evidencePoints:evidence.rows.length,source:'server_learning_evidence',limitation:'Node order is generated from current evidence state. BAA has not inferred a canonical syllabus prerequisite graph.'});
+    return json(res,200,{ok:true,learnerId,subject,nodes,hasEvidence:Boolean(nodes.length),pathType:'evidence_priority_queue',evidencePoints:evidenceRows.length,source:'server_learning_evidence',limitation:'Node order is generated from the complete stored evidence history. BAA has not inferred a canonical syllabus prerequisite graph.'});
   }catch(error){
     return json(res,error.status||500,{error:{code:error.code||'LEARNING_PATH_FAILED',message:error.status?error.message:'Unable to build learning path.'}});
   }
