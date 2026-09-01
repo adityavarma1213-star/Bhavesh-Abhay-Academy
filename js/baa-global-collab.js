@@ -1,6 +1,6 @@
 /* BAA M48 — Global Student Collaboration.
-   Local collaboration objects with explicit safety, age and lifecycle states.
-   Production still requires authenticated accounts, moderation and server persistence. */
+   Local validation remains deterministic for offline drafting; server-backed methods are
+   the production persistence boundary and must not silently fall back to local storage. */
 (function(global){
 'use strict';
 const STATUSES=['draft','open','paused','completed','archived'];
@@ -39,7 +39,14 @@ function moderate(project,participantId,state){
 }
 function persist(project){const checked=validateProject(project);if(!checked.ok)return checked;const all=load();const i=all.findIndex(x=>x.id===checked.project.id);if(i>=0)all[i]=checked.project;else all.push(checked.project);return save(all)?{ok:true,error:null,project:checked.project}:{ok:false,error:'PERSISTENCE_UNAVAILABLE'};}
 function list(){return {ok:true,error:null,projects:load()};}
-function filter(options){const o=options&&typeof options==='object'?options:{};const q=clean(o.query,120).toLowerCase();const region=clean(o.region,80).toLowerCase();const status=clean(o.status,40);const minAge=Number.isInteger(o.minimumAge)?o.minimumAge:null;return list().projects.filter(p=>(!q||`${p.title} ${p.description}`.toLowerCase().includes(q))&&(!region||p.region.toLowerCase()===region)&&(!status||p.status===status)&& (minAge==null||p.minimumAge<=minAge));}
+function filter(options){const o=options&&typeof options==='object'?options:{};const q=clean(o.query,120).toLowerCase();const region=clean(o.region,80).toLowerCase();const status=clean(o.status,40);const minAge=Number.isInteger(o.minimumAge)?o.minimumAge:null;return list().projects.filter(p=>(!q||`${p.title} ${p.description}`.toLowerCase().includes(q))&&(!region||p.region.toLowerCase()===region)&&(!status||p.status===status)&&(minAge==null||p.minimumAge<=minAge));}
 function exportProject(project){const checked=validateProject(project);if(!checked.ok)return checked;return {ok:true,error:null,data:JSON.stringify(checked.project)};}
-global.BAAGlobalCollab={validateProject,join,transition,moderate,persist,list,filter,exportProject,statuses:STATUSES};
+async function server(){return global.BAAM48Server||null;}
+async function createServerProject(project){const api=await server();if(!api?.createProject)return {ok:false,error:'COLLABORATION_SERVER_UNAVAILABLE'};return api.createProject(project);}
+async function listServerProjects(){const api=await server();if(!api?.listProjects)return {ok:false,error:'COLLABORATION_SERVER_UNAVAILABLE',projects:[]};return api.listProjects();}
+async function getServerProject(projectId){const api=await server();if(!api?.getProject)return {ok:false,error:'COLLABORATION_SERVER_UNAVAILABLE'};return api.getProject(projectId);}
+async function joinServerProject(projectId,displayName){const api=await server();if(!api?.joinProject)return {ok:false,error:'COLLABORATION_SERVER_UNAVAILABLE'};return api.joinProject(projectId,displayName);}
+async function transitionServerProject(projectId,status){const api=await server();if(!api?.transitionProject)return {ok:false,error:'COLLABORATION_SERVER_UNAVAILABLE'};return api.transitionProject(projectId,status);}
+async function moderateServerProject(projectId,moderationState){const api=await server();if(!api?.moderateProject)return {ok:false,error:'COLLABORATION_SERVER_UNAVAILABLE'};return api.moderateProject(projectId,moderationState);}
+global.BAAGlobalCollab={validateProject,join,transition,moderate,persist,list,filter,exportProject,createServerProject,listServerProjects,getServerProject,joinServerProject,transitionServerProject,moderateServerProject,statuses:STATUSES};
 })(window);
