@@ -24,8 +24,7 @@ export default async function handler(req, res) {
       WHERE le.learner_id=${learnerId}
         AND le.correctness IN ('correct','partially_correct','incorrect')
       GROUP BY le.subject, le.chapter, le.concept
-      ORDER BY last_seen DESC
-      LIMIT 200`;
+      ORDER BY last_seen DESC`;
     const now = Date.now();
     const plan = rows.rows.map(r => {
       const evidence = Number(r.evidence_count || 0);
