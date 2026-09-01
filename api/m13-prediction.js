@@ -4,6 +4,7 @@ import { requireAuth, requireLearnerAccess } from './_lib/auth.js';
 
 export const config = { runtime: 'nodejs' };
 const MIN_CONCEPT_EVIDENCE = 3;
+const MEMORY_PAGE_SIZE = 200;
 
 function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
 function confidenceBand(evidenceCount, conceptCount) {
@@ -14,6 +15,31 @@ function confidenceBand(evidenceCount, conceptCount) {
 }
 function noStore(res) { res.setHeader('Cache-Control', 'private, no-store, max-age=0'); }
 function forecastWarning(predicted) { if (predicted < 60) return 'high'; if (predicted < 75) return 'medium'; return 'low'; }
+
+async function loadAllMemory(learnerId) {
+  const rows = [];
+  let cursor = null;
+  for (;;) {
+    const page = cursor
+      ? await sql`SELECT id, subject, concept, status, evidence_count, correct_count, last_updated FROM learning_memory
+          WHERE learner_id=${learnerId}
+            AND status IN ('mastered','strong','learning','needs_revision')
+            AND (last_updated,id) < (${cursor.lastUpdated},${cursor.id})
+          ORDER BY last_updated DESC,id DESC
+          LIMIT ${MEMORY_PAGE_SIZE}`
+      : await sql`SELECT id, subject, concept, status, evidence_count, correct_count, last_updated FROM learning_memory
+          WHERE learner_id=${learnerId}
+            AND status IN ('mastered','strong','learning','needs_revision')
+          ORDER BY last_updated DESC,id DESC
+          LIMIT ${MEMORY_PAGE_SIZE}`;
+    const batch = Array.isArray(page?.rows) ? page.rows : [];
+    rows.push(...batch);
+    if (batch.length < MEMORY_PAGE_SIZE) break;
+    const last = batch[batch.length - 1];
+    cursor = { lastUpdated: last.last_updated, id: last.id };
+  }
+  return rows;
+}
 
 async function upcomingForecasts(learnerId) {
   const catalog = await sql`
@@ -65,13 +91,10 @@ export default async function handler(req, res) {
       SELECT id, score, max_score, end_time FROM assessment_attempts
       WHERE learner_id=${learnerId} AND status IN ('submitted','evaluated','completed') AND score IS NOT NULL AND max_score > 0
       ORDER BY COALESCE(end_time, start_time) DESC LIMIT 20`;
-    const memory = await sql`
-      SELECT subject, concept, status, evidence_count, correct_count FROM learning_memory
-      WHERE learner_id=${learnerId} AND status IN ('mastered','strong','learning','needs_revision')
-      ORDER BY last_updated DESC LIMIT 200`;
+    const memoryRows = await loadAllMemory(learnerId);
     const evidence = await sql`SELECT COUNT(*)::int AS count FROM learning_evidence WHERE learner_id=${learnerId}`;
     const evidenceCount = Number(evidence.rows[0]?.count || 0);
-    const allConceptRows = memory.rows;
+    const allConceptRows = memoryRows;
     const conceptRows = allConceptRows.filter(row => Number(row.evidence_count || 0) >= MIN_CONCEPT_EVIDENCE);
     const conceptNamespaces = new Set(conceptRows.map(row => `${row.subject || ''}\u001f${row.concept || ''}`));
     const band = confidenceBand(evidenceCount, conceptNamespaces.size);
