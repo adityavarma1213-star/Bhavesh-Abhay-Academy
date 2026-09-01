@@ -98,6 +98,43 @@ async function loadAllAcknowledgements(learnerId) {
   return rows;
 }
 
+async function loadAllLearningMemory(learnerId) {
+  const rows = [];
+  const batchSize = 500;
+  let cursorAt = null;
+  let cursorConcept = null;
+
+  while (true) {
+    const batch = cursorAt === null
+      ? await sql`
+          SELECT concept, subject, status, evidence_count, correct_count, last_updated
+          FROM learning_memory
+          WHERE learner_id=${learnerId}
+            AND status IN ('mastered','learning','needs_revision')
+          ORDER BY last_updated DESC, concept DESC
+          LIMIT ${batchSize}
+        `
+      : await sql`
+          SELECT concept, subject, status, evidence_count, correct_count, last_updated
+          FROM learning_memory
+          WHERE learner_id=${learnerId}
+            AND status IN ('mastered','learning','needs_revision')
+            AND (last_updated, concept) < (${cursorAt}::timestamptz, ${cursorConcept})
+          ORDER BY last_updated DESC, concept DESC
+          LIMIT ${batchSize}
+        `;
+
+    rows.push(...batch.rows);
+    if (batch.rows.length < batchSize) break;
+
+    const last = batch.rows[batch.rows.length - 1];
+    cursorAt = last.last_updated;
+    cursorConcept = last.concept;
+  }
+
+  return rows;
+}
+
 export default async function handler(req, res) {
   try {
     const session = await requireAuth(req);
@@ -110,16 +147,9 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'GET') {
-      const [acknowledgements, memory, assessments] = await Promise.all([
+      const [acknowledgements, memoryRows, assessments] = await Promise.all([
         loadAllAcknowledgements(learnerId),
-        sql`
-          SELECT concept, subject, status, evidence_count, correct_count, last_updated
-          FROM learning_memory
-          WHERE learner_id=${learnerId}
-            AND status IN ('mastered','learning','needs_revision')
-          ORDER BY last_updated DESC
-          LIMIT 200
-        `,
+        loadAllLearningMemory(learnerId),
         sql`
           SELECT score, max_score, COALESCE(end_time, start_time) AS completed_at
           FROM assessment_attempts
@@ -131,7 +161,7 @@ export default async function handler(req, res) {
           LIMIT 8
         `,
       ]);
-      const alerts = buildAcademicAlerts(memory.rows, assessments.rows);
+      const alerts = buildAcademicAlerts(memoryRows, assessments.rows);
       return json(res, 200, {
         ok: true,
         learnerId,
@@ -139,7 +169,7 @@ export default async function handler(req, res) {
         alertCount: alerts.length,
         highestSeverity: alerts[0]?.severity || 'none',
         acknowledgements: acknowledgements.map(row => ({ alertId: row.alert_id, acknowledgedAt: row.acknowledged_at })),
-        evidence: { trackedConcepts: memory.rows.length, assessments: assessments.rows.length },
+        evidence: { trackedConcepts: memoryRows.length, assessments: assessments.rows.length },
         evaluatedAt: new Date().toISOString(),
         scope: 'academic_support_only',
         limitation: 'Guardian uses academic learning evidence only. It does not diagnose mental health, personality, family conditions, or intent.',
