@@ -6,6 +6,8 @@ export const config = { runtime: 'nodejs' };
 
 const MIN_EVIDENCE = 3;
 const PAGE_SIZE = 500;
+const DEFAULT_GOAL_LIMIT = 50;
+const MAX_GOAL_LIMIT = 100;
 const VALID_CORRECTNESS = new Set(['correct','partially_correct','incorrect']);
 const STOP_WORDS = new Set([
   'the','and','for','with','from','this','that','learn','learning','study','understand',
@@ -82,6 +84,23 @@ async function loadAllEvidence(learnerId) {
   return rows;
 }
 
+function parseGoalCursor(value) {
+  if (!value) return null;
+  try {
+    const decoded = JSON.parse(Buffer.from(String(value), 'base64url').toString('utf8'));
+    if (!decoded || typeof decoded !== 'object' || typeof decoded.createdAt !== 'string' || typeof decoded.id !== 'string') return null;
+    const createdAt = new Date(decoded.createdAt);
+    if (Number.isNaN(createdAt.getTime())) return null;
+    return { createdAt: decoded.createdAt, id: decoded.id };
+  } catch (_) {
+    return null;
+  }
+}
+
+function encodeGoalCursor(row) {
+  return Buffer.from(JSON.stringify({ createdAt: new Date(row.created_at).toISOString(), id: row.id })).toString('base64url');
+}
+
 async function handler(req, res) {
   if (req.method !== 'GET') {
     return json(res, 405, { error: { code: 'METHOD_NOT_ALLOWED', message: 'GET required.' } }, { Allow: 'GET', 'Cache-Control': 'no-store' });
@@ -92,8 +111,23 @@ async function handler(req, res) {
     const learnerId = String(req.query?.learnerId || '');
     await requireLearnerAccess(session, learnerId);
 
+    const rawLimit = Number(req.query?.goalLimit || DEFAULT_GOAL_LIMIT);
+    const goalLimit = Number.isFinite(rawLimit) ? Math.min(Math.max(Math.floor(rawLimit), 1), MAX_GOAL_LIMIT) : DEFAULT_GOAL_LIMIT;
+    const cursor = parseGoalCursor(req.query?.goalCursor);
+    if (req.query?.goalCursor && !cursor) {
+      return json(res, 400, { error: { code: 'INVALID_GOAL_CURSOR', message: 'goalCursor is invalid.' } }, { 'Cache-Control': 'private, no-store, max-age=0' });
+    }
+
     const [goals, evidence, upcoming] = await Promise.all([
-      sql`SELECT id,text,created_at FROM planner_goals WHERE learner_id=${learnerId} ORDER BY created_at ASC LIMIT 50`,
+      cursor
+        ? sql`SELECT id,text,created_at FROM planner_goals
+            WHERE learner_id=${learnerId}
+              AND (created_at > ${cursor.createdAt}
+                OR (created_at = ${cursor.createdAt} AND id > ${cursor.id}))
+            ORDER BY created_at ASC,id ASC LIMIT ${goalLimit + 1}`
+        : sql`SELECT id,text,created_at FROM planner_goals
+            WHERE learner_id=${learnerId}
+            ORDER BY created_at ASC,id ASC LIMIT ${goalLimit + 1}`,
       loadAllEvidence(learnerId),
       sql`SELECT title,subject,date,assessment_id
           FROM planner_upcoming_assessments
@@ -101,7 +135,11 @@ async function handler(req, res) {
           ORDER BY date ASC LIMIT 12`,
     ]);
 
-    const goalResults = goals.rows.map(goal => {
+    const goalRows = Array.isArray(goals.rows) ? goals.rows : [];
+    const hasMore = goalRows.length > goalLimit;
+    const visibleGoals = hasMore ? goalRows.slice(0, goalLimit) : goalRows;
+
+    const goalResults = visibleGoals.map(goal => {
       const progress = goalProgress(goal.text, evidence);
       const nextAssessment = upcoming.rows.find(item => {
         const text = `${goal.text} ${progress.matchedConcepts.map(c => c.concept).join(' ')}`.toLowerCase();
@@ -126,11 +164,16 @@ async function handler(req, res) {
       ok: true,
       learnerId,
       goals: goalResults,
+      goalPagination: {
+        limit: goalLimit,
+        hasMore,
+        nextCursor: hasMore ? encodeGoalCursor(goalRows[goalRows.length - 1]) : null,
+      },
       evidencePoints: evidence.length - excludedEvidenceCount,
       excludedEvidenceCount,
       evidenceGate: { minEvidence: MIN_EVIDENCE, validCorrectnessStates: [...VALID_CORRECTNESS] },
       source: 'server_planner_goals_and_learning_evidence',
-      limitations: ['Goal progress is reported only from matched concepts with at least three valid tagged evidence points.', 'Unscored or unknown correctness values are excluded from progress calculations.', 'This is an evidence-linked academic heuristic; it does not claim to predict outcomes or measure motivation.', 'Evidence is read with keyset pagination so older records are not silently dropped at an arbitrary row limit.'],
+      limitations: ['Goal progress is reported only from matched concepts with at least three valid tagged evidence points.', 'Unscored or unknown correctness values are excluded from progress calculations.', 'This is an evidence-linked academic heuristic; it does not claim to predict outcomes or measure motivation.', 'Evidence is read with keyset pagination so older records are not silently dropped at an arbitrary row limit.', 'Goal history is keyset-paginated so older planner goals are not silently dropped at an arbitrary row limit.'],
     }, { 'Cache-Control': 'private, no-store, max-age=0' });
   } catch (error) {
     return json(res, error.status || 500, {
