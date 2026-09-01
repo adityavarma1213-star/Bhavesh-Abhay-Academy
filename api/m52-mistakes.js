@@ -6,7 +6,53 @@ export const config = { runtime: 'nodejs' };
 const TYPES = new Set(['concept_gap','calculation','reading','procedure','careless','unknown']);
 const MIN_COMMON_EVIDENCE = 3;
 const VALID_CORRECTNESS = ['incorrect','partially_correct'];
+const PAGE_SIZE = 500;
 const clean = (v, max = 160) => String(v ?? '').trim().slice(0, max);
+
+async function loadAllMistakeEvidence(learnerId, subject, chapter) {
+  const rows = [];
+  let cursor = null;
+  for (;;) {
+    const page = cursor
+      ? await sql`
+          SELECT le.id, le.subject, le.chapter, le.concept, le.question_id AS "questionId",
+                 le.attempt_id AS "attemptId", le.correctness, le.finding_details AS "findingDetails",
+                 le.created_at AS "createdAt",
+                 ar.confidence, ar.human_review_required AS "humanReviewRequired",
+                 ar.evaluation_failed AS "evaluationFailed"
+          FROM learning_evidence le
+          LEFT JOIN assessment_results ar
+            ON ar.attempt_id=le.attempt_id AND ar.question_id=le.question_id
+          WHERE le.learner_id=${learnerId}
+            AND le.correctness IN ('incorrect','partially_correct')
+            AND (${subject}='' OR le.subject=${subject})
+            AND (${chapter}='' OR le.chapter=${chapter})
+            AND (le.created_at < ${cursor.createdAt} OR (le.created_at=${cursor.createdAt} AND le.id < ${cursor.id}))
+          ORDER BY le.created_at DESC, le.id DESC
+          LIMIT ${PAGE_SIZE}`
+      : await sql`
+          SELECT le.id, le.subject, le.chapter, le.concept, le.question_id AS "questionId",
+                 le.attempt_id AS "attemptId", le.correctness, le.finding_details AS "findingDetails",
+                 le.created_at AS "createdAt",
+                 ar.confidence, ar.human_review_required AS "humanReviewRequired",
+                 ar.evaluation_failed AS "evaluationFailed"
+          FROM learning_evidence le
+          LEFT JOIN assessment_results ar
+            ON ar.attempt_id=le.attempt_id AND ar.question_id=le.question_id
+          WHERE le.learner_id=${learnerId}
+            AND le.correctness IN ('incorrect','partially_correct')
+            AND (${subject}='' OR le.subject=${subject})
+            AND (${chapter}='' OR le.chapter=${chapter})
+          ORDER BY le.created_at DESC, le.id DESC
+          LIMIT ${PAGE_SIZE}`;
+    const batch = Array.isArray(page?.rows) ? page.rows : [];
+    rows.push(...batch);
+    if (batch.length < PAGE_SIZE) break;
+    const last = batch[batch.length - 1];
+    cursor = { createdAt: last.createdAt, id: last.id };
+  }
+  return rows;
+}
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'private, no-store, max-age=0');
@@ -19,25 +65,11 @@ export default async function handler(req, res) {
     const chapter = clean(req.query?.chapter, 160);
     const limit = Math.min(Math.max(Number(req.query?.limit || 200), 1), 500);
 
-    const rows = await sql`
-      SELECT le.id, le.subject, le.chapter, le.concept, le.question_id AS "questionId",
-             le.attempt_id AS "attemptId", le.correctness, le.finding_details AS "findingDetails",
-             le.created_at AS "createdAt",
-             ar.confidence, ar.human_review_required AS "humanReviewRequired",
-             ar.evaluation_failed AS "evaluationFailed"
-      FROM learning_evidence le
-      LEFT JOIN assessment_results ar
-        ON ar.attempt_id=le.attempt_id AND ar.question_id=le.question_id
-      WHERE le.learner_id=${learnerId}
-        AND le.correctness IN ('incorrect','partially_correct')
-        AND (${subject}='' OR le.subject=${subject})
-        AND (${chapter}='' OR le.chapter=${chapter})
-      ORDER BY le.created_at DESC
-      LIMIT ${limit}`;
+    const rows = await loadAllMistakeEvidence(learnerId, subject, chapter);
 
     const map = {};
     const conceptMap = {};
-    for (const row of rows.rows) {
+    for (const row of rows) {
       const details = Array.isArray(row.findingDetails) ? row.findingDetails : [];
       const labels = details.length ? details : ['general_error'];
       for (const raw of labels) {
@@ -69,12 +101,12 @@ export default async function handler(req, res) {
       ok: true,
       learnerId,
       filters: { subject: subject || null, chapter: chapter || null },
-      groups,
+      groups: groups.slice(0, limit),
       commonMistakes,
       reasonSummary,
-      evidenceCount: rows.rows.length,
+      evidenceCount: rows.length,
       evidenceGate: { minimumCommonEvidence: MIN_COMMON_EVIDENCE, sparseEvidenceIsNotCommonPattern: true, validCorrectnessStates: VALID_CORRECTNESS },
-      limitation: 'Mistake archeology reports recorded incorrect or partially-correct evidence only; it does not diagnose psychological causes.'
+      limitation: 'Mistake archeology reports recorded incorrect or partially-correct evidence across the complete stored evidence history; it does not diagnose psychological causes.'
     });
   } catch (e) {
     return json(res, e.status || 500, { error: { code: e.code || 'MISTAKE_ANALYTICS_FAILED', message: e.status ? e.message : 'Unable to load mistake analytics.' } });
