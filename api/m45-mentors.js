@@ -10,6 +10,15 @@ const REQUEST_STATUS=['requested','accepted','declined','cancelled','completed']
 const REQUEST_TRANSITIONS={requested:new Set(['accepted','declined','cancelled']),accepted:new Set(['completed','cancelled']),declined:new Set([]),cancelled:new Set([]),completed:new Set([])};
 
 function noStore(res){res.setHeader('Cache-Control','private, no-store, max-age=0');}
+function clampLimit(value){return Math.min(Math.max(Number(value||100),1),100);}
+function clean(value,max){return String(value??'').trim().slice(0,max);}
+function readCursor(query){
+  const displayName=clean(query?.cursorDisplayName,160);
+  const idValue=clean(query?.cursorId,160);
+  if(!displayName&&!idValue) return null;
+  if(!displayName||!idValue){const e=new Error('cursorDisplayName and cursorId are both required.');e.status=400;e.code='INVALID_CURSOR';throw e;}
+  return {displayName,id:idValue};
+}
 
 async function enforceParentMentorPolicy(session, learnerId){
   if(!learnerId || hasRole(session,'admin')) return;
@@ -26,8 +35,14 @@ export default async function handler(req,res){
     const s=await requireAuth(req);
     if(req.method==='GET'){
       const subject=req.query?.subject?String(req.query.subject).slice(0,120):null;
-      const r=await sql`SELECT id,display_name AS "displayName",bio,subjects,verification_status AS "verificationStatus",safeguarding_status AS "safeguardingStatus",hourly_rate_minor AS "hourlyRateMinor",currency,availability FROM mentor_profiles WHERE verification_status='verified' AND safeguarding_status='verified' AND (${subject}::text IS NULL OR subjects ? ${subject}) ORDER BY display_name ASC LIMIT 100`;
-      return json(res,200,{ok:true,results:r.rows});
+      const limit=clampLimit(req.query?.limit);
+      const cursor=readCursor(req.query);
+      const r=cursor
+        ? await sql`SELECT id,display_name AS "displayName",bio,subjects,verification_status AS "verificationStatus",safeguarding_status AS "safeguardingStatus",hourly_rate_minor AS "hourlyRateMinor",currency,availability FROM mentor_profiles WHERE verification_status='verified' AND safeguarding_status='verified' AND (${subject}::text IS NULL OR subjects ? ${subject}) AND (display_name,id) > (${cursor.displayName},${cursor.id}) ORDER BY display_name ASC,id ASC LIMIT ${limit+1}`
+        : await sql`SELECT id,display_name AS "displayName",bio,subjects,verification_status AS "verificationStatus",safeguarding_status AS "safeguardingStatus",hourly_rate_minor AS "hourlyRateMinor",currency,availability FROM mentor_profiles WHERE verification_status='verified' AND safeguarding_status='verified' AND (${subject}::text IS NULL OR subjects ? ${subject}) ORDER BY display_name ASC,id ASC LIMIT ${limit+1}`;
+      const rows=r.rows||[]; const hasMore=rows.length>limit; const results=hasMore?rows.slice(0,limit):rows; const last=results[results.length-1];
+      const nextCursor=hasMore&&last?{cursorDisplayName:last.displayName,cursorId:last.id}:null;
+      return json(res,200,{ok:true,results,nextCursor});
     }
     if(req.method==='POST'){
       const b=req.body||{};
