@@ -7,6 +7,22 @@
    ============================================================ */
 (function(global){
   'use strict';
+  const MAX_RESPONSE_BYTES=1024*1024;
+  async function readBoundedJson(response){
+    const declared=Number(response?.headers?.get?.('content-length'));
+    if(Number.isFinite(declared)&&declared>MAX_RESPONSE_BYTES){try{response.body?.cancel?.();}catch(_){}throw new Error('RECOMMENDATIONS_RESPONSE_TOO_LARGE');}
+    if(!response?.body||typeof response.body.getReader!=='function'){
+      try{return await response.json();}catch(_){throw new Error('RECOMMENDATIONS_INVALID_RESPONSE');}
+    }
+    const reader=response.body.getReader();let total=0;const chunks=[];
+    try{
+      for(;;){const part=await reader.read();if(part.done)break;total+=part.value?.byteLength||0;if(total>MAX_RESPONSE_BYTES){try{await reader.cancel();}catch(_){}throw new Error('RECOMMENDATIONS_RESPONSE_TOO_LARGE');}chunks.push(part.value);}
+    }catch(error){try{await reader.cancel();}catch(_){}throw error;}
+    try{
+      const bytes=new Uint8Array(total);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.byteLength;}
+      return JSON.parse(new TextDecoder().decode(bytes));
+    }catch(_){throw new Error('RECOMMENDATIONS_INVALID_RESPONSE');}
+  }
   function getLearningSummary(){
     return typeof global.BAAIntelligence!=='undefined' ? global.BAAIntelligence.getLearningSummary() : null;
   }
@@ -47,10 +63,15 @@
     if(!id)return {ok:false,error:{code:'LEARNER_REQUIRED',message:'A learner context is required.'}};
     try{
       const response=await fetch(`/api/m16-teacher-recommendations?learnerId=${encodeURIComponent(id)}`,{credentials:'include',cache:'no-store',headers:{Accept:'application/json'}});
-      const data=await response.json().catch(()=>null);
+      let data;
+      try{data=await readBoundedJson(response);}catch(error){return {ok:false,error:{code:error?.message==='RECOMMENDATIONS_RESPONSE_TOO_LARGE'?'RECOMMENDATIONS_RESPONSE_TOO_LARGE':'RECOMMENDATIONS_INVALID_RESPONSE',message:error?.message==='RECOMMENDATIONS_RESPONSE_TOO_LARGE'?'Server recommendations response is too large.':'Server recommendations returned an invalid response.'}};}
       if(!response.ok)return {ok:false,error:data?.error||{code:'RECOMMENDATIONS_LOAD_FAILED',message:'Server recommendations could not be loaded.'}};
       return {ok:true,recommendations:Array.isArray(data?.recommendations)?data.recommendations:[],source:data?.source||'server_learning_evidence',limitation:data?.limitation||''};
-    }catch{return {ok:false,error:{code:'NETWORK_ERROR',message:'Server recommendations could not reach the teacher view.'}};}
+    }catch(error){
+      if(error?.message==='RECOMMENDATIONS_RESPONSE_TOO_LARGE')return {ok:false,error:{code:'RECOMMENDATIONS_RESPONSE_TOO_LARGE',message:'Server recommendations response is too large.'}};
+      if(error?.message==='RECOMMENDATIONS_INVALID_RESPONSE')return {ok:false,error:{code:'RECOMMENDATIONS_INVALID_RESPONSE',message:'Server recommendations returned an invalid response.'}};
+      return {ok:false,error:{code:'NETWORK_ERROR',message:'Server recommendations could not reach the teacher view.'}};
+    }
   }
 
   function esc(s){const d=document.createElement('div');d.textContent=String(s??'');return d.innerHTML;}
