@@ -3,15 +3,28 @@
 (function(global){
   'use strict';
   const API='/api/m06-mastery-gate.js';
+  const MAX_RESPONSE_BYTES=1024*1024;
   const q=(url)=>new URL(url,location.href).searchParams;
   function scope(url){const u=new URL(url,location.href), p=u.searchParams; return {
     url:u, learnerId:(p.get('learnerId')||'').trim(), subject:(p.get('subject')||'').trim(), chapter:(p.get('chapter')||'').trim()
   };}
+  async function readJsonResponse(r){
+    const declared=Number(r?.headers?.get?.('content-length')||0);
+    if(Number.isFinite(declared)&&declared>MAX_RESPONSE_BYTES){try{await r.body?.cancel?.();}catch(_){}throw new Error('M06_RESPONSE_TOO_LARGE');}
+    if(!r?.body||typeof r.body.getReader!=='function'){
+      try{const text=await r.text();if(new TextEncoder().encode(text).byteLength>MAX_RESPONSE_BYTES)throw new Error('M06_RESPONSE_TOO_LARGE');return JSON.parse(text);}
+      catch(e){if(e?.message==='M06_RESPONSE_TOO_LARGE')throw e;throw new Error('M06_INVALID_RESPONSE');}
+    }
+    const reader=r.body.getReader(),decoder=new TextDecoder();let bytes=0,text='';
+    try{while(true){const chunk=await reader.read();if(chunk.done)break;bytes+=chunk.value?.byteLength||0;if(bytes>MAX_RESPONSE_BYTES){try{await reader.cancel();}catch(_){}throw new Error('M06_RESPONSE_TOO_LARGE');}text+=decoder.decode(chunk.value,{stream:true});}text+=decoder.decode();return JSON.parse(text);}
+    catch(e){if(e?.message==='M06_RESPONSE_TOO_LARGE')throw e;throw new Error('M06_INVALID_RESPONSE');}
+    finally{try{reader.releaseLock();}catch(_) {}}
+  }
   async function getGate(s){
     if(!s.learnerId||!s.subject||!s.chapter) return null;
     const r=await fetch(`${API}?learnerId=${encodeURIComponent(s.learnerId)}&subject=${encodeURIComponent(s.subject)}&chapter=${encodeURIComponent(s.chapter)}`,{credentials:'include',cache:'no-store',headers:{Accept:'application/json'}});
     if(!r.ok) return null;
-    const data=await r.json(); return data && data.gate ? data.gate : null;
+    const data=await readJsonResponse(r); return data && data.gate ? data.gate : null;
   }
   function showLock(gate,s){
     if(!gate || !['locked'].includes(gate.status) || document.getElementById('baa-m06-lock')) return false;
