@@ -5,6 +5,7 @@
   'use strict';
   const SCHEMA_VERSION = 1, MODE = 'hybrid', MAX_STEPS = 14;
   const STORAGE_KEY = 'baa_hybrid_path_v1';
+  const SERVER_VERSION_KEY = 'baa_hybrid_path_server_version_v1';
   const VALID_TYPES = new Set(['learn','practice','review','assessment','tutor','custom']);
   const VALID_PRIORITIES = new Set(['student','balanced','ai']);
   const cleanText = (v, m=180) => typeof v === 'string' ? v.replace(/\s+/g,' ').trim().slice(0,m) : '';
@@ -28,6 +29,8 @@
     for(const step of steps){const key=conflictKey(step); if(!key){result.push(step);continue;} const i=seen.get(key); if(i==null){seen.set(key,result.length);result.push(step);continue;} if(p==='balanced'){result.push(step);continue;} const preferred=p==='student'?'custom':'ai'; if(step.source===preferred&&result[i].source!==preferred) result[i]=step;}
     return result;
   }
+  function setServerVersion(value){try{if(value)global.localStorage?.setItem(SERVER_VERSION_KEY,String(value));else global.localStorage?.removeItem(SERVER_VERSION_KEY);}catch{}}
+  function getServerVersion(){try{return global.localStorage?.getItem(SERVER_VERSION_KEY)||null;}catch{return null;}}
   function savePath(path){const normalized=normalizePath(path); try{global.localStorage?.setItem(STORAGE_KEY,JSON.stringify(normalized));return {ok:true,path:normalized};}catch{return {ok:false,error:{code:'STORAGE_WRITE_FAILED',message:'Hybrid Mode could not save the combined path.'}};}}
   function getPath(){try{return normalizePath(JSON.parse(global.localStorage?.getItem(STORAGE_KEY)||'null'));}catch{return normalizePath(null);}}
   function compose(aiPlan, customPath){
@@ -46,10 +49,24 @@
   function moveStep(path,id,direction){const p=normalizePath(path),i=p.steps.findIndex(s=>s.id===id);if(i<0)return {ok:false,error:{code:'STEP_NOT_FOUND'}};const n=direction==='up'?i-1:direction==='down'?i+1:i;if(n>=0&&n<p.steps.length){const x=p.steps.splice(i,1)[0];p.steps.splice(n,0,x);}return savePath(p);}
   function getActiveSteps(path){return normalizePath(path).steps.filter(s=>s.included!==false);}
   function saveStudentAdjustedPath(path){return savePath(path);}
-  function resetPath(){try{global.localStorage?.removeItem(STORAGE_KEY);return {ok:true,path:normalizePath(null)};}catch{return {ok:false,error:{code:'STORAGE_RESET_FAILED'}};}}
+  function resetPath(){try{global.localStorage?.removeItem(STORAGE_KEY);setServerVersion(null);return {ok:true,path:normalizePath(null)};}catch{return {ok:false,error:{code:'STORAGE_RESET_FAILED'}};}}
   function getSummary(path){const p=normalizePath(path),a=getActiveSteps(p);return {mode:MODE,priority:p.priority||'balanced',totalSteps:p.steps.length,activeSteps:a.length,aiSteps:p.steps.filter(s=>s.source==='ai').length,customSteps:p.steps.filter(s=>s.source==='custom').length,totalMinutes:a.reduce((n,s)=>n+s.minutes,0)};}
-  async function loadServer(learnerId){if(!learnerId)return {ok:false,error:{code:'LEARNER_ID_REQUIRED'}};try{const r=await fetch(`/api/m03-hybrid-mode?learnerId=${encodeURIComponent(learnerId)}`,{credentials:'include'}),d=await r.json().catch(()=>null);if(!r.ok)return {ok:false,error:d?.error||{code:'HYBRID_MODE_SERVER_READ_FAILED'}};const path=normalizePath(d?.path);savePath(path);return {ok:true,path,updatedAt:d?.updatedAt||null};}catch{return {ok:false,error:{code:'HYBRID_MODE_NETWORK_ERROR'}};}}
-  async function saveServer(learnerId,path=getPath()){if(!learnerId)return {ok:false,error:{code:'LEARNER_ID_REQUIRED'}};const normalized=normalizePath(path);try{const r=await fetch(`/api/m03-hybrid-mode?learnerId=${encodeURIComponent(learnerId)}`,{method:'PUT',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(normalized)}),d=await r.json().catch(()=>null);if(!r.ok)return {ok:false,error:d?.error||{code:'HYBRID_MODE_SERVER_WRITE_FAILED'}};savePath(normalizePath(d?.path||normalized));return {ok:true,path:normalizePath(d?.path||normalized)};}catch{return {ok:false,error:{code:'HYBRID_MODE_NETWORK_ERROR'}};}}
-  async function clearServer(learnerId){if(!learnerId)return {ok:false,error:{code:'LEARNER_ID_REQUIRED'}};try{const r=await fetch(`/api/m03-hybrid-mode?learnerId=${encodeURIComponent(learnerId)}`,{method:'DELETE',credentials:'include'}),d=await r.json().catch(()=>null);if(!r.ok)return {ok:false,error:d?.error||{code:'HYBRID_MODE_SERVER_DELETE_FAILED'}};return savePath(normalizePath(d?.path));}catch{return {ok:false,error:{code:'HYBRID_MODE_NETWORK_ERROR'}};}}
-  global.BAAHybridMode={SCHEMA_VERSION,MODE,STORAGE_KEY,MAX_STEPS,compose,normalizePath,savePath,saveStudentAdjustedPath,setStepIncluded,moveStep,getActiveSteps,getPath,VALID_PRIORITIES:Array.from(VALID_PRIORITIES),cleanPriority,resolveConflicts,applyPriority,resetPath,getSummary,loadServer,saveServer,clearServer};
+  async function loadServer(learnerId){if(!learnerId)return {ok:false,error:{code:'LEARNER_ID_REQUIRED'}};try{const r=await fetch(`/api/m03-hybrid-mode?learnerId=${encodeURIComponent(learnerId)}`,{credentials:'include',cache:'no-store'}),d=await r.json().catch(()=>null);if(!r.ok)return {ok:false,error:d?.error||{code:'HYBRID_MODE_SERVER_READ_FAILED'}};const path=normalizePath(d?.path);savePath(path);setServerVersion(d?.updatedAt||null);return {ok:true,path,updatedAt:d?.updatedAt||null};}catch{return {ok:false,error:{code:'HYBRID_MODE_NETWORK_ERROR'}};}}
+  async function saveServer(learnerId,path=getPath(),options={}){
+    if(!learnerId)return {ok:false,error:{code:'LEARNER_ID_REQUIRED'}};
+    const normalized=normalizePath(path);
+    const expectedUpdatedAt=options.expectedUpdatedAt===undefined?getServerVersion():options.expectedUpdatedAt;
+    const payload={...normalized,...(expectedUpdatedAt?{expectedUpdatedAt}: {})};
+    try{
+      const r=await fetch(`/api/m03-hybrid-mode?learnerId=${encodeURIComponent(learnerId)}`,{method:'PUT',credentials:'include',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}),d=await r.json().catch(()=>null);
+      if(!r.ok){
+        if(d?.error?.code==='HYBRID_MODE_CONFLICT'&&d.error.updatedAt)setServerVersion(d.error.updatedAt);
+        return {ok:false,error:d?.error||{code:'HYBRID_MODE_SERVER_WRITE_FAILED'}};
+      }
+      const savedPath=normalizePath(d?.path||normalized); savePath(savedPath); setServerVersion(d?.updatedAt||null);
+      return {ok:true,path:savedPath,updatedAt:d?.updatedAt||null};
+    }catch{return {ok:false,error:{code:'HYBRID_MODE_NETWORK_ERROR'}};}
+  }
+  async function clearServer(learnerId){if(!learnerId)return {ok:false,error:{code:'LEARNER_ID_REQUIRED'}};try{const r=await fetch(`/api/m03-hybrid-mode?learnerId=${encodeURIComponent(learnerId)}`,{method:'DELETE',credentials:'include',cache:'no-store'}),d=await r.json().catch(()=>null);if(!r.ok)return {ok:false,error:d?.error||{code:'HYBRID_MODE_SERVER_DELETE_FAILED'}};setServerVersion(null);return savePath(normalizePath(null));}catch{return {ok:false,error:{code:'HYBRID_MODE_NETWORK_ERROR'}};}}
+  global.BAAHybridMode={SCHEMA_VERSION,MODE,STORAGE_KEY,SERVER_VERSION_KEY,MAX_STEPS,compose,normalizePath,savePath,saveStudentAdjustedPath,setStepIncluded,moveStep,getActiveSteps,getPath,VALID_PRIORITIES:Array.from(VALID_PRIORITIES),cleanPriority,resolveConflicts,applyPriority,resetPath,getSummary,loadServer,saveServer,clearServer,getServerVersion};
 })(window);
