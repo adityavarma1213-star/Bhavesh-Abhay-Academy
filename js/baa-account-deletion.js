@@ -9,6 +9,50 @@
   const ENDPOINT = '/api/account/delete';
   const CONFIRMATION = 'DELETE MY ACCOUNT';
   const DEFAULT_TIMEOUT_MS = 15000;
+  const MAX_RESPONSE_BYTES = 1024 * 1024;
+
+  async function readJsonResponse(response) {
+    const declared = Number(response?.headers?.get?.('content-length'));
+    if (Number.isFinite(declared) && declared > MAX_RESPONSE_BYTES) {
+      try { response.body?.cancel?.(); } catch (_) {}
+      return { ok: false, error: 'ACCOUNT_DELETION_RESPONSE_TOO_LARGE' };
+    }
+
+    if (!response?.body || typeof response.body.getReader !== 'function') {
+      try {
+        const body = await response.json();
+        return { ok: true, body };
+      } catch (_) {
+        return { ok: false, error: 'ACCOUNT_DELETION_INVALID_RESPONSE' };
+      }
+    }
+
+    const reader = response.body.getReader();
+    const chunks = [];
+    let total = 0;
+    try {
+      while (true) {
+        const part = await reader.read();
+        if (part.done) break;
+        const chunk = part.value instanceof Uint8Array ? part.value : new Uint8Array(part.value || []);
+        total += chunk.byteLength;
+        if (total > MAX_RESPONSE_BYTES) {
+          try { await reader.cancel(); } catch (_) {}
+          return { ok: false, error: 'ACCOUNT_DELETION_RESPONSE_TOO_LARGE' };
+        }
+        chunks.push(chunk);
+      }
+      const bytes = new Uint8Array(total);
+      let offset = 0;
+      for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
+      const text = new TextDecoder().decode(bytes);
+      try { return { ok: true, body: JSON.parse(text) }; }
+      catch (_) { return { ok: false, error: 'ACCOUNT_DELETION_INVALID_RESPONSE' }; }
+    } catch (_) {
+      try { await reader.cancel(); } catch (_) {}
+      return { ok: false, error: 'ACCOUNT_DELETION_INVALID_RESPONSE' };
+    }
+  }
 
   async function deleteAccount(options = {}) {
     const confirmation = String(options.confirmation || '');
@@ -26,13 +70,15 @@
       const response = await fetch(ENDPOINT, {
         method: 'DELETE',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        cache: 'no-store',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         body: JSON.stringify({ confirmation: CONFIRMATION }),
         ...(controller ? { signal: controller.signal } : {}),
       });
 
-      let body = null;
-      try { body = await response.json(); } catch (_) { body = null; }
+      const parsed = await readJsonResponse(response);
+      if (!parsed.ok) return { ok: false, error: parsed.error, message: 'Account deletion returned an invalid response. No completion is claimed.' };
+      const body = parsed.body;
 
       if (!response.ok) {
         return {
@@ -68,5 +114,6 @@
     confirmationPhrase,
     endpoint,
     defaultTimeoutMs: DEFAULT_TIMEOUT_MS,
+    maxResponseBytes: MAX_RESPONSE_BYTES,
   };
 })(typeof window !== 'undefined' ? window : global);
