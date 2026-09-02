@@ -4,15 +4,49 @@
  */
 (function (global) {
   'use strict';
+  const MAX_RESPONSE_BYTES = 1024 * 1024;
+  async function readJsonResponse(response) {
+    const declared = Number(response?.headers?.get?.('content-length') || 0);
+    if (Number.isFinite(declared) && declared > MAX_RESPONSE_BYTES) {
+      try { response.body?.cancel?.(); } catch (_) {}
+      throw new Error('M09_RESPONSE_TOO_LARGE');
+    }
+    if (!response?.body || typeof response.body.getReader !== 'function') {
+      try {
+        const text = await response.text();
+        if (new TextEncoder().encode(text).byteLength > MAX_RESPONSE_BYTES) throw new Error('M09_RESPONSE_TOO_LARGE');
+        return JSON.parse(text);
+      } catch (error) {
+        if (error?.message === 'M09_RESPONSE_TOO_LARGE') throw error;
+        throw new Error('M09_INVALID_RESPONSE');
+      }
+    }
+    const reader = response.body.getReader(); const decoder = new TextDecoder(); let bytes = 0; let text = '';
+    try {
+      while (true) {
+        const chunk = await reader.read();
+        if (chunk.done) break;
+        bytes += chunk.value.byteLength;
+        if (bytes > MAX_RESPONSE_BYTES) {
+          try { await reader.cancel(); } catch (_) {}
+          throw new Error('M09_RESPONSE_TOO_LARGE');
+        }
+        text += decoder.decode(chunk.value, { stream: true });
+      }
+      text += decoder.decode();
+      try { return JSON.parse(text); } catch (_) { throw new Error('M09_INVALID_RESPONSE'); }
+    } finally { try { reader.releaseLock(); } catch (_) {} }
+  }
   function esc(v) { const d = document.createElement('div'); d.textContent = String(v ?? ''); return d.innerHTML; }
   function learnerId() { return String(global.BAA_LEARNER_ID || '').trim(); }
 
   async function load(id = learnerId()) {
     if (!id) return null;
-    const r = await fetch('/api/m09-learning-memory?learnerId=' + encodeURIComponent(id), { credentials: 'include', cache: 'no-store' });
+    const r = await fetch('/api/m09-learning-memory?learnerId=' + encodeURIComponent(id), { credentials: 'include', cache: 'no-store', headers: { Accept: 'application/json' } });
+    let p;
+    try { p = await readJsonResponse(r); } catch (error) { throw error; }
     if (!r.ok) throw new Error('M09_' + r.status);
-    const p = await r.json();
-    if (!p.ok) throw new Error('M09_INVALID');
+    if (!p?.ok) throw new Error('M09_INVALID');
     return p;
   }
 
@@ -45,8 +79,10 @@
         </div>
         <div style="margin-top:14px"><b>Server-backed concept history</b>${rows || '<div class="empty-note">No persisted academic evidence is available yet.</div>'}</div>
         <p style="font-size:.68rem;color:var(--faint);margin-top:10px">This panel uses authenticated learner-scoped PostgreSQL evidence. Missing evidence is not treated as weakness, and this feature does not infer psychological traits.</p>`;
-    }).catch(() => {
-      panel.querySelector('.empty-note').textContent = 'Server Learning Memory is unavailable. No browser-local profile is substituted as server-backed data.';
+    }).catch((error) => {
+      panel.querySelector('.empty-note').textContent = error?.message === 'M09_RESPONSE_TOO_LARGE'
+        ? 'Server Learning Memory response exceeded the safe response limit.'
+        : 'Server Learning Memory is unavailable. No browser-local profile is substituted as server-backed data.';
     });
   }
 
