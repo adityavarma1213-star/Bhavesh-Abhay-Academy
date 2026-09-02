@@ -5,6 +5,7 @@ import { sql } from './_lib/db.js';
 export const config = { runtime: 'nodejs' };
 const MIN_EVIDENCE = 3;
 const HISTORY_PAGE_SIZE = 20;
+const EVIDENCE_PAGE_SIZE = 500;
 function clean(v, max = 240) { return String(v ?? '').trim().slice(0, max); }
 function parseCursor(value) { if (!value) return null; try { const parsed = JSON.parse(Buffer.from(String(value), 'base64url').toString('utf8')); if (!parsed?.createdAt || !parsed?.id) throw new Error(); return parsed; } catch { const e = new Error('Invalid conversation cursor.'); e.status = 400; e.code = 'INVALID_CONVERSATION_CURSOR'; throw e; } }
 function encodeCursor(row) { return Buffer.from(JSON.stringify({ createdAt: String(row.createdAt), id: String(row.id) }), 'utf8').toString('base64url'); }
@@ -21,28 +22,34 @@ async function requireParentLearner(session, learnerId) {
   return rows.rows.length > 0;
 }
 async function loadLearningContext(learnerId) {
-  const rows = await sql`
-    SELECT concept, subject, topic, correctness, COUNT(*)::int AS evidence_count,
-           MAX(created_at) AS last_seen
-    FROM learning_evidence
-    WHERE learner_id=${learnerId}
-    GROUP BY concept, subject, topic, correctness
-    ORDER BY last_seen DESC
-  `;
-  if (!rows.rows.length) return { evidenceCount: 0, topic: 'the recent study work', state: 'insufficient evidence', evidence: [] };
   const byConcept = new Map();
-  for (const row of rows.rows) {
-    const key = `${row.subject || 'Unknown'}::${row.concept || 'recent study work'}`;
-    const item = byConcept.get(key) || { concept: row.concept || 'recent study work', subject: row.subject || '', topic: row.topic || '', total: 0, correct: 0, incorrect: 0, partial: 0, uncertain: 0, lastSeen: row.last_seen };
-    const count = Number(row.evidence_count) || 0;
-    item.total += count;
-    if (row.correctness === 'correct') item.correct += count;
-    else if (row.correctness === 'incorrect') item.incorrect += count;
-    else if (row.correctness === 'partially_correct') item.partial += count;
-    else item.uncertain += count;
-    if (!item.topic && row.topic) item.topic = row.topic;
-    byConcept.set(key, item);
+  let cursorCreatedAt = null;
+  let cursorId = null;
+  let evidenceCount = 0;
+  for (;;) {
+    const rows = cursorCreatedAt
+      ? await sql`SELECT id, concept, subject, topic, correctness, created_at AS "createdAt" FROM learning_evidence WHERE learner_id=${learnerId} AND (created_at,id)<(${cursorCreatedAt},${cursorId}::uuid) ORDER BY created_at DESC,id DESC LIMIT ${EVIDENCE_PAGE_SIZE}`
+      : await sql`SELECT id, concept, subject, topic, correctness, created_at AS "createdAt" FROM learning_evidence WHERE learner_id=${learnerId} ORDER BY created_at DESC,id DESC LIMIT ${EVIDENCE_PAGE_SIZE}`;
+    if (!rows.rows.length) break;
+    for (const row of rows.rows) {
+      evidenceCount += 1;
+      const key = `${row.subject || 'Unknown'}::${row.concept || 'recent study work'}`;
+      const item = byConcept.get(key) || { concept: row.concept || 'recent study work', subject: row.subject || '', topic: row.topic || '', total: 0, correct: 0, incorrect: 0, partial: 0, uncertain: 0, lastSeen: row.createdAt };
+      item.total += 1;
+      if (row.correctness === 'correct') item.correct += 1;
+      else if (row.correctness === 'incorrect') item.incorrect += 1;
+      else if (row.correctness === 'partially_correct') item.partial += 1;
+      else item.uncertain += 1;
+      if (!item.topic && row.topic) item.topic = row.topic;
+      if (String(row.createdAt) > String(item.lastSeen)) item.lastSeen = row.createdAt;
+      byConcept.set(key, item);
+    }
+    if (rows.rows.length < EVIDENCE_PAGE_SIZE) break;
+    const last = rows.rows[rows.rows.length - 1];
+    cursorCreatedAt = last.createdAt;
+    cursorId = last.id;
   }
+  if (!evidenceCount) return { evidenceCount: 0, topic: 'the recent study work', state: 'insufficient evidence', evidence: [] };
   const concepts = [...byConcept.values()].sort((a, b) => (b.total - a.total) || String(b.lastSeen).localeCompare(String(a.lastSeen)));
   const focus = concepts[0];
   const evidenceSufficient = focus.total >= MIN_EVIDENCE;
@@ -55,7 +62,7 @@ async function loadLearningContext(learnerId) {
     else state = 'learning';
   }
   return {
-    evidenceCount: concepts.reduce((sum, item) => sum + item.total, 0),
+    evidenceCount,
     topic: clean(focus.topic || focus.concept || 'the recent study work', 160),
     state,
     evidence: concepts.slice(0, 8).map(item => ({ concept: item.concept, subject: item.subject, evidenceCount: item.total, accuracy: item.total >= MIN_EVIDENCE ? Math.round((item.correct / item.total) * 100) : null, evidenceSufficient: item.total >= MIN_EVIDENCE }))
