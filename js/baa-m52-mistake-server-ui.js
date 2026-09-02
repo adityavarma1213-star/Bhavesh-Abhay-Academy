@@ -5,9 +5,23 @@
 (function(global){
   'use strict';
   let bound=false;
+  const MAX_RESPONSE_BYTES=1024*1024;
 
   function esc(v){const d=document.createElement('div');d.textContent=String(v??'');return d.innerHTML;}
   function learnerId(){return global.BAA_LEARNER_ID||null;}
+
+  async function readJsonBounded(response){
+    const declared=Number(response?.headers?.get?.('content-length'));
+    if(Number.isFinite(declared)&&declared>MAX_RESPONSE_BYTES){try{response.body?.cancel?.();}catch(_){}return {ok:false,error:'MISTAKES_RESPONSE_TOO_LARGE'};}
+    if(!response?.body||typeof response.body.getReader!=='function'){
+      try{return {ok:true,data:await response.json()};}catch(_){return {ok:false,error:'MISTAKES_INVALID_RESPONSE'};}
+    }
+    const reader=response.body.getReader(),chunks=[];let total=0;
+    try{while(true){const part=await reader.read();if(part.done)break;total+=part.value?.byteLength||0;if(total>MAX_RESPONSE_BYTES){try{await reader.cancel();}catch(_){}return {ok:false,error:'MISTAKES_RESPONSE_TOO_LARGE'};}chunks.push(part.value);}}
+    catch(_){try{await reader.cancel();}catch(_){}return {ok:false,error:'MISTAKES_INVALID_RESPONSE'};}
+    try{const bytes=new Uint8Array(total);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.byteLength;}return {ok:true,data:JSON.parse(new TextDecoder().decode(bytes))};}
+    catch(_){return {ok:false,error:'MISTAKES_INVALID_RESPONSE'};}
+  }
 
   async function load(){
     const output=document.getElementById('m52MistakeOutput');
@@ -17,7 +31,9 @@
     output.innerHTML='<div class="concept-why">Reading recorded learning evidence…</div>';
     try{
       const response=await fetch(`/api/m52-mistakes?learnerId=${encodeURIComponent(id)}&limit=200`,{credentials:'include',cache:'no-store',headers:{Accept:'application/json'}});
-      const payload=await response.json().catch(()=>({}));
+      const parsed=await readJsonBounded(response);
+      if(!parsed.ok)throw new Error(parsed.error==='MISTAKES_RESPONSE_TOO_LARGE'?'Mistake evidence response is too large.':'Mistake evidence response is invalid.');
+      const payload=parsed.data;
       if(!response.ok||!payload.ok)throw new Error(payload?.error?.message||'Mistake evidence unavailable.');
       const common=Array.isArray(payload.commonMistakes)?payload.commonMistakes.slice(0,8):[];
       const groups=Array.isArray(payload.groups)?payload.groups.slice(0,8):[];
