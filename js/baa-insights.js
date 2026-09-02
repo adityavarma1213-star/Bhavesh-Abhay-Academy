@@ -3,6 +3,26 @@
    academic score is generated. Missing data is reported as insufficient evidence. */
 (function(global){
 'use strict';
+const MAX_SERVER_RESPONSE_BYTES=1024*1024;
+async function readServerJson(response){
+  const declared=Number(response?.headers?.get?.('content-length')||0);
+  if(Number.isFinite(declared)&&declared>MAX_SERVER_RESPONSE_BYTES)throw new Error('INSIGHTS_RESPONSE_TOO_LARGE');
+  if(!response?.body?.getReader){
+    const text=await response.text();
+    if(new TextEncoder().encode(text).byteLength>MAX_SERVER_RESPONSE_BYTES)throw new Error('INSIGHTS_RESPONSE_TOO_LARGE');
+    return JSON.parse(text);
+  }
+  const reader=response.body.getReader(); const decoder=new TextDecoder(); let bytes=0; let text='';
+  try{
+    while(true){
+      const chunk=await reader.read(); if(chunk.done)break;
+      bytes+=chunk.value.byteLength;
+      if(bytes>MAX_SERVER_RESPONSE_BYTES){try{await reader.cancel();}catch(_){} throw new Error('INSIGHTS_RESPONSE_TOO_LARGE');}
+      text+=decoder.decode(chunk.value,{stream:true});
+    }
+    text+=decoder.decode(); return JSON.parse(text);
+  }finally{try{reader.releaseLock();}catch(_) {}}
+}
 function number(x){return Number.isFinite(Number(x))?Number(x):0;}
 function build(){
  let assessment=global.BAAAssessment&&typeof global.BAAAssessment._load==='function'?global.BAAAssessment._load():null;
@@ -23,7 +43,11 @@ async function load(learnerId){
    cache:'no-store',
    headers:{Accept:'application/json'}
  });
- const body=await response.json().catch(()=>({}));
+ let body={};
+ try{body=await readServerJson(response);}catch(error){
+   if(error?.message==='INSIGHTS_RESPONSE_TOO_LARGE')throw Object.assign(new Error('Insights server response is too large.'),{status:502,code:'INSIGHTS_RESPONSE_TOO_LARGE'});
+   body={error:{message:'Invalid server response.',code:'INSIGHTS_INVALID_RESPONSE'}};
+ }
  if(!response.ok)throw Object.assign(new Error(body?.error?.message||'Unable to load insights.'),{status:response.status,code:body?.error?.code});
  return body;
 }
