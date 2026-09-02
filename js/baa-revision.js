@@ -2,6 +2,32 @@
 (function(global){
 'use strict';
 const INTERVALS=[1,3,7,14,30];
+const MAX_RESPONSE_BYTES=1024*1024;
+async function readJsonResponse(response){
+ const declared=Number(response?.headers?.get?.('Content-Length'));
+ if(Number.isFinite(declared)&&declared>MAX_RESPONSE_BYTES){
+  try{response.body?.cancel?.();}catch{}
+  return {ok:false,error:{code:'REVISION_RESPONSE_TOO_LARGE',message:'Revision server response exceeded the allowed size.'}};
+ }
+ try{
+  if(response?.body?.getReader){
+   const reader=response.body.getReader(); const chunks=[]; let total=0;
+   while(true){
+    const part=await reader.read(); if(part.done)break;
+    total+=part.value?.byteLength||0;
+    if(total>MAX_RESPONSE_BYTES){try{await reader.cancel();}catch{} return {ok:false,error:{code:'REVISION_RESPONSE_TOO_LARGE',message:'Revision server response exceeded the allowed size.'}};}
+    chunks.push(part.value);
+   }
+   const bytes=new Uint8Array(total); let offset=0;
+   for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.byteLength;}
+   const text=new TextDecoder().decode(bytes);
+   try{return {ok:true,data:JSON.parse(text)};}catch{return {ok:false,error:{code:'REVISION_INVALID_RESPONSE',message:'Revision server returned an invalid response.'}};}
+  }
+  const text=await response.text();
+  if(new TextEncoder().encode(text).byteLength>MAX_RESPONSE_BYTES)return {ok:false,error:{code:'REVISION_RESPONSE_TOO_LARGE',message:'Revision server response exceeded the allowed size.'}};
+  try{return {ok:true,data:JSON.parse(text)};}catch{return {ok:false,error:{code:'REVISION_INVALID_RESPONSE',message:'Revision server returned an invalid response.'}};}
+ }catch{return {ok:false,error:{code:'REVISION_INVALID_RESPONSE',message:'Revision server response could not be read.'}};}
+}
 function getRevisionPlan(){
  const a=global.BAAAssessment;if(!a)return [];
  const memory=Object.values(a.getLearningMemory());
@@ -19,7 +45,9 @@ async function loadServerPlan(learnerId){
  if(!id)return {ok:false,error:{code:'LEARNER_REQUIRED',message:'A learner context is required.'}};
  try{
   const response=await fetch(`/api/m24-revision?learnerId=${encodeURIComponent(id)}`,{credentials:'include',cache:'no-store',headers:{Accept:'application/json'}});
-  const data=await response.json().catch(()=>null);
+  const parsed=await readJsonResponse(response);
+  if(!parsed.ok)return parsed;
+  const data=parsed.data;
   if(!response.ok)return {ok:false,error:data?.error||{code:'REVISION_LOAD_FAILED',message:'Revision schedule could not be loaded.'}};
   return {ok:true,plan:Array.isArray(data?.plan)?data.plan:[],source:data?.source||'server_learning_evidence',limitation:data?.limitation||''};
  }catch{return {ok:false,error:{code:'NETWORK_ERROR',message:'Revision schedule could not reach the server.'}};}
