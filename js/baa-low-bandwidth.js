@@ -9,6 +9,7 @@ const KEY='baa_low_bandwidth_v1';
 const META='baa_low_bandwidth_server_v1';
 const QUEUE='baa_low_bandwidth_pending_v1';
 const MODES=['auto','text','audio','lite'];
+const MAX_RESPONSE_BYTES=1024*1024;
 function defaults(){return {schemaVersion:1,enabled:false,contentMode:'auto'};}
 function readJson(key,fallback){try{return JSON.parse(localStorage.getItem(key)||'null')||fallback;}catch(_){return fallback;}}
 function get(){const x=readJson(KEY,null);return x&&x.schemaVersion===1?x:defaults();}
@@ -24,12 +25,39 @@ function pending(){const x=readJson(QUEUE,null);return x&&x.preference?x:null;}
 function queue(preference,learnerId,expectedUpdatedAt){try{localStorage.setItem(QUEUE,JSON.stringify({schemaVersion:1,learnerId,preference,expectedUpdatedAt:expectedUpdatedAt||null,queuedAt:new Date().toISOString()}));return true;}catch(_){return false;}}
 function clearQueue(){try{localStorage.removeItem(QUEUE);}catch(_){} }
 function authOptions(method){return {method,credentials:'include',cache:'no-store',headers:{'Accept':'application/json','Content-Type':'application/json'}};}
+async function readJsonResponse(response,errorCode){
+  const declared=Number(response?.headers?.get?.('content-length')||0);
+  if(Number.isFinite(declared)&&declared>MAX_RESPONSE_BYTES){try{response.body?.cancel?.();}catch(_){}return {ok:false,error:errorCode+'_TOO_LARGE'};}
+  if(!response?.body||typeof response.body.getReader!=='function'){
+    try{
+      const text=await response.text();
+      if(new TextEncoder().encode(text).byteLength>MAX_RESPONSE_BYTES)return {ok:false,error:errorCode+'_TOO_LARGE'};
+      return {ok:true,data:JSON.parse(text)};
+    }catch(_){return {ok:false,error:errorCode+'_INVALID_RESPONSE'};}
+  }
+  const reader=response.body.getReader();const chunks=[];let total=0;
+  try{
+    while(true){
+      const part=await reader.read();
+      if(part.done)break;
+      total+=part.value?.byteLength||0;
+      if(total>MAX_RESPONSE_BYTES){try{await reader.cancel();}catch(_e){}return {ok:false,error:errorCode+'_TOO_LARGE'};}
+      chunks.push(part.value);
+    }
+  }catch(_){try{await reader.cancel();}catch(_e){}return {ok:false,error:errorCode+'_INVALID_RESPONSE'};}
+  const bytes=new Uint8Array(total);let offset=0;
+  for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.length;}
+  try{return {ok:true,data:JSON.parse(new TextDecoder().decode(bytes))};}
+  catch(_){return {ok:false,error:errorCode+'_INVALID_RESPONSE'};}
+}
 async function getServer(learnerId){
   const id=String(learnerId||'').trim();
   if(!id)return {ok:false,error:'LEARNER_ID_REQUIRED'};
   try{
     const r=await fetch('/api/m41-low-bandwidth?learnerId='+encodeURIComponent(id),authOptions('GET'));
-    const data=await r.json().catch(()=>null);
+    const parsed=await readJsonResponse(r,'LOW_BANDWIDTH_RESPONSE');
+    if(!parsed.ok)return {ok:false,error:parsed.error};
+    const data=parsed.data;
     if(!r.ok||!data?.ok)return {ok:false,error:data?.error?.code||'LOW_BANDWIDTH_LOAD_FAILED'};
     if(data.preference){set(data.preference.enabled,data.preference.contentMode);saveServerMeta(data.preference,data.updatedAt||null);}
     const p=pending();
@@ -41,7 +69,9 @@ async function putServer(id,preference,expectedUpdatedAt){
   const opts=authOptions('PUT');
   opts.body=JSON.stringify({enabled:preference.enabled,contentMode:preference.contentMode,expectedUpdatedAt:expectedUpdatedAt||undefined});
   const r=await fetch('/api/m41-low-bandwidth?learnerId='+encodeURIComponent(id),opts);
-  const data=await r.json().catch(()=>null);
+  const parsed=await readJsonResponse(r,'LOW_BANDWIDTH_RESPONSE');
+  if(!parsed.ok)return {ok:false,error:parsed.error,data:null};
+  const data=parsed.data;
   if(!r.ok||!data?.ok)return {ok:false,error:data?.error?.code||'LOW_BANDWIDTH_SAVE_FAILED',data};
   saveServerMeta(data.preference,data.updatedAt||null);clearQueue();
   return {ok:true,error:null,state:data.preference,updatedAt:data.updatedAt||null};
