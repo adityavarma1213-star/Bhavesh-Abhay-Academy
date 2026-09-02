@@ -4,11 +4,32 @@
    learner when authorization fails. */
 (function(global){
 'use strict';
+const MAX_RESPONSE_BYTES=1024*1024;
 function esc(v){const d=document.createElement('div');d.textContent=String(v??'');return d.innerHTML;}
+async function readJsonResponse(response,errorCode){
+  const declared=Number(response?.headers?.get?.('content-length')||0);
+  if(Number.isFinite(declared)&&declared>MAX_RESPONSE_BYTES){try{await response.body?.cancel?.();}catch(_){}throw new Error(errorCode+'_RESPONSE_TOO_LARGE');}
+  if(!response?.body||typeof response.body.getReader!=='function'){
+    try{
+      const text=await response.text();
+      if(new TextEncoder().encode(text).byteLength>MAX_RESPONSE_BYTES)throw new Error(errorCode+'_RESPONSE_TOO_LARGE');
+      return JSON.parse(text);
+    }catch(error){
+      if(error?.message===errorCode+'_RESPONSE_TOO_LARGE')throw error;
+      throw new Error(errorCode+'_INVALID_RESPONSE');
+    }
+  }
+  const reader=response.body.getReader();const decoder=new TextDecoder();let bytes=0;let text='';
+  try{
+    while(true){const chunk=await reader.read();if(chunk.done)break;bytes+=chunk.value?.byteLength||0;if(bytes>MAX_RESPONSE_BYTES){try{await reader.cancel();}catch(_){}throw new Error(errorCode+'_RESPONSE_TOO_LARGE');}text+=decoder.decode(chunk.value,{stream:true});}
+    text+=decoder.decode();
+    try{return JSON.parse(text);}catch(_){throw new Error(errorCode+'_INVALID_RESPONSE');}
+  }finally{try{reader.releaseLock();}catch(_) {}}
+}
 async function getSession(){
-  const r=await fetch('/api/auth/me',{credentials:'include',cache:'no-store'});
+  const r=await fetch('/api/auth/me',{credentials:'include',cache:'no-store',headers:{Accept:'application/json'}});
   if(!r.ok) throw new Error(`AUTH_${r.status}`);
-  return r.json();
+  return readJsonResponse(r,'AUTH');
 }
 function expectedRole(){
   const path=String(global.location.pathname||'');
@@ -30,13 +51,13 @@ async function enforceRole(){
 async function getLearners(){
   const r=await fetch('/api/v1/my-learners',{credentials:'include',cache:'no-store',headers:{Accept:'application/json'}});
   if(!r.ok) throw new Error(`AUTH_${r.status}`);
-  const p=await r.json();
+  const p=await readJsonResponse(r,'LEARNERS');
   return Array.isArray(p.learners)?p.learners:[];
 }
 async function getOverview(learnerId){
   const r=await fetch(`/api/v1/learner-overview?learnerId=${encodeURIComponent(learnerId)}`,{credentials:'include',cache:'no-store',headers:{Accept:'application/json'}});
   if(!r.ok) throw new Error(`OVERVIEW_${r.status}`);
-  const p=await r.json();
+  const p=await readJsonResponse(r,'OVERVIEW');
   if(!p.ok||!p.snapshot) throw new Error('OVERVIEW_INVALID');
   return p.snapshot;
 }
@@ -95,7 +116,6 @@ async function init({mountId='serverLearnerView',onLearnerChange}={}){
     return null;
   }
 }
-
 function autoMountPrivateParentView(){
   const path=String(global.location.pathname||'');
   const isParent=path.endsWith('/parent-os.html');
@@ -103,19 +123,13 @@ function autoMountPrivateParentView(){
   if(!isParent && !isTeacher) return;
   const mount=document.getElementById('serverLearnerView');
   const legacy=document.getElementById('content');
-  /* Parent and Teacher dashboards must not visibly mix browser-local preview
-     analytics with the canonical authenticated learner snapshot. The legacy
-     render remains in source for private development, but is hidden whenever
-     the server-backed dashboard is mounted. */
   if(legacy) legacy.style.display='none';
   if(!mount) return;
   init({mountId:'serverLearnerView'});
 }
-
 if(typeof global.document!=='undefined'){
   if(global.document.readyState==='loading') global.document.addEventListener('DOMContentLoaded',autoMountPrivateParentView,{once:true});
   else autoMountPrivateParentView();
 }
-
 global.BAAServerLearnerView={getLearners,getOverview,init};
 })(window);
