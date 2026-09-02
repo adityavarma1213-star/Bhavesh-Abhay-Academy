@@ -7,6 +7,55 @@
   'use strict';
 
   const MAX_CONCEPTS = 20;
+  const MAX_RESPONSE_BYTES = 1024 * 1024;
+
+  async function readJsonBounded(response) {
+    const declared = Number(response?.headers?.get?.('content-length'));
+    if (Number.isFinite(declared) && declared > MAX_RESPONSE_BYTES) {
+      try { response.body?.cancel?.(); } catch (_) {}
+      return { ok: false, error: { code: 'AI_MODE_RESPONSE_TOO_LARGE', message: 'AI Mode returned too much data.' } };
+    }
+
+    if (!response?.body || typeof response.body.getReader !== 'function') {
+      try {
+        return { ok: true, data: await response.json() };
+      } catch (_) {
+        return { ok: false, error: { code: 'AI_MODE_INVALID_RESPONSE', message: 'AI Mode returned an invalid response.' } };
+      }
+    }
+
+    const reader = response.body.getReader();
+    const chunks = [];
+    let total = 0;
+    try {
+      while (true) {
+        const part = await reader.read();
+        if (part.done) break;
+        total += part.value?.byteLength || 0;
+        if (total > MAX_RESPONSE_BYTES) {
+          try { await reader.cancel(); } catch (_) {}
+          return { ok: false, error: { code: 'AI_MODE_RESPONSE_TOO_LARGE', message: 'AI Mode returned too much data.' } };
+        }
+        chunks.push(part.value);
+      }
+    } catch (_) {
+      try { await reader.cancel(); } catch (_) {}
+      return { ok: false, error: { code: 'AI_MODE_INVALID_RESPONSE', message: 'AI Mode returned an unreadable response.' } };
+    }
+
+    try {
+      const bytes = new Uint8Array(total);
+      let offset = 0;
+      for (const chunk of chunks) {
+        bytes.set(chunk, offset);
+        offset += chunk.byteLength;
+      }
+      const text = new TextDecoder().decode(bytes);
+      return { ok: true, data: JSON.parse(text) };
+    } catch (_) {
+      return { ok: false, error: { code: 'AI_MODE_INVALID_RESPONSE', message: 'AI Mode returned an invalid response.' } };
+    }
+  }
 
   function getInput() {
     const intel = global.BAAIntelligence;
@@ -63,8 +112,9 @@
       return { ok: false, error: { code: 'NETWORK_ERROR', message: 'AI Mode could not reach the server.' } };
     }
 
-    let data = null;
-    try { data = await response.json(); } catch {}
+    const parsed = await readJsonBounded(response);
+    if (!parsed.ok) return { ok: false, error: parsed.error };
+    const data = parsed.data;
     if (!response.ok) {
       return { ok: false, error: data?.error || { code: 'AI_MODE_ERROR', message: 'AI Mode could not build a plan.' } };
     }
