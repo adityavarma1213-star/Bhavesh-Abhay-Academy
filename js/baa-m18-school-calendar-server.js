@@ -6,6 +6,7 @@
 (function(global){
   'use strict';
   const API='api/m18-school-calendar';
+  const MAX_RESPONSE_BYTES=1024*1024;
   let ready=null;
 
   function learnerId(){
@@ -26,6 +27,30 @@
     return ready;
   }
 
+  async function readJsonResponse(response){
+    const declared=Number(response?.headers?.get?.('content-length'));
+    if(Number.isFinite(declared)&&declared>MAX_RESPONSE_BYTES){try{response.body?.cancel?.();}catch(_){}throw new Error('M18_RESPONSE_TOO_LARGE');}
+    if(!response?.body||typeof response.body.getReader!=='function'){
+      try{return await response.json();}catch(_){throw new Error('M18_INVALID_RESPONSE');}
+    }
+    const reader=response.body.getReader();const chunks=[];let total=0;
+    try{
+      while(true){
+        const part=await reader.read();
+        if(part.done)break;
+        const chunk=part.value instanceof Uint8Array?part.value:new Uint8Array(part.value||[]);
+        total+=chunk.byteLength;
+        if(total>MAX_RESPONSE_BYTES){try{await reader.cancel();}catch(_){}throw new Error('M18_RESPONSE_TOO_LARGE');}
+        chunks.push(chunk);
+      }
+    }catch(error){try{await reader.cancel();}catch(_){}if(error?.message==='M18_RESPONSE_TOO_LARGE')throw error;throw new Error('M18_INVALID_RESPONSE');}
+    try{
+      const bytes=new Uint8Array(total);let offset=0;
+      for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.byteLength;}
+      return JSON.parse(new TextDecoder().decode(bytes));
+    }catch(_){throw new Error('M18_INVALID_RESPONSE');}
+  }
+
   async function request(method, body){
     const id=learnerId();
     if(!id) throw new Error('Learner session unavailable');
@@ -36,7 +61,7 @@
       headers:{'Accept':'application/json','Content-Type':'application/json'},
       body:body ? JSON.stringify(Object.assign({learnerId:id},body)) : undefined
     });
-    const data=await response.json().catch(function(){return {};});
+    const data=await readJsonResponse(response);
     if(!response.ok) throw new Error(data?.error?.message || 'School calendar request failed');
     return data;
   }
