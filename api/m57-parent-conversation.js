@@ -28,7 +28,7 @@ async function loadLearningContext(learnerId) {
   let evidenceCount = 0;
   for (;;) {
     const rows = cursorCreatedAt
-      ? await sql`SELECT id, concept, subject, topic, correctness, created_at AS "createdAt" FROM learning_evidence WHERE learner_id=${learnerId} AND (created_at,id)<(${cursorCreatedAt},${cursorId}::uuid) ORDER BY created_at DESC,id DESC LIMIT ${EVIDENCE_PAGE_SIZE}`
+      ? await sql`SELECT id, concept, subject, topic, correctness, created_at AS "createdAt" FROM learning_evidence WHERE learner_id=${learnerId} AND (created_at,id)<(${cursorCreatedAt},${cursorId}) ORDER BY created_at DESC,id DESC LIMIT ${EVIDENCE_PAGE_SIZE}`
       : await sql`SELECT id, concept, subject, topic, correctness, created_at AS "createdAt" FROM learning_evidence WHERE learner_id=${learnerId} ORDER BY created_at DESC,id DESC LIMIT ${EVIDENCE_PAGE_SIZE}`;
     if (!rows.rows.length) break;
     for (const row of rows.rows) {
@@ -81,7 +81,7 @@ export default async function handler(req, res) {
       if (!await requireParentLearner(session, learnerId)) return json(res, 403, { error: { code: 'LEARNER_ACCESS_DENIED', message: 'Parent is not linked to this learner.' } });
       const cursor = parseCursor(req.query?.cursor);
       const rows = cursor
-        ? await sql`SELECT id, learner_id AS "learnerId", topic, state, prompts, created_at AS "createdAt" FROM parent_conversation_prompts WHERE learner_id=${learnerId} AND parent_user_id=${session.user_id} AND (created_at,id)<(${cursor.createdAt},${cursor.id}::uuid) ORDER BY created_at DESC,id DESC LIMIT ${HISTORY_PAGE_SIZE + 1}`
+        ? await sql`SELECT id, learner_id AS "learnerId", topic, state, prompts, created_at AS "createdAt" FROM parent_conversation_prompts WHERE learner_id=${learnerId} AND parent_user_id=${session.user_id} AND (created_at,id)<(${cursor.createdAt},${cursor.id}) ORDER BY created_at DESC,id DESC LIMIT ${HISTORY_PAGE_SIZE + 1}`
         : await sql`SELECT id, learner_id AS "learnerId", topic, state, prompts, created_at AS "createdAt" FROM parent_conversation_prompts WHERE learner_id=${learnerId} AND parent_user_id=${session.user_id} ORDER BY created_at DESC,id DESC LIMIT ${HISTORY_PAGE_SIZE + 1}`;
       const conversations = rows.rows.slice(0, HISTORY_PAGE_SIZE);
       const hasMore = rows.rows.length > HISTORY_PAGE_SIZE;
