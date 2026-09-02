@@ -10,7 +10,12 @@ const REQUEST_STATUS=['requested','accepted','declined','cancelled','completed']
 const REQUEST_TRANSITIONS={requested:new Set(['accepted','declined','cancelled']),accepted:new Set(['completed','cancelled']),declined:new Set([]),cancelled:new Set([]),completed:new Set([])};
 
 function noStore(res){res.setHeader('Cache-Control','private, no-store, max-age=0');}
-function clampLimit(value){return Math.min(Math.max(Number(value||100),1),100);}
+function clampLimit(value){
+  if(value===undefined||value===null||value==='') return 100;
+  const n=Number(value);
+  if(!Number.isFinite(n)||!Number.isInteger(n)||n<1){const e=new Error('limit must be a positive integer.');e.status=400;e.code='INVALID_LIMIT';throw e;}
+  return Math.min(n,100);
+}
 function clean(value,max){return String(value??'').trim().slice(0,max);}
 function readCursor(query){
   const displayName=clean(query?.cursorDisplayName,160);
