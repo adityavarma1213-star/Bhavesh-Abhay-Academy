@@ -63,7 +63,11 @@ export default async function handler(req, res) {
     await requireLearnerAccess(session, learnerId);
     const subject = clean(req.query?.subject, 120);
     const chapter = clean(req.query?.chapter, 160);
-    const limit = Math.min(Math.max(Number(req.query?.limit || 200), 1), 500);
+    const requestedLimit = Number(req.query?.limit ?? 200);
+    if (!Number.isFinite(requestedLimit) || !Number.isInteger(requestedLimit) || requestedLimit < 1) {
+      return json(res, 400, { error: { code: 'INVALID_LIMIT', message: 'limit must be a positive integer.' } });
+    }
+    const limit = Math.min(requestedLimit, 500);
 
     const rows = await loadAllMistakeEvidence(learnerId, subject, chapter);
 
