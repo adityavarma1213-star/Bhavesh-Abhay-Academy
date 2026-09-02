@@ -31,6 +31,49 @@
 (function (global) {
   'use strict';
 
+  const MAX_RESPONSE_BYTES = 1024 * 1024;
+
+  async function readJsonResponse(response) {
+    const declared = Number(response && response.headers && response.headers.get && response.headers.get('Content-Length'));
+    if (Number.isFinite(declared) && declared > MAX_RESPONSE_BYTES) {
+      try { if (response.body && response.body.cancel) response.body.cancel(); } catch (_) {}
+      throw { code: 'TRUST_ACCESS_RESPONSE_TOO_LARGE', status: 413 };
+    }
+    try {
+      if (response && response.body && typeof response.body.getReader === 'function') {
+        const reader = response.body.getReader();
+        const chunks = [];
+        let total = 0;
+        while (true) {
+          const part = await reader.read();
+          if (part.done) break;
+          const size = part.value && part.value.byteLength || 0;
+          total += size;
+          if (total > MAX_RESPONSE_BYTES) {
+            try { await reader.cancel(); } catch (_) {}
+            throw { code: 'TRUST_ACCESS_RESPONSE_TOO_LARGE', status: 413 };
+          }
+          chunks.push(part.value);
+        }
+        const bytes = new Uint8Array(total);
+        let offset = 0;
+        chunks.forEach(function (chunk) {
+          bytes.set(chunk, offset);
+          offset += chunk.byteLength;
+        });
+        return JSON.parse(new TextDecoder().decode(bytes));
+      }
+      const text = await response.text();
+      if (new TextEncoder().encode(text).byteLength > MAX_RESPONSE_BYTES) {
+        throw { code: 'TRUST_ACCESS_RESPONSE_TOO_LARGE', status: 413 };
+      }
+      return JSON.parse(text);
+    } catch (error) {
+      if (error && error.code === 'TRUST_ACCESS_RESPONSE_TOO_LARGE') throw error;
+      throw { code: 'TRUST_ACCESS_INVALID_RESPONSE', status: 502 };
+    }
+  }
+
   /* M37 page-level Trust Center gate.
      trust-privacy.html already loads this script near the end of body,
      so the check runs before the browser gets a normal post-script paint.
@@ -75,7 +118,7 @@
     global.fetch('/api/m37-trust-access', { credentials: 'include', cache: 'no-store', headers: { Accept: 'application/json' } })
       .then(function (response) {
         if (!response.ok) throw { status: response.status };
-        return response.json();
+        return readJsonResponse(response);
       })
       .then(function (session) {
         if (!session || session.authenticated !== true) throw { status: 403 };
@@ -88,14 +131,10 @@
   installTrustCenterGate();
 
   const PREF_KEY = 'baa_section_e_wellbeing_prefs_v1';
-  const SESSION_FLAG_KEY = 'baa_section_e_wellbeing_session_v1'; // sessionStorage — resets per tab
-
-  // Keep the pacing interval bounded so local preference tampering cannot
-  // turn a supportive nudge into a rapid-repeat notification loop.
+  const SESSION_FLAG_KEY = 'baa_section_e_wellbeing_session_v1';
   const DEFAULT_INTERVAL_MINUTES = 25;
   const MIN_INTERVAL_MINUTES = 5;
   const MAX_INTERVAL_MINUTES = 180;
-
   const sessionStartedAt = Date.now();
 
   function hasLocalStorage() {
@@ -158,19 +197,12 @@
     }
   }
 
-  // A rotating set of supportive, non-shaming, non-comparative messages.
-  // Every message is a suggestion with a concrete, healthy alternative —
-  // never a warning, never phrased as a failure.
   const SUGGESTIONS = [
     { title: "Nice focused stretch.", body: "You've been at this a while — a short break (stretch, water, look away from the screen) can help the next bit stick better." },
     { title: "Good time for a pause.", body: "A quick walk or a few minutes away from the screen is a completely normal part of studying well — nothing here is going anywhere." },
     { title: "Your plan will still be here.", body: "Consider a short offline break. Movement or a stretch for a few minutes often makes the next session easier, not harder." },
   ];
 
-  // Returns { shouldSuggestBreak, minutesElapsed, suggestion } — never
-  // throws, never blocks. Call this periodically (e.g. every minute) from
-  // the page; it decides on its own whether enough time has passed and
-  // whether a reminder already fired this session.
   function checkBreakSuggestion() {
     const prefs = getPrefs();
     const minutesElapsed = Math.floor((Date.now() - sessionStartedAt) / 60000);
@@ -189,8 +221,6 @@
     return { shouldSuggestBreak: false, minutesElapsed, suggestion: null };
   }
 
-  // Call when the suggestion banner is shown, so it doesn't repeat before
-  // the next interval — dismissing costs nothing and is never penalized.
   function acknowledgeBreakSuggestion() {
     setSessionFlags({ lastReminderAt: Date.now() });
   }
@@ -201,12 +231,6 @@
     return setPrefs(next);
   }
 
-  // ============================================================
-  // Module 54/60 supportive-copy helpers — used wherever the app needs
-  // to phrase a miss/skip/low score WITHOUT shame or comparison. Kept
-  // here as the one shared source so pages don't each invent their own
-  // wording (and risk drifting into shame-adjacent phrasing).
-  // ============================================================
   function supportiveMissedTaskCopy() {
     return "Yesterday's plan wasn't fully completed — that's alright. Life happens; I've adjusted today's plan.";
   }
