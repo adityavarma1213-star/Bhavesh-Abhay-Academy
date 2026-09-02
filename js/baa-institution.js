@@ -1,10 +1,39 @@
 /* BAA M47 — institution/class analytics client. */
 (function(global){
   'use strict';
+  const MAX_RESPONSE_BYTES=1024*1024;
+  async function readJsonResponse(response){
+    const declared=Number(response?.headers?.get?.('content-length')||0);
+    if(Number.isFinite(declared)&&declared>MAX_RESPONSE_BYTES)throw new Error('INSTITUTION_RESPONSE_TOO_LARGE');
+    if(!response?.body?.getReader){
+      const text=await response.text();
+      if(new TextEncoder().encode(text).byteLength>MAX_RESPONSE_BYTES)throw new Error('INSTITUTION_RESPONSE_TOO_LARGE');
+      return JSON.parse(text);
+    }
+    const reader=response.body.getReader();
+    const decoder=new TextDecoder();
+    let bytes=0;
+    let text='';
+    try{
+      while(true){
+        const chunk=await reader.read();
+        if(chunk.done)break;
+        bytes+=chunk.value?.byteLength||0;
+        if(bytes>MAX_RESPONSE_BYTES){try{await reader.cancel();}catch(_){}throw new Error('INSTITUTION_RESPONSE_TOO_LARGE');}
+        text+=decoder.decode(chunk.value,{stream:true});
+      }
+      text+=decoder.decode();
+      return JSON.parse(text);
+    }finally{try{reader.releaseLock();}catch(_) {}}
+  }
   async function load(classId){
     const url=`/api/m47-institution.js?classId=${encodeURIComponent(classId)}`;
     const response=await fetch(url,{credentials:'include',cache:'no-store',headers:{Accept:'application/json'}});
-    const data=await response.json().catch(()=>({ok:false,error:{message:'Invalid analytics response.'}}));
+    let data={};
+    try{data=await readJsonResponse(response);}catch(error){
+      if(error?.message==='INSTITUTION_RESPONSE_TOO_LARGE')throw Object.assign(new Error('Institution analytics response is too large.'),{status:502,code:'INSTITUTION_RESPONSE_TOO_LARGE'});
+      data={ok:false,error:{message:'Invalid analytics response.',code:'INSTITUTION_INVALID_RESPONSE'}};
+    }
     if(!response.ok) throw Object.assign(new Error(data?.error?.message||'Unable to load analytics'),{status:response.status,code:data?.error?.code});
     return data;
   }
