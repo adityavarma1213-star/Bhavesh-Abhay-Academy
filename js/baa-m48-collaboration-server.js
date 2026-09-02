@@ -1,16 +1,28 @@
 /* BAA M48 server bridge. Server-backed collaboration projects and posts are the production source of truth. */
 (function(global){
 'use strict';
+const MAX_RESPONSE_BYTES=1024*1024;
+async function readJsonResponse(r,fallback){
+  if(r.body&&typeof r.body.getReader==='function'){
+    const reader=r.body.getReader();const chunks=[];let total=0;
+    try{while(true){const part=await reader.read();if(part.done)break;total+=part.value?.byteLength||0;if(total>MAX_RESPONSE_BYTES){await reader.cancel();return fallback;}chunks.push(part.value);}}
+    catch(_){try{await reader.cancel();}catch(_e){}return fallback;}
+    const bytes=new Uint8Array(total);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.length;}
+    try{return JSON.parse(new TextDecoder().decode(bytes));}catch(_){return fallback;}
+  }
+  const length=Number(r.headers?.get?.('content-length')||0);if(Number.isFinite(length)&&length>MAX_RESPONSE_BYTES)return fallback;
+  try{const text=await r.text();if(new TextEncoder().encode(text).byteLength>MAX_RESPONSE_BYTES)return fallback;return JSON.parse(text);}catch(_){return fallback;}
+}
 async function request(body,method='POST'){
   const r=await fetch('/api/m48-collaboration',{method,headers:{'Content-Type':'application/json',Accept:'application/json'},credentials:'include',cache:'no-store',body:method==='GET'?undefined:JSON.stringify(body)}).catch(()=>null);
   if(!r)return {ok:false,error:'COLLABORATION_SERVER_UNAVAILABLE'};
-  const p=await r.json().catch(()=>({}));
+  const p=await readJsonResponse(r,{});
   return r.ok&&p.ok?p:{ok:false,error:p?.error?.code||'COLLABORATION_SERVER_ERROR',message:p?.error?.message||''};
 }
 async function get(query=''){
   const r=await fetch(`/api/m48-collaboration${query}`,{credentials:'include',cache:'no-store',headers:{Accept:'application/json'}}).catch(()=>null);
   if(!r)return {ok:false,error:'COLLABORATION_SERVER_UNAVAILABLE',posts:[],projects:[]};
-  const p=await r.json().catch(()=>({}));
+  const p=await readJsonResponse(r,{});
   return r.ok&&p.ok?p:{ok:false,error:p?.error?.code||'COLLABORATION_SERVER_ERROR',posts:[],projects:[]};
 }
 async function listServerPosts(){return get();}
