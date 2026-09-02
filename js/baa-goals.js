@@ -1,6 +1,7 @@
 /* BAA Module 25 — AI Goal Tracker. Reuses the real Planner goal store and adds evidence-linked progress. */
 (function(global){
 'use strict';
+const MAX_RESPONSE_BYTES=1024*1024;
 let serverSnapshot=null;
 function getGoals(){
  const planner=global.BAAPlanner;if(!planner)return [];
@@ -9,6 +10,30 @@ function getGoals(){
  return goals.map(g=>({...g,relatedConcepts:summary?[...summary.struggling,...summary.needsRevision,...summary.learning].filter(c=>g.text.toLowerCase().includes(c.conceptLabel.split(' ')[0].toLowerCase())).map(c=>c.concept):[]}));
 }
 function escapeText(value){return String(value??'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]));}
+async function readJsonResponse(response){
+ const declared=Number(response?.headers?.get?.('content-length'));
+ if(Number.isFinite(declared)&&declared>MAX_RESPONSE_BYTES){try{response.body?.cancel?.();}catch(_){}throw new Error('GOALS_RESPONSE_TOO_LARGE');}
+ if(!response?.body||typeof response.body.getReader!=='function'){
+  try{return await response.json();}catch(_){throw new Error('GOALS_INVALID_RESPONSE');}
+ }
+ const reader=response.body.getReader();
+ const chunks=[];let total=0;
+ try{
+  while(true){
+   const part=await reader.read();
+   if(part.done)break;
+   const chunk=part.value instanceof Uint8Array?part.value:new Uint8Array(part.value||[]);
+   total+=chunk.byteLength;
+   if(total>MAX_RESPONSE_BYTES){try{await reader.cancel();}catch(_){}throw new Error('GOALS_RESPONSE_TOO_LARGE');}
+   chunks.push(chunk);
+  }
+ }catch(error){try{await reader.cancel();}catch(_){}if(error?.message==='GOALS_RESPONSE_TOO_LARGE')throw error;throw new Error('GOALS_INVALID_RESPONSE');}
+ try{
+  const bytes=new Uint8Array(total);let offset=0;
+  for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.byteLength;}
+  return JSON.parse(new TextDecoder().decode(bytes));
+ }catch(_){throw new Error('GOALS_INVALID_RESPONSE');}
+}
 function ensurePanel(){
  let panel=document.getElementById('baa-m25-goal-panel');
  if(panel)return panel;
@@ -46,7 +71,7 @@ async function loadServerGoals(learnerId){
    const query=new URLSearchParams({learnerId:id,goalLimit:'100'});
    if(cursor)query.set('goalCursor',cursor);
    const response=await fetch(`/api/m25-goal-tracker?${query.toString()}`,{credentials:'include',cache:'no-store',headers:{Accept:'application/json'}});
-   const payload=await response.json().catch(()=>({}));
+   const payload=await readJsonResponse(response);
    if(!response.ok) throw new Error(payload?.error?.message||'Unable to load server goal progress.');
    if(!firstPayload)firstPayload=payload;
    if(Array.isArray(payload.goals))goals.push(...payload.goals);
