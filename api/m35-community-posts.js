@@ -7,7 +7,17 @@ export const config = { runtime: 'nodejs' };
 const noStore = { 'Cache-Control': 'private, no-store, max-age=0' };
 const BLOCKED = ['self-harm', 'suicide', 'sexual exploitation', 'buy drugs'];
 const clean = (value, max) => String(value ?? '').trim().slice(0, max);
-const clampLimit = value => Math.min(Math.max(Number(value || 100), 1), 100);
+function parseLimit(value) {
+  if (value == null || String(value).trim() === '') return 100;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || !Number.isInteger(parsed) || parsed < 1) {
+    const error = new Error('limit must be a positive integer.');
+    error.status = 400;
+    error.code = 'INVALID_LIMIT';
+    throw error;
+  }
+  return Math.min(parsed, 100);
+}
 
 function moderate(text) {
   const value = clean(text, 4000);
@@ -89,7 +99,7 @@ export default async function handler(req, res) {
     if (req.method === 'GET') {
       const groupId = clean(req.query?.groupId, 120) || 'general';
       await requireGroupAccess(session, groupId);
-      const limit = clampLimit(req.query?.limit);
+      const limit = parseLimit(req.query?.limit);
       const cursor = readCursor(req.query);
       const result = cursor
         ? await sql`
