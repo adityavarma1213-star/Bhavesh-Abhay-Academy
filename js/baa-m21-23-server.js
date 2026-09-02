@@ -3,11 +3,38 @@
 (function(global){
   'use strict';
   const API='/api/m21-23-evidence';
+  const MAX_RESPONSE_BYTES=1024*1024;
   const clean=v=>String(v==null?'':v);
+  async function readJsonResponse(response){
+    const declared=Number(response?.headers?.get?.('content-length')||0);
+    if(Number.isFinite(declared)&&declared>MAX_RESPONSE_BYTES){try{response.body?.cancel?.();}catch(_){}throw new Error('M21_23_RESPONSE_TOO_LARGE');}
+    if(!response?.body||typeof response.body.getReader!=='function'){
+      try{
+        const text=await response.text();
+        if(new TextEncoder().encode(text).byteLength>MAX_RESPONSE_BYTES)throw new Error('M21_23_RESPONSE_TOO_LARGE');
+        return JSON.parse(text);
+      }catch(error){
+        if(error?.message==='M21_23_RESPONSE_TOO_LARGE')throw error;
+        throw new Error('M21_23_INVALID_RESPONSE');
+      }
+    }
+    const reader=response.body.getReader();const decoder=new TextDecoder();let bytes=0;let text='';
+    try{
+      while(true){
+        const part=await reader.read();if(part.done)break;
+        bytes+=part.value.byteLength;
+        if(bytes>MAX_RESPONSE_BYTES){try{await reader.cancel();}catch(_){}throw new Error('M21_23_RESPONSE_TOO_LARGE');}
+        text+=decoder.decode(part.value,{stream:true});
+      }
+      text+=decoder.decode();
+      try{return JSON.parse(text);}catch(_){throw new Error('M21_23_INVALID_RESPONSE');}
+    }finally{try{reader.releaseLock();}catch(_) {}}
+  }
   async function load(learnerId){
     if(!learnerId) throw new Error('LEARNER_ID_REQUIRED');
     const r=await fetch(`${API}?learnerId=${encodeURIComponent(learnerId)}`,{credentials:'include',cache:'no-store',headers:{Accept:'application/json'}});
-    const data=await r.json().catch(()=>({}));
+    let data;
+    try{data=await readJsonResponse(r);}catch(error){throw error;}
     if(!r.ok) throw new Error(data?.error?.code||`HTTP_${r.status}`);
     return data;
   }
@@ -34,11 +61,11 @@
     if(!practice&&!weak&&!strong)return;
     if(practice&&!practice.dataset.m21Server){
       practice.dataset.m21Server='1';
-      practice.addEventListener('click',async function(e){e.stopImmediatePropagation();const out=document.getElementById('m21PracticeResult');try{const data=await load(learner);const limit=Math.max(1,Math.min(20,Number(document.getElementById('m21PracticeLimit')?.value)||5));renderPractice(out,(data.practiceQuestions||[]).slice(0,limit));}catch(_){renderPractice(out,[]);}},true);
+      practice.addEventListener('click',async function(e){e.stopImmediatePropagation();const out=document.getElementById('m21PracticeResult');try{const data=await load(learner);const limit=Math.max(1,Math.min(20,Number(document.getElementById('m21PracticeLimit')?.value)||5));renderPractice(out,(data.practiceQuestions||[]).slice(0,limit));}catch(error){renderPractice(out,[],error?.message==='M21_23_RESPONSE_TOO_LARGE'?'Server evidence response exceeded the safe response limit.':error?.message==='M21_23_INVALID_RESPONSE'?'Server evidence returned an invalid response.':'Live evidence is unavailable right now.','practice');}},true);
     }
     if(weak&&!weak.dataset.m22Server){
       weak.dataset.m22Server='1';
-      weak.addEventListener('click',async function(e){e.stopImmediatePropagation();try{const data=await load(learner);renderList(document.getElementById('m22Result'),data.weaknesses,'Not enough server evidence yet. Complete assessments so BAA can identify repeated evidence patterns.','needs_revision');}catch(_){renderList(document.getElementById('m22Result'),[],'Live evidence is unavailable right now.','needs_revision');}},true);
+      weak.addEventListener('click',async function(e){e.stopImmediatePropagation();try{const data=await load(learner);renderList(document.getElementById('m22Result'),data.weaknesses,'Not enough server evidence yet. Complete assessments so BAA can identify repeated evidence patterns.','needs_revision');}catch(error){renderList(document.getElementById('m22Result'),[],'Live evidence is unavailable right now.','needs_revision');}},true);
     }
     if(strong&&!strong.dataset.m23Server){
       strong.dataset.m23Server='1';
