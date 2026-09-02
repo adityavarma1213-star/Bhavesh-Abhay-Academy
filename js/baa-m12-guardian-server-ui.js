@@ -5,11 +5,45 @@
 (function (global) {
   'use strict';
   const PANEL_ID = 'baa-m12-guardian-server';
+  const MAX_RESPONSE_BYTES = 1024 * 1024;
 
   function esc(value) {
     return String(value == null ? '' : value).replace(/[&<>"']/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[ch]));
   }
   function learnerId() { return String(global.BAA_LEARNER_ID || document.body?.dataset?.learnerId || '').trim(); }
+  async function readJsonBounded(response) {
+    const declared = Number(response?.headers?.get?.('content-length'));
+    if (Number.isFinite(declared) && declared > MAX_RESPONSE_BYTES) {
+      try { response.body?.cancel?.(); } catch (_) {}
+      throw new Error('GUARDIAN_RESPONSE_TOO_LARGE');
+    }
+    if (!response?.body || typeof response.body.getReader !== 'function') {
+      try { return await response.json(); } catch (_) { throw new Error('GUARDIAN_INVALID_RESPONSE'); }
+    }
+    const reader = response.body.getReader();
+    const chunks = [];
+    let total = 0;
+    try {
+      while (true) {
+        const part = await reader.read();
+        if (part.done) break;
+        total += part.value?.byteLength || 0;
+        if (total > MAX_RESPONSE_BYTES) {
+          try { await reader.cancel('response-too-large'); } catch (_) {}
+          throw new Error('GUARDIAN_RESPONSE_TOO_LARGE');
+        }
+        chunks.push(part.value);
+      }
+    } catch (error) {
+      try { await reader.cancel(); } catch (_) {}
+      if (error?.message === 'GUARDIAN_RESPONSE_TOO_LARGE') throw error;
+      throw new Error('GUARDIAN_INVALID_RESPONSE');
+    }
+    const bytes = new Uint8Array(total);
+    let offset = 0;
+    for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
+    try { return JSON.parse(new TextDecoder().decode(bytes)); } catch (_) { throw new Error('GUARDIAN_INVALID_RESPONSE'); }
+  }
   function mount() {
     if (document.getElementById(PANEL_ID)) return document.getElementById(PANEL_ID);
     if (!document.body || !/student-os\.html$/i.test(location.pathname)) return null;
@@ -42,7 +76,7 @@
     if (!id || typeof fetch !== 'function') { render(panel, { ok:false, error:'LEARNER_ID_REQUIRED' }); return; }
     try {
       const response = await fetch(`/api/m12-guardian?learnerId=${encodeURIComponent(id)}`, { credentials:'include', cache:'no-store', headers:{Accept:'application/json'} });
-      const payload = await response.json().catch(() => ({}));
+      const payload = await readJsonBounded(response);
       render(panel, response.ok ? payload : { ok:false, error:payload?.error?.code || 'GUARDIAN_FAILED' });
     } catch (error) {
       render(panel, { ok:false, error:error?.message || 'GUARDIAN_NETWORK_FAILED' });
