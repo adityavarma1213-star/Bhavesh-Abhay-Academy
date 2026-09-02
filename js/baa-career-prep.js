@@ -4,7 +4,7 @@
 (function(global){
 'use strict';
 const MAX_RESPONSE_BYTES=1024*1024;
-function clean(value,max){return String(value==null?'':'').trim().slice(0,max||240);}
+function clean(value,max){return String(value==null?'':value).trim().slice(0,max||240);}
 function uniqueStrings(values){return [...new Set((Array.isArray(values)?values:[]).filter(x=>typeof x==='string').map(x=>clean(x,120)).filter(Boolean))];}
 function profile(input){
  if(!input||typeof input!=='object')return {ok:false,error:'INVALID_CAREER_PROFILE'};
