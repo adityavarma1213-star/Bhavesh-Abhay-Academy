@@ -7,6 +7,7 @@
   'use strict';
   const SUPPORTED=new Set(['en','hi','mr','gu','bn','ta','te','kn']);
   const PATH='/api/m31-language-preference';
+  const MAX_RESPONSE_BYTES=1024*1024;
   let serverUpdatedAt=null;
   function learnerId(){
     try{
@@ -14,6 +15,35 @@
       const parsed=raw?JSON.parse(raw):null;
       return String(parsed?.learnerId || parsed?.userId || parsed?.user?.id || '').trim();
     }catch(_){ return ''; }
+  }
+  async function readJsonBounded(response){
+    const declared=Number(response?.headers?.get?.('content-length'));
+    if(Number.isFinite(declared)&&declared>MAX_RESPONSE_BYTES){
+      try{response.body?.cancel?.();}catch(_){ }
+      throw new Error('M31_RESPONSE_TOO_LARGE');
+    }
+    if(!response?.body||typeof response.body.getReader!=='function'){
+      try{return await response.json();}catch(_){throw new Error('M31_INVALID_RESPONSE');}
+    }
+    const reader=response.body.getReader();
+    const chunks=[];let total=0;
+    try{
+      for(;;){
+        const part=await reader.read();
+        if(part.done)break;
+        const value=part.value;
+        total+=value?.byteLength||0;
+        if(total>MAX_RESPONSE_BYTES){
+          try{await reader.cancel('response too large');}catch(_){ }
+          throw new Error('M31_RESPONSE_TOO_LARGE');
+        }
+        chunks.push(value);
+      }
+    }finally{try{reader.releaseLock();}catch(_){ }}
+    let size=0;for(const chunk of chunks)size+=chunk.byteLength;
+    const bytes=new Uint8Array(size);let offset=0;
+    for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.byteLength;}
+    try{return JSON.parse(new TextDecoder().decode(bytes));}catch(_){throw new Error('M31_INVALID_RESPONSE');}
   }
   async function request(method,id,code,expectedUpdatedAt){
     if(!id) return null;
@@ -26,7 +56,7 @@
     }
     const res=await fetch(PATH+'?learnerId='+encodeURIComponent(id),options);
     let data=null;
-    try{ data=await res.json(); }catch(_){ return null; }
+    try{data=await readJsonBounded(res);}catch(_){return null;}
     if(data?.updatedAt) serverUpdatedAt=data.updatedAt;
     if(res.status===409 && data?.current?.updatedAt) serverUpdatedAt=data.current.updatedAt;
     if(!res.ok) return null;
