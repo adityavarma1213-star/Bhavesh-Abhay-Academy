@@ -7,6 +7,7 @@
   'use strict';
 
   const API = '/api/m11-planner-recommendations';
+  const MAX_RESPONSE_BYTES = 1024 * 1024;
   let bound = false;
   let learnerId = null;
 
@@ -20,6 +21,40 @@
     return global.BAA_LEARNER_ID || learnerId || null;
   }
 
+  async function readJsonBounded(response) {
+    const declared = Number(response?.headers?.get?.('content-length'));
+    if (Number.isFinite(declared) && declared > MAX_RESPONSE_BYTES) {
+      try { response.body?.cancel?.(); } catch (_) {}
+      throw new Error('RECOMMENDATIONS_RESPONSE_TOO_LARGE');
+    }
+    if (!response?.body || typeof response.body.getReader !== 'function') {
+      try { return await response.json(); } catch (_) { throw new Error('RECOMMENDATIONS_INVALID_RESPONSE'); }
+    }
+    const reader = response.body.getReader();
+    const chunks = [];
+    let total = 0;
+    try {
+      while (true) {
+        const part = await reader.read();
+        if (part.done) break;
+        total += part.value?.byteLength || 0;
+        if (total > MAX_RESPONSE_BYTES) {
+          try { await reader.cancel('response-too-large'); } catch (_) {}
+          throw new Error('RECOMMENDATIONS_RESPONSE_TOO_LARGE');
+        }
+        chunks.push(part.value);
+      }
+    } catch (error) {
+      try { await reader.cancel(); } catch (_) {}
+      if (error?.message === 'RECOMMENDATIONS_RESPONSE_TOO_LARGE') throw error;
+      throw new Error('RECOMMENDATIONS_INVALID_RESPONSE');
+    }
+    const bytes = new Uint8Array(total);
+    let offset = 0;
+    for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
+    try { return JSON.parse(new TextDecoder().decode(bytes)); } catch (_) { throw new Error('RECOMMENDATIONS_INVALID_RESPONSE'); }
+  }
+
   async function loadRecommendations() {
     const id = getLearnerId();
     const output = document.getElementById('m11ServerRecommendations');
@@ -31,7 +66,7 @@
     output.innerHTML = '<div class="concept-why">Loading recommendations from your learning evidence…</div>';
     try {
       const response = await fetch(`${API}?learnerId=${encodeURIComponent(id)}`, { credentials: 'include', cache: 'no-store' });
-      const payload = await response.json();
+      const payload = await readJsonBounded(response);
       if (!response.ok || !payload.ok) throw new Error(payload?.error?.message || 'Planner recommendations unavailable.');
       const items = Array.isArray(payload.recommendations) ? payload.recommendations : [];
       if (!items.length) {
