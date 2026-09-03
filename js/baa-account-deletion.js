@@ -10,6 +10,7 @@
   const CONFIRMATION = 'DELETE MY ACCOUNT';
   const DEFAULT_TIMEOUT_MS = 15000;
   const MAX_RESPONSE_BYTES = 1024 * 1024;
+  const MAX_CONFIRMATION_CHARS = 64;
 
   async function readJsonResponse(response) {
     const declared = Number(response?.headers?.get?.('content-length'));
@@ -56,7 +57,7 @@
 
   async function deleteAccount(options = {}) {
     const confirmation = String(options.confirmation || '');
-    if (confirmation !== CONFIRMATION) {
+    if (confirmation.length > MAX_CONFIRMATION_CHARS || confirmation !== CONFIRMATION) {
       return { ok: false, error: 'DELETE_CONFIRMATION_REQUIRED', confirmation: CONFIRMATION };
     }
 
@@ -115,5 +116,6 @@
     endpoint,
     defaultTimeoutMs: DEFAULT_TIMEOUT_MS,
     maxResponseBytes: MAX_RESPONSE_BYTES,
+    maxConfirmationChars: MAX_CONFIRMATION_CHARS,
   };
 })(typeof window !== 'undefined' ? window : global);
