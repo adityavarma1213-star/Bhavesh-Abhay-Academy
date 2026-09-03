@@ -6,7 +6,12 @@ async function readJson(response){
   const declared=Number(response?.headers?.get?.('content-length'));
   if(Number.isFinite(declared)&&declared>MAX_RESPONSE_BYTES){try{response.body?.cancel?.();}catch(_){}return {ok:false,error:'LEARNING_RESOURCES_RESPONSE_TOO_LARGE'};}
   if(!response?.body||typeof response.body.getReader!=='function'){
-    try{return {ok:true,body:await response.json()};}catch(_){return {ok:false,error:'LEARNING_RESOURCES_INVALID_RESPONSE'};}
+    try{
+      const text=await response.text();
+      const bytes=typeof TextEncoder!=='undefined'?new TextEncoder().encode(text):null;
+      if((bytes?bytes.byteLength:typeof Buffer!=='undefined'?Buffer.byteLength(text,'utf8'):text.length)>MAX_RESPONSE_BYTES)return {ok:false,error:'LEARNING_RESOURCES_RESPONSE_TOO_LARGE'};
+      return {ok:true,body:JSON.parse(text)};
+    }catch(error){return {ok:false,error:error?.message==='LEARNING_RESOURCES_RESPONSE_TOO_LARGE'?'LEARNING_RESOURCES_RESPONSE_TOO_LARGE':'LEARNING_RESOURCES_INVALID_RESPONSE'};}
   }
   const reader=response.body.getReader(),chunks=[];let total=0;
   try{
