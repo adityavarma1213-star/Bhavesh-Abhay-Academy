@@ -6,6 +6,7 @@ export const config = { runtime: 'nodejs' };
 const NO_STORE = { 'Cache-Control': 'private, no-store, max-age=0' };
 const PAGE_SIZE = 500;
 const MIN_EVIDENCE = 3;
+const MAX_LEARNER_ID_CHARS = 100;
 const VALID_CORRECTNESS = new Set(['correct','partially_correct','incorrect']);
 const TRACKS = {
   'Space & Aerospace': ['algebra','geometry','physics','problem-solving','coding'],
@@ -17,6 +18,23 @@ const clean = (v,max=160) => String(v ?? '').trim().slice(0,max);
 const normalize = v => clean(v).toLowerCase().replace(/[_\s]+/g,'-');
 const humanize = v => clean(v,80).replace(/-/g,' ');
 const label = r => r.title ? clean(r.title,120) : r.concept ? clean(r.concept,120) : 'Academic evidence';
+
+function requireLearnerId(value) {
+  const normalized = typeof value === 'string' ? value.trim() : '';
+  if (!normalized) {
+    const error = new Error('A learner identifier is required.');
+    error.status = 400;
+    error.code = 'LEARNER_ID_REQUIRED';
+    throw error;
+  }
+  if (normalized.length > MAX_LEARNER_ID_CHARS) {
+    const error = new Error('Learner identifier exceeds the allowed length.');
+    error.status = 400;
+    error.code = 'LEARNER_ID_TOO_LONG';
+    throw error;
+  }
+  return normalized;
+}
 
 async function loadAllEvidence(learnerId) {
   const rows=[];
@@ -49,7 +67,7 @@ export default async function handler(req,res){
   if(req.method !== 'GET') return json(res,405,{error:{code:'METHOD_NOT_ALLOWED',message:'GET required.'}},{Allow:'GET',...NO_STORE});
   try {
     const session=await requireAuth(req);
-    const learnerId=clean(req.query?.learnerId,120);
+    const learnerId=requireLearnerId(req.query?.learnerId);
     await requireLearnerAccess(session,learnerId);
     const track=clean(req.query?.track,80);
     if(!TRACKS[track]) return json(res,400,{error:{code:'INVALID_TRACK',message:'A supported career track is required.'}},NO_STORE);
