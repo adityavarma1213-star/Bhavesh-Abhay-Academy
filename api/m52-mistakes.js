@@ -7,7 +7,23 @@ const TYPES = new Set(['concept_gap','calculation','reading','procedure','carele
 const MIN_COMMON_EVIDENCE = 3;
 const VALID_CORRECTNESS = ['incorrect','partially_correct'];
 const PAGE_SIZE = 500;
+const MAX_LEARNER_ID_CHARS = 100;
+const MAX_SUBJECT_CHARS = 120;
+const MAX_CHAPTER_CHARS = 160;
 const clean = (v, max = 160) => String(v ?? '').trim().slice(0, max);
+function bounded(value, max, code, message) {
+  if (typeof value !== 'string') { const e = new Error(message); e.status = 400; e.code = code; throw e; }
+  const normalized = value.trim();
+  if (!normalized || normalized.length > max) { const e = new Error(message); e.status = 400; e.code = code; throw e; }
+  return normalized;
+}
+function optionalBounded(value, max, code, message) {
+  if (value == null || value === '') return '';
+  if (typeof value !== 'string') { const e = new Error(message); e.status = 400; e.code = code; throw e; }
+  const normalized = value.trim();
+  if (normalized.length > max) { const e = new Error(message); e.status = 400; e.code = code; throw e; }
+  return normalized;
+}
 
 async function loadAllMistakeEvidence(learnerId, subject, chapter) {
   const rows = [];
@@ -59,10 +75,10 @@ export default async function handler(req, res) {
   if (req.method !== 'GET') return json(res, 405, { error: { code: 'METHOD_NOT_ALLOWED', message: 'GET required.' } }, { Allow: 'GET' });
   try {
     const session = await requireAuth(req);
-    const learnerId = clean(req.query?.learnerId, 120);
+    const learnerId = bounded(req.query?.learnerId, MAX_LEARNER_ID_CHARS, 'LEARNER_ID_INVALID', 'A valid learner identifier is required.');
     await requireLearnerAccess(session, learnerId);
-    const subject = clean(req.query?.subject, 120);
-    const chapter = clean(req.query?.chapter, 160);
+    const subject = optionalBounded(req.query?.subject, MAX_SUBJECT_CHARS, 'SUBJECT_TOO_LONG', 'subject exceeds the allowed length.');
+    const chapter = optionalBounded(req.query?.chapter, MAX_CHAPTER_CHARS, 'CHAPTER_TOO_LONG', 'chapter exceeds the allowed length.');
     const requestedLimit = Number(req.query?.limit ?? 200);
     if (!Number.isFinite(requestedLimit) || !Number.isInteger(requestedLimit) || requestedLimit < 1) {
       return json(res, 400, { error: { code: 'INVALID_LIMIT', message: 'limit must be a positive integer.' } });
