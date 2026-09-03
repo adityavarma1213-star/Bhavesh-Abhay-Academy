@@ -13,7 +13,17 @@
       throw new Error('RECOMMENDATIONS_RESPONSE_TOO_LARGE');
     }
     if (!response?.body || typeof response.body.getReader !== 'function') {
-      try { return await response.json(); } catch (_) { throw new Error('RECOMMENDATIONS_INVALID_RESPONSE'); }
+      try {
+        const text = await response.text();
+        const bytes = typeof TextEncoder === 'function'
+          ? new TextEncoder().encode(text).byteLength
+          : (typeof Buffer !== 'undefined' ? Buffer.byteLength(text, 'utf8') : text.length);
+        if (bytes > MAX_RESPONSE_BYTES) throw new Error('RECOMMENDATIONS_RESPONSE_TOO_LARGE');
+        return JSON.parse(text);
+      } catch (error) {
+        if (error?.message === 'RECOMMENDATIONS_RESPONSE_TOO_LARGE') throw error;
+        throw new Error('RECOMMENDATIONS_INVALID_RESPONSE');
+      }
     }
     const reader = response.body.getReader();
     const chunks = [];
