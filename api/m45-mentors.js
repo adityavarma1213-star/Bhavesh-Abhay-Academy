@@ -17,9 +17,14 @@ function clampLimit(value){
   return Math.min(n,100);
 }
 function clean(value,max){return String(value??'').trim().slice(0,max);}
+function requireBounded(value,max,name){
+  const raw=String(value??'').trim();
+  if(raw.length>max){const e=new Error(`${name} exceeds the maximum length of ${max} characters.`);e.status=400;e.code='VALUE_TOO_LONG';throw e;}
+  return raw;
+}
 function readCursor(query){
-  const displayName=clean(query?.cursorDisplayName,160);
-  const idValue=clean(query?.cursorId,160);
+  const displayName=requireBounded(query?.cursorDisplayName,160,'cursorDisplayName');
+  const idValue=requireBounded(query?.cursorId,160,'cursorId');
   if(!displayName&&!idValue) return null;
   if(!displayName||!idValue){const e=new Error('cursorDisplayName and cursorId are both required.');e.status=400;e.code='INVALID_CURSOR';throw e;}
   return {displayName,id:idValue};
@@ -39,7 +44,7 @@ export default async function handler(req,res){
   try{
     const s=await requireAuth(req);
     if(req.method==='GET'){
-      const subject=req.query?.subject?String(req.query.subject).slice(0,120):null;
+      const subject=req.query?.subject?requireBounded(req.query.subject,120,'subject'):null;
       const limit=clampLimit(req.query?.limit);
       const cursor=readCursor(req.query);
       const r=cursor
@@ -52,7 +57,7 @@ export default async function handler(req,res){
     if(req.method==='POST'){
       const b=req.body||{};
       if(hasRole(s,'student')||hasRole(s,'parent')){
-        const mentorId=String(b.mentorId||''); const learnerId=String(b.learnerId||'');
+        const mentorId=requireBounded(b.mentorId,160,'mentorId'); const learnerId=requireBounded(b.learnerId,160,'learnerId');
         if(!mentorId||!learnerId) return json(res,400,{error:{code:'INVALID_MENTOR_REQUEST',message:'mentorId and learnerId are required.'}});
         const access=await sql`SELECT 1 FROM learners l WHERE l.id=${learnerId} AND l.user_id=${s.user_id} AND l.deactivated_at IS NULL UNION SELECT 1 FROM parent_learner p WHERE p.learner_id=${learnerId} AND p.parent_user_id=${s.user_id} AND p.status='active' LIMIT 1`;
         if(!access.rows.length&&!hasRole(s,'admin')) return json(res,403,{error:{code:'LEARNER_FORBIDDEN',message:'You are not authorized to request mentoring for this learner.'}});
