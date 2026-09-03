@@ -8,6 +8,8 @@ const MIN_EVIDENCE = 3;
 const PAGE_SIZE = 500;
 const DEFAULT_GOAL_LIMIT = 50;
 const MAX_GOAL_LIMIT = 100;
+const MAX_GOAL_CURSOR_CHARS = 512;
+const MAX_GOAL_CURSOR_FIELD_CHARS = 128;
 const VALID_CORRECTNESS = new Set(['correct','partially_correct','incorrect']);
 const STOP_WORDS = new Set([
   'the','and','for','with','from','this','that','learn','learning','study','understand',
@@ -86,9 +88,12 @@ async function loadAllEvidence(learnerId) {
 
 function parseGoalCursor(value) {
   if (!value) return null;
+  const raw = String(value);
+  if (raw.length > MAX_GOAL_CURSOR_CHARS) return null;
   try {
-    const decoded = JSON.parse(Buffer.from(String(value), 'base64url').toString('utf8'));
+    const decoded = JSON.parse(Buffer.from(raw, 'base64url').toString('utf8'));
     if (!decoded || typeof decoded !== 'object' || typeof decoded.createdAt !== 'string' || typeof decoded.id !== 'string') return null;
+    if (decoded.createdAt.length > MAX_GOAL_CURSOR_FIELD_CHARS || decoded.id.length > MAX_GOAL_CURSOR_FIELD_CHARS) return null;
     const createdAt = new Date(decoded.createdAt);
     if (Number.isNaN(createdAt.getTime())) return null;
     return { createdAt: decoded.createdAt, id: decoded.id };
@@ -120,12 +125,12 @@ async function handler(req, res) {
 
     const [goals, evidence, upcoming] = await Promise.all([
       cursor
-        ? sql`SELECT id,text,created_at FROM planner_goals
+        ? await sql`SELECT id,text,created_at FROM planner_goals
             WHERE learner_id=${learnerId}
               AND (created_at > ${cursor.createdAt}
                 OR (created_at = ${cursor.createdAt} AND id > ${cursor.id}))
             ORDER BY created_at ASC,id ASC LIMIT ${goalLimit + 1}`
-        : sql`SELECT id,text,created_at FROM planner_goals
+        : await sql`SELECT id,text,created_at FROM planner_goals
             WHERE learner_id=${learnerId}
             ORDER BY created_at ASC,id ASC LIMIT ${goalLimit + 1}`,
       loadAllEvidence(learnerId),
