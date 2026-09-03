@@ -11,10 +11,19 @@ const BASE_URL = /^https:\/\/[^\s]+$/i;
 const ENTITY_TYPES = new Set(['students', 'attendance', 'classes', 'results', 'teachers']);
 const DIRECTIONS = new Set(['pull', 'push']);
 const TEST_TIMEOUT_MS = 8000;
+const MAX_METADATA_BYTES = 16 * 1024;
 function allowed(session) { return ROLES.some(role => hasRole(session, role)); }
 function clean(v, max = 200) { return String(v ?? '').trim().slice(0, max); }
 function noStore(res) { if (typeof res?.setHeader === 'function') res.setHeader('Cache-Control', 'private, no-store, max-age=0'); }
 function body(req) { if (req.body && typeof req.body === 'object') return req.body; try { return JSON.parse(req.body || '{}'); } catch { return {}; } }
+function boundedMetadata(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  try {
+    const serialized = JSON.stringify(value);
+    if (serialized.length > MAX_METADATA_BYTES) return null;
+    return JSON.parse(serialized);
+  } catch { return null; }
+}
 
 function isPrivateIpv4(host) {
   const octets = host.split('.').map(Number);
@@ -59,8 +68,6 @@ function safeProviderUrl(value) {
   try {
     const u = new URL(value);
     if (u.protocol !== 'https:') return false;
-    // Require a DNS hostname for outbound provider calls. IP literals are
-    // rejected here and DNS results are checked before the request below.
     const host = u.hostname.toLowerCase().replace(/[\[\]]/g, '');
     if (net.isIP(host)) return false;
     if (host === 'localhost' || host.endsWith('.localhost') || host === 'metadata.google.internal' || host === 'metadata') return false;
@@ -101,7 +108,8 @@ export default async function handler(req, res) {
         if (!(await resolvesToPublicDnsHost(new URL(baseUrl).hostname))) return json(res, 400, { error: { code: 'INVALID_BASE_URL', message: 'baseUrl hostname must resolve exclusively to public addresses.' } });
         const connectionId = clean(b.id) || id('erp');
         const credentialRef = clean(b.credentialRef, 240) || null;
-        const metadata = b.metadata && typeof b.metadata === 'object' ? b.metadata : {};
+        const metadata = boundedMetadata(b.metadata);
+        if (metadata === null) return json(res, 400, { error: { code: 'INVALID_METADATA', message: 'metadata must be a JSON object no larger than 16 KiB.' } });
         await sql`INSERT INTO erp_connections(id,owner_user_id,provider,base_url,credential_ref,status,metadata) VALUES(${connectionId},${session.user_id},${provider},${baseUrl},${credentialRef},${credentialRef ? 'configured' : 'not_configured'},${JSON.stringify(metadata)}::jsonb) ON CONFLICT(id) DO UPDATE SET provider=EXCLUDED.provider,base_url=EXCLUDED.base_url,credential_ref=EXCLUDED.credential_ref,status=EXCLUDED.status,metadata=EXCLUDED.metadata,updated_at=NOW() WHERE erp_connections.owner_user_id=${session.user_id}`;
         await writeAudit({ actorUserId: session.user_id, action: 'erp.connection.configure', entityType: 'erp_connection', entityId: connectionId, metadata: { provider, credentialConfigured: Boolean(credentialRef) } });
         return json(res, 201, { ok: true, id: connectionId, status: credentialRef ? 'configured' : 'not_configured', provider });
