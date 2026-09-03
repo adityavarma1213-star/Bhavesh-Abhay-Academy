@@ -12,6 +12,7 @@ const MAX_SUBMISSIONS = 100;
 const MAX_TEXT_CHARS = 8000;
 const MAX_SUBJECT_CHARS = 200;
 const MAX_JSON_BYTES = 900000;
+const MAX_LEARNER_ID_CHARS = 120;
 const ALLOWED_STATUSES = new Set(['received', 'evaluating', 'evaluated', 'evaluation_failed']);
 const ALLOWED_ASSESSMENTS = new Set(['strong', 'good', 'needs_improvement', 'incomplete', 'uncertain']);
 const ALLOWED_CONFIDENCE = new Set(['high', 'medium', 'low']);
@@ -103,6 +104,9 @@ export default async function handler(req, res) {
     const session = await requireAuth(req);
     const learnerId = String(req.query?.learnerId || '').trim();
     if (!learnerId) return json(res, 400, { ok: false, error: { code: 'LEARNER_ID_REQUIRED', message: 'learnerId is required.' } });
+    if (learnerId.length > MAX_LEARNER_ID_CHARS) {
+      return json(res, 400, { ok: false, error: { code: 'LEARNER_ID_TOO_LONG', message: `learnerId must be at most ${MAX_LEARNER_ID_CHARS} characters.` } });
+    }
     await requireLearnerAccess(session, learnerId);
 
     if (req.method === 'GET') {
