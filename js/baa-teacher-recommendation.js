@@ -12,7 +12,15 @@
     const declared=Number(response?.headers?.get?.('content-length'));
     if(Number.isFinite(declared)&&declared>MAX_RESPONSE_BYTES){try{response.body?.cancel?.();}catch(_){}throw new Error('RECOMMENDATIONS_RESPONSE_TOO_LARGE');}
     if(!response?.body||typeof response.body.getReader!=='function'){
-      try{return await response.json();}catch(_){throw new Error('RECOMMENDATIONS_INVALID_RESPONSE');}
+      try{
+        const text=await response.text();
+        const bytes=typeof TextEncoder==='function'?new TextEncoder().encode(text).byteLength:(typeof Buffer!=='undefined'&&typeof Buffer.byteLength==='function'?Buffer.byteLength(text,'utf8'):text.length);
+        if(bytes>MAX_RESPONSE_BYTES)throw new Error('RECOMMENDATIONS_RESPONSE_TOO_LARGE');
+        try{return JSON.parse(text);}catch(_){throw new Error('RECOMMENDATIONS_INVALID_RESPONSE');}
+      }catch(error){
+        if(error?.message==='RECOMMENDATIONS_RESPONSE_TOO_LARGE')throw error;
+        throw new Error('RECOMMENDATIONS_INVALID_RESPONSE');
+      }
     }
     const reader=response.body.getReader();let total=0;const chunks=[];
     try{
