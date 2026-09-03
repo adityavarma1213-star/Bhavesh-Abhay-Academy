@@ -10,7 +10,13 @@
     const declared=Number(response?.headers?.get?.('content-length'));
     if(Number.isFinite(declared)&&declared>MAX_RESPONSE_BYTES){try{response.body?.cancel?.();}catch(_){}throw Object.assign(new Error('Teacher Diagnostic response is too large.'),{code:'M58_RESPONSE_TOO_LARGE'});}
     if(!response?.body||typeof response.body.getReader!=='function'){
-      try{return await response.json();}catch(_){throw Object.assign(new Error('Invalid diagnostic response.'),{code:'M58_INVALID_RESPONSE'});}
+      try{
+        const text=await response.text();
+        const bytes=typeof TextEncoder!=='undefined'?new TextEncoder().encode(text):null;
+        const size=bytes?bytes.byteLength:typeof Buffer!=='undefined'?Buffer.byteLength(text,'utf8'):text.length;
+        if(size>MAX_RESPONSE_BYTES)throw Object.assign(new Error('Teacher Diagnostic response is too large.'),{code:'M58_RESPONSE_TOO_LARGE'});
+        return JSON.parse(text);
+      }catch(error){if(error?.code==='M58_RESPONSE_TOO_LARGE')throw error;throw Object.assign(new Error('Invalid diagnostic response.'),{code:'M58_INVALID_RESPONSE'});}
     }
     const reader=response.body.getReader();const chunks=[];let total=0;
     try{
