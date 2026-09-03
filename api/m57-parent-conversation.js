@@ -6,8 +6,25 @@ export const config = { runtime: 'nodejs' };
 const MIN_EVIDENCE = 3;
 const HISTORY_PAGE_SIZE = 20;
 const EVIDENCE_PAGE_SIZE = 500;
+const MAX_CURSOR_CHARS = 512;
+const MAX_CURSOR_FIELD_CHARS = 128;
 function clean(v, max = 240) { return String(v ?? '').trim().slice(0, max); }
-function parseCursor(value) { if (!value) return null; try { const parsed = JSON.parse(Buffer.from(String(value), 'base64url').toString('utf8')); if (!parsed?.createdAt || !parsed?.id) throw new Error(); return parsed; } catch { const e = new Error('Invalid conversation cursor.'); e.status = 400; e.code = 'INVALID_CONVERSATION_CURSOR'; throw e; } }
+function parseCursor(value) {
+  if (!value) return null;
+  const raw = String(value);
+  if (raw.length > MAX_CURSOR_CHARS) {
+    const e = new Error('Invalid conversation cursor.'); e.status = 400; e.code = 'INVALID_CONVERSATION_CURSOR'; throw e;
+  }
+  try {
+    const parsed = JSON.parse(Buffer.from(raw, 'base64url').toString('utf8'));
+    const createdAt = String(parsed?.createdAt ?? '').trim();
+    const idValue = String(parsed?.id ?? '').trim();
+    if (!createdAt || !idValue || createdAt.length > MAX_CURSOR_FIELD_CHARS || idValue.length > MAX_CURSOR_FIELD_CHARS) throw new Error();
+    return { createdAt, id: idValue };
+  } catch {
+    const e = new Error('Invalid conversation cursor.'); e.status = 400; e.code = 'INVALID_CONVERSATION_CURSOR'; throw e;
+  }
+}
 function encodeCursor(row) { return Buffer.from(JSON.stringify({ createdAt: String(row.createdAt), id: String(row.id) }), 'utf8').toString('base64url'); }
 function buildPrompts(topic, state) {
   return [
