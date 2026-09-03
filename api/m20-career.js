@@ -7,6 +7,7 @@ const NO_STORE = { 'Cache-Control': 'private, no-store, max-age=0' };
 const PAGE_SIZE = 500;
 const MIN_EVIDENCE = 3;
 const MAX_LEARNER_ID_CHARS = 100;
+const MAX_TRACK_CHARS = 80;
 const VALID_CORRECTNESS = new Set(['correct','partially_correct','incorrect']);
 const TRACKS = {
   'Space & Aerospace': ['algebra','geometry','physics','problem-solving','coding'],
@@ -31,6 +32,23 @@ function requireLearnerId(value) {
     const error = new Error('Learner identifier exceeds the allowed length.');
     error.status = 400;
     error.code = 'LEARNER_ID_TOO_LONG';
+    throw error;
+  }
+  return normalized;
+}
+
+function requireTrack(value) {
+  if (typeof value !== 'string') {
+    const error = new Error('A supported career track is required.');
+    error.status = 400;
+    error.code = 'INVALID_TRACK';
+    throw error;
+  }
+  const normalized = value.trim();
+  if (normalized.length > MAX_TRACK_CHARS) {
+    const error = new Error('Career track exceeds the allowed length.');
+    error.status = 400;
+    error.code = 'TRACK_TOO_LONG';
     throw error;
   }
   return normalized;
@@ -69,7 +87,7 @@ export default async function handler(req,res){
     const session=await requireAuth(req);
     const learnerId=requireLearnerId(req.query?.learnerId);
     await requireLearnerAccess(session,learnerId);
-    const track=clean(req.query?.track,80);
+    const track=requireTrack(req.query?.track);
     if(!TRACKS[track]) return json(res,400,{error:{code:'INVALID_TRACK',message:'A supported career track is required.'}},NO_STORE);
     const rows=await loadAllEvidence(learnerId);
     const excludedEvidence=rows.filter(r=>!VALID_CORRECTNESS.has(r.correctness));
