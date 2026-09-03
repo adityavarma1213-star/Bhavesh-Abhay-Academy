@@ -18,7 +18,17 @@
       throw new Error('GUARDIAN_RESPONSE_TOO_LARGE');
     }
     if (!response?.body || typeof response.body.getReader !== 'function') {
-      try { return await response.json(); } catch (_) { throw new Error('GUARDIAN_INVALID_RESPONSE'); }
+      try {
+        const text = await response.text();
+        const bytes = typeof TextEncoder === 'function'
+          ? new TextEncoder().encode(text).byteLength
+          : (typeof Buffer !== 'undefined' && typeof Buffer.byteLength === 'function' ? Buffer.byteLength(text, 'utf8') : text.length);
+        if (bytes > MAX_RESPONSE_BYTES) throw new Error('GUARDIAN_RESPONSE_TOO_LARGE');
+        try { return JSON.parse(text); } catch (_) { throw new Error('GUARDIAN_INVALID_RESPONSE'); }
+      } catch (error) {
+        if (error?.message === 'GUARDIAN_RESPONSE_TOO_LARGE') throw error;
+        throw new Error('GUARDIAN_INVALID_RESPONSE');
+      }
     }
     const reader = response.body.getReader();
     const chunks = [];
