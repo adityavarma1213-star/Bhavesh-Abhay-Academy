@@ -7,6 +7,8 @@ import { requireAuth, hasRole } from './_lib/auth.js';
 import { sql } from './_lib/db.js';
 
 export const config={runtime:'nodejs'};
+const MAX_LEARNER_ID=100;
+const MAX_POLICY_VERSION=120;
 function noStore(res){res.setHeader('Cache-Control','private, no-store, max-age=0');}
 
 async function requireParentLearnerLink(session, learnerId){
@@ -15,24 +17,26 @@ async function requireParentLearnerLink(session, learnerId){
   if(!r.rows.length){ const e=new Error('You are not authorized to manage consent for this learner.'); e.status=403; e.code='LEARNER_FORBIDDEN'; throw e; }
 }
 function normalizeVersion(value){ const v=String(value||'').trim(); return v && v.length<=80 ? v : ''; }
+function normalizeLearnerId(value){ const v=typeof value==='string'?value.trim():''; return v && v.length<=MAX_LEARNER_ID ? v : ''; }
+function normalizePolicyVersion(value){ const v=typeof value==='string'?value.trim():''; return v && v.length<=MAX_POLICY_VERSION ? v : ''; }
 function conflict(res){ return json(res,409,{error:{code:'CONSENT_CONFLICT',message:'Parental consent changed since it was loaded. Refresh and review the current policy before saving.'}}); }
 
 export default async function handler(req,res){
   noStore(res);
   try{
     const session=await requireAuth(req);
-    const learnerId=String(req.query?.learnerId||'').trim();
-    if(!learnerId) return json(res,400,{error:{code:'INVALID_LEARNER_ID',message:'learnerId is required.'}});
+    const learnerId=normalizeLearnerId(req.query?.learnerId);
+    if(!learnerId) return json(res,400,{error:{code:'INVALID_LEARNER_ID',message:'A valid learner identifier is required.'}});
     await requireParentLearnerLink(session,learnerId);
     if(req.method==='GET'){
       const r=await sql`SELECT learner_id,parent_user_id,policy_version,status,consented_at,revoked_at,created_at,updated_at FROM parental_consents WHERE learner_id=${learnerId} AND parent_user_id=${session.user_id} LIMIT 1`;
       return json(res,200,{ok:true,consent:r.rows[0]||null,verifiedRelationship:true,legalVerification:false,version:r.rows[0]?.updated_at||null});
     }
     if(req.method==='PUT'){
-      const policyVersion=String(req.body?.policyVersion||'').trim().slice(0,120);
+      const policyVersion=normalizePolicyVersion(req.body?.policyVersion);
       const action=String(req.body?.action||'').trim();
       const expectedUpdatedAt=normalizeVersion(req.body?.expectedUpdatedAt);
-      if(!policyVersion) return json(res,400,{error:{code:'INVALID_POLICY_VERSION',message:'policyVersion is required.'}});
+      if(!policyVersion) return json(res,400,{error:{code:'INVALID_POLICY_VERSION',message:'A policy version between 1 and 120 characters is required.'}});
       if(!['grant','revoke'].includes(action)) return json(res,400,{error:{code:'INVALID_CONSENT_ACTION',message:'action must be grant or revoke.'}});
 
       const current=await sql`SELECT updated_at FROM parental_consents WHERE learner_id=${learnerId} AND parent_user_id=${session.user_id} LIMIT 1`;
