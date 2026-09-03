@@ -35,7 +35,16 @@ async function readJsonBounded(response){
  const declared=Number(response?.headers?.get?.('content-length'));
  if(Number.isFinite(declared)&&declared>MAX_RESPONSE_BYTES){try{response.body?.cancel?.();}catch(_){}return {ok:false,error:{code:'CAREER_PREP_RESPONSE_TOO_LARGE',message:'Career preparation response is too large.'}};}
  if(!response?.body||typeof response.body.getReader!=='function'){
-  try{return {ok:true,data:await response.json()};}catch(_){return {ok:false,error:{code:'CAREER_PREP_INVALID_RESPONSE',message:'Career preparation returned an invalid response.'}};}
+  try{
+   const text=await response.text();
+   const bytes=typeof TextEncoder!=='undefined'?new TextEncoder().encode(text):null;
+   const size=bytes?bytes.byteLength:typeof Buffer!=='undefined'?Buffer.byteLength(text,'utf8'):text.length;
+   if(size>MAX_RESPONSE_BYTES)return {ok:false,error:{code:'CAREER_PREP_RESPONSE_TOO_LARGE',message:'Career preparation response is too large.'}};
+   return {ok:true,data:JSON.parse(text)};
+  }catch(error){
+   if(error?.message==='Career preparation response is too large.')return {ok:false,error:{code:'CAREER_PREP_RESPONSE_TOO_LARGE',message:error.message}};
+   return {ok:false,error:{code:'CAREER_PREP_INVALID_RESPONSE',message:'Career preparation returned an invalid response.'}};
+  }
  }
  const reader=response.body.getReader(),chunks=[];let total=0;
  try{while(true){const part=await reader.read();if(part.done)break;total+=part.value?.byteLength||0;if(total>MAX_RESPONSE_BYTES){try{await reader.cancel();}catch(_){}return {ok:false,error:{code:'CAREER_PREP_RESPONSE_TOO_LARGE',message:'Career preparation response is too large.'}};}chunks.push(part.value);}}
