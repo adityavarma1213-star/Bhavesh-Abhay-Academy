@@ -12,7 +12,13 @@
     const declared=Number(response?.headers?.get?.('content-length'));
     if(Number.isFinite(declared)&&declared>MAX_RESPONSE_BYTES){try{response.body?.cancel?.();}catch(_){}throw new Error('PREDICTION_RESPONSE_TOO_LARGE');}
     if(!response?.body||typeof response.body.getReader!=='function'){
-      try{return await response.json();}catch(_){throw new Error('PREDICTION_INVALID_RESPONSE');}
+      try{
+        const text=await response.text();
+        const bytes=typeof TextEncoder!=='undefined'?new TextEncoder().encode(text):null;
+        const size=bytes?bytes.byteLength:typeof Buffer!=='undefined'?Buffer.byteLength(text,'utf8'):text.length;
+        if(size>MAX_RESPONSE_BYTES)throw new Error('PREDICTION_RESPONSE_TOO_LARGE');
+        return JSON.parse(text);
+      }catch(error){throw new Error(error?.message==='PREDICTION_RESPONSE_TOO_LARGE'?'PREDICTION_RESPONSE_TOO_LARGE':'PREDICTION_INVALID_RESPONSE');}
     }
     const reader=response.body.getReader(),chunks=[],decoder=new TextDecoder();let total=0;
     try{while(true){const part=await reader.read();if(part.done)break;total+=part.value?.byteLength||0;if(total>MAX_RESPONSE_BYTES){try{await reader.cancel();}catch(_){}throw new Error('PREDICTION_RESPONSE_TOO_LARGE');}chunks.push(part.value);}}finally{try{reader.releaseLock();}catch(_) {}}
