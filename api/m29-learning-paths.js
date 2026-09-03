@@ -8,6 +8,12 @@ const ORDER={needs_revision:0,struggling:0,learning:1,insufficient_evidence:2,ma
 const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
 const PAGE_SIZE=500;
 
+function requireBounded(value,max,name){
+  const raw=String(value??'').trim();
+  if(raw.length>max){const e=new Error(`${name} exceeds the maximum length of ${max} characters.`);e.status=400;e.code='VALUE_TOO_LONG';throw e;}
+  return raw;
+}
+
 async function loadAllEvidence(learnerId){
   const rows=[];
   let cursor=null;
@@ -57,9 +63,9 @@ export default async function handler(req,res){
   if(req.method!=='GET')return json(res,405,{error:{code:'METHOD_NOT_ALLOWED',message:'GET required.'}},{Allow:'GET'});
   try{
     const session=await requireAuth(req);
-    const learnerId=String(req.query?.learnerId||'');
+    const learnerId=requireBounded(req.query?.learnerId,160,'learnerId');
     await requireLearnerAccess(session,learnerId);
-    const subject=req.query?.subject?String(req.query.subject):null;
+    const subject=req.query?.subject?requireBounded(req.query.subject,120,'subject'):null;
     const limit=clamp(Number(req.query?.limit)||12,1,30);
     const evidenceRows=await loadAllEvidence(learnerId);
     let states=buildStates(evidenceRows);
