@@ -7,6 +7,12 @@ import { sql } from '../_lib/db.js';
 import { json, writeAudit } from '../_lib/security.js';
 
 export const config = { runtime: 'nodejs' };
+const MAX_REQUEST_BODY_BYTES = 4096;
+
+function requestBodyWithinLimit(req) {
+  const declared = Number(req.headers?.['content-length'] || req.headers?.get?.('content-length'));
+  return !Number.isFinite(declared) || declared < 0 || declared <= MAX_REQUEST_BODY_BYTES;
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'DELETE' && req.method !== 'POST') {
@@ -15,10 +21,16 @@ export default async function handler(req, res) {
     }, { Allow: 'DELETE, POST' });
   }
 
+  if (!requestBodyWithinLimit(req)) {
+    return json(res, 413, {
+      error: { code: 'REQUEST_BODY_TOO_LARGE', message: 'Account deletion request body is too large.' }
+    });
+  }
+
   try {
     const session = await requireAuth(req);
     const confirmation = String(req.body?.confirmation || '').trim().toUpperCase();
-    if (confirmation !== 'DELETE MY ACCOUNT') {
+    if (confirmation.length > 64 || confirmation !== 'DELETE MY ACCOUNT') {
       return json(res, 400, {
         error: {
           code: 'DELETE_CONFIRMATION_REQUIRED',
