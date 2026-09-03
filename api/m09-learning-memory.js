@@ -8,6 +8,12 @@ const clean = (v, max = 160) => String(v ?? '').trim().slice(0, max);
 const human = v => clean(v, 100).replace(/[-_]+/g, ' ');
 const VALID_CORRECTNESS = ['correct', 'partially_correct', 'incorrect'];
 const PAGE_SIZE = 500;
+function requiredBounded(value, max, code, message) {
+  const text = String(value ?? '').trim();
+  if (!text) { const error = new Error(message); error.status = 400; error.code = code; throw error; }
+  if (text.length > max) { const error = new Error(message); error.status = 400; error.code = code; throw error; }
+  return text;
+}
 
 function confidence(count, hasReviewFlag) {
   if (count < 3) return { level: 'insufficient', label: 'Not enough evidence' };
@@ -63,7 +69,7 @@ export default async function handler(req, res) {
   if (req.method !== 'GET') return json(res, 405, { error: { code: 'METHOD_NOT_ALLOWED', message: 'GET required.' } }, { Allow: 'GET', ...NO_STORE });
   try {
     const session = await requireAuth(req);
-    const learnerId = clean(req.query?.learnerId, 120);
+    const learnerId = requiredBounded(req.query?.learnerId, 120, 'LEARNER_ID_TOO_LONG', 'learnerId is required and must be 120 characters or fewer.');
     await requireLearnerAccess(session, learnerId);
 
     const rows = await loadAllEvidence(learnerId);
