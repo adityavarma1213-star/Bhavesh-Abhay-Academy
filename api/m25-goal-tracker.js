@@ -8,6 +8,7 @@ const MIN_EVIDENCE = 3;
 const PAGE_SIZE = 500;
 const DEFAULT_GOAL_LIMIT = 50;
 const MAX_GOAL_LIMIT = 100;
+const MAX_LEARNER_ID_CHARS = 120;
 const MAX_GOAL_CURSOR_CHARS = 512;
 const MAX_GOAL_CURSOR_FIELD_CHARS = 128;
 const VALID_CORRECTNESS = new Set(['correct','partially_correct','incorrect']);
@@ -113,7 +114,13 @@ async function handler(req, res) {
 
   try {
     const session = await requireAuth(req);
-    const learnerId = String(req.query?.learnerId || '');
+    const learnerId = String(req.query?.learnerId || '').trim();
+    if (!learnerId) {
+      return json(res, 400, { error: { code: 'LEARNER_ID_REQUIRED', message: 'learnerId is required.' } }, { 'Cache-Control': 'private, no-store, max-age=0' });
+    }
+    if (learnerId.length > MAX_LEARNER_ID_CHARS) {
+      return json(res, 400, { error: { code: 'LEARNER_ID_TOO_LONG', message: `learnerId must be at most ${MAX_LEARNER_ID_CHARS} characters.` } }, { 'Cache-Control': 'private, no-store, max-age=0' });
+    }
     await requireLearnerAccess(session, learnerId);
 
     const rawLimit = Number(req.query?.goalLimit || DEFAULT_GOAL_LIMIT);
