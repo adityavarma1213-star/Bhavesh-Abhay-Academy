@@ -2,6 +2,17 @@
 (function(global){
 'use strict';
 const MAX_RESPONSE_BYTES=1024*1024;
+const MAX_REQUEST_BYTES=64*1024;
+function encodeRequestBody(body){
+  const encoded=JSON.stringify(body);
+  const bytes=typeof TextEncoder==='function'?new TextEncoder().encode(encoded).byteLength:(typeof Buffer!=='undefined'?Buffer.byteLength(encoded,'utf8'):encoded.length);
+  if(bytes>MAX_REQUEST_BYTES){
+    const error=new Error('COLLABORATION_REQUEST_TOO_LARGE');
+    error.code='COLLABORATION_REQUEST_TOO_LARGE';
+    throw error;
+  }
+  return encoded;
+}
 async function readJsonResponse(r,fallback){
   if(r.body&&typeof r.body.getReader==='function'){
     const reader=r.body.getReader();const chunks=[];let total=0;
@@ -14,7 +25,11 @@ async function readJsonResponse(r,fallback){
   try{const text=await r.text();if(new TextEncoder().encode(text).byteLength>MAX_RESPONSE_BYTES)return fallback;return JSON.parse(text);}catch(_){return fallback;}
 }
 async function request(body,method='POST'){
-  const r=await fetch('/api/m48-collaboration',{method,headers:{'Content-Type':'application/json',Accept:'application/json'},credentials:'include',cache:'no-store',body:method==='GET'?undefined:JSON.stringify(body)}).catch(()=>null);
+  let encoded;
+  if(method!=='GET'){
+    try{encoded=encodeRequestBody(body);}catch(error){return {ok:false,error:error?.code||'COLLABORATION_REQUEST_TOO_LARGE'};}
+  }
+  const r=await fetch('/api/m48-collaboration',{method,headers:{'Content-Type':'application/json',Accept:'application/json'},credentials:'include',cache:'no-store',body:method==='GET'?undefined:encoded}).catch(()=>null);
   if(!r)return {ok:false,error:'COLLABORATION_SERVER_UNAVAILABLE'};
   const p=await readJsonResponse(r,{});
   return r.ok&&p.ok?p:{ok:false,error:p?.error?.code||'COLLABORATION_SERVER_ERROR',message:p?.error?.message||''};
