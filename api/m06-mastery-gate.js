@@ -7,6 +7,20 @@ const clean = (v, max = 180) => String(v ?? '').trim().slice(0, max);
 const findingKey = (subject, chapter, concept, label) => `${subject}::${chapter}::${concept}::${label}`.toLowerCase();
 const VALID_CORRECTNESS = new Set(['correct','partially_correct','incorrect']);
 const PAGE_SIZE = 500;
+const MAX_LEARNER_ID_CHARS = 120;
+const MAX_SUBJECT_CHARS = 120;
+const MAX_CHAPTER_CHARS = 180;
+
+function bounded(value, field, max, { required = true } = {}) {
+  if (value == null || String(value).trim() === '') {
+    if (required) { const err = new Error(`${field} is required.`); err.status = 400; err.code = 'INVALID_GATE_SCOPE'; throw err; }
+    return '';
+  }
+  if (typeof value !== 'string') { const err = new Error(`${field} must be a string.`); err.status = 400; err.code = 'INVALID_GATE_SCOPE'; throw err; }
+  const normalized = value.trim();
+  if (normalized.length > max) { const err = new Error(`${field} must be at most ${max} characters.`); err.status = 400; err.code = 'VALUE_TOO_LONG'; throw err; }
+  return normalized;
+}
 
 async function loadAllEvidence(learnerId, subject, chapter) {
   const rows = [];
@@ -126,10 +140,9 @@ export default async function handler(req, res) {
   try {
     const session = await requireAuth(req);
     const body = req.body || {};
-    const learnerId = clean(req.query?.learnerId || body.learnerId, 120);
-    const subject = clean(req.query?.subject || body.subject, 120);
-    const chapter = clean(req.query?.chapter || body.chapter, 180);
-    if (!learnerId || !subject || !chapter) return json(res,400,{error:{code:'INVALID_GATE_SCOPE',message:'learnerId, subject and chapter are required.'}});
+    const learnerId = bounded(req.query?.learnerId || body.learnerId, 'learnerId', MAX_LEARNER_ID_CHARS);
+    const subject = bounded(req.query?.subject || body.subject, 'subject', MAX_SUBJECT_CHARS);
+    const chapter = bounded(req.query?.chapter || body.chapter, 'chapter', MAX_CHAPTER_CHARS);
     await requireLearnerAccess(session, learnerId);
 
     if (req.method === 'GET') return json(res,200,{ok:true,gate:await buildGate(learnerId,subject,chapter)});
