@@ -4,8 +4,28 @@ import { sql } from './_lib/db.js';
 
 export const config = { runtime: 'nodejs' };
 const MIN_EVIDENCE = 3;
+const MAX_LEARNER_ID_CHARS = 100;
+const MAX_SUBJECT_CHARS = 120;
+const MAX_CHAPTER_CHARS = 160;
 const VALID_CORRECTNESS = new Set(['correct','partially_correct','incorrect']);
 const clean=(v,max=160)=>String(v??'').trim().slice(0,max);
+
+function requireBounded(value, max, code, message, { required = false } = {}) {
+  const normalized = typeof value === 'string' ? value.trim() : '';
+  if (!normalized && required) {
+    const error = new Error(message);
+    error.status = 400;
+    error.code = code;
+    throw error;
+  }
+  if (normalized.length > max) {
+    const error = new Error(message);
+    error.status = 400;
+    error.code = code;
+    throw error;
+  }
+  return normalized;
+}
 
 function chooseAction(state){
   if(['struggling','needs_revision'].includes(state)) return 'guided_reteach';
@@ -19,10 +39,10 @@ export default async function handler(req,res){
   if(req.method!=='GET') return json(res,405,{error:{code:'METHOD_NOT_ALLOWED',message:'GET required.'}},{Allow:'GET'});
   try{
     const session=await requireAuth(req);
-    const learnerId=clean(req.query?.learnerId,120);
+    const learnerId=requireBounded(req.query?.learnerId,MAX_LEARNER_ID_CHARS,'LEARNER_ID_TOO_LONG','Learner identifier exceeds the allowed length.',{required:true});
     await requireLearnerAccess(session,learnerId);
-    const subject=clean(req.query?.subject,120);
-    const chapter=clean(req.query?.chapter,160);
+    const subject=requireBounded(req.query?.subject,MAX_SUBJECT_CHARS,'SUBJECT_TOO_LONG','Subject filter exceeds the allowed length.');
+    const chapter=requireBounded(req.query?.chapter,MAX_CHAPTER_CHARS,'CHAPTER_TOO_LONG','Chapter filter exceeds the allowed length.');
     const rows=await sql`
       SELECT subject,chapter,correctness,COUNT(*)::int AS evidence_count,
              COUNT(DISTINCT question_id)::int AS question_count,
