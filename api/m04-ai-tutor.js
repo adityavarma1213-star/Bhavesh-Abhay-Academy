@@ -10,8 +10,19 @@ const PAGE_SIZE = 200;
 const MAX_MEMORY = 24;
 const MAX_EVIDENCE = 120;
 const MAX_ATTEMPTS = 24;
+const MAX_LEARNER_ID_CHARS = 100;
 function clean(value,max=120){return typeof value==='string'?value.replace(/\s+/g,' ').trim().slice(0,max):'';}
-async function resolveLearnerId(session,requested){const learnerId=clean(requested,100);if(learnerId){await requireLearnerAccess(session,learnerId);return learnerId;}if(session.roles.includes('student')){const result=await sql`SELECT id FROM learners WHERE user_id=${session.user_id} AND deactivated_at IS NULL LIMIT 1`;if(result.rows[0]?.id)return String(result.rows[0].id);}return '';}
+function validateLearnerId(value){
+  if(value==null||value==='')return '';
+  if(typeof value!=='string'){
+    const err=new Error('learnerId must be a string.');err.status=400;err.code='INVALID_LEARNER_ID';throw err;
+  }
+  const normalized=value.replace(/\s+/g,' ').trim();
+  if(!normalized){const err=new Error('A learner context is required.');err.status=400;err.code='LEARNER_REQUIRED';throw err;}
+  if(normalized.length>MAX_LEARNER_ID_CHARS){const err=new Error(`learnerId must be at most ${MAX_LEARNER_ID_CHARS} characters.`);err.status=400;err.code='LEARNER_ID_TOO_LONG';throw err;}
+  return normalized;
+}
+async function resolveLearnerId(session,requested){const learnerId=validateLearnerId(requested);if(learnerId){await requireLearnerAccess(session,learnerId);return learnerId;}if(session.roles.includes('student')){const result=await sql`SELECT id FROM learners WHERE user_id=${session.user_id} AND deactivated_at IS NULL LIMIT 1`;if(result.rows[0]?.id)return String(result.rows[0].id);}return '';}
 async function enforceParentPolicy(session,learnerId){if(!learnerId||!session?.roles?.includes('student'))return;const result=await sql`SELECT tutor_enabled FROM parent_ai_policies WHERE learner_id=${learnerId} LIMIT 1`;if(result.rows[0]&&result.rows[0].tutor_enabled===false){const err=new Error('AI Tutor is disabled by the active parent approval policy.');err.status=403;err.code='AI_TUTOR_DISABLED_BY_PARENT_POLICY';throw err;}}
 async function pageMemory(learnerId,after){return after?sql`SELECT id,concept,status,evidence_count,correct_count,last_updated FROM learning_memory WHERE learner_id=${learnerId} AND status IN ('mastered','learning','needs_revision') AND evidence_count>=${MIN_EVIDENCE} AND (last_updated,id)<(${after.t},${after.id}::uuid) ORDER BY last_updated DESC,id DESC LIMIT ${PAGE_SIZE}`:sql`SELECT id,concept,status,evidence_count,correct_count,last_updated FROM learning_memory WHERE learner_id=${learnerId} AND status IN ('mastered','learning','needs_revision') AND evidence_count>=${MIN_EVIDENCE} ORDER BY last_updated DESC,id DESC LIMIT ${PAGE_SIZE}`;}
 async function pageEvidence(learnerId,after){return after?sql`SELECT id,concept,subject,chapter,error_type,correctness,created_at FROM learning_evidence WHERE learner_id=${learnerId} AND (created_at,id)<(${after.t},${after.id}::uuid) ORDER BY created_at DESC,id DESC LIMIT ${PAGE_SIZE}`:sql`SELECT id,concept,subject,chapter,error_type,correctness,created_at FROM learning_evidence WHERE learner_id=${learnerId} ORDER BY created_at DESC,id DESC LIMIT ${PAGE_SIZE}`;}
