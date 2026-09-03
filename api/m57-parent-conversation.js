@@ -8,7 +8,21 @@ const HISTORY_PAGE_SIZE = 20;
 const EVIDENCE_PAGE_SIZE = 500;
 const MAX_CURSOR_CHARS = 512;
 const MAX_CURSOR_FIELD_CHARS = 128;
+const MAX_LEARNER_ID_CHARS = 128;
 function clean(v, max = 240) { return String(v ?? '').trim().slice(0, max); }
+function boundedLearnerId(value) {
+  if (value == null || String(value).trim() === '') {
+    const e = new Error('learnerId is required.'); e.status = 400; e.code = 'INVALID_LEARNER'; throw e;
+  }
+  if (typeof value !== 'string') {
+    const e = new Error('learnerId must be a string.'); e.status = 400; e.code = 'INVALID_LEARNER'; throw e;
+  }
+  const normalized = value.trim();
+  if (normalized.length > MAX_LEARNER_ID_CHARS) {
+    const e = new Error(`learnerId must be at most ${MAX_LEARNER_ID_CHARS} characters.`); e.status = 400; e.code = 'VALUE_TOO_LONG'; throw e;
+  }
+  return normalized;
+}
 function parseCursor(value) {
   if (!value) return null;
   const raw = String(value);
@@ -93,8 +107,7 @@ export default async function handler(req, res) {
     const session = await requireAuth(req);
     if (!hasRole(session, 'parent')) return json(res, 403, { error: { code: 'FORBIDDEN', message: 'Parent role required.' } });
     if (req.method === 'GET') {
-      const learnerId = clean(req.query?.learnerId, 128);
-      if (!learnerId) return json(res, 400, { error: { code: 'INVALID_LEARNER', message: 'learnerId is required.' } });
+      const learnerId = boundedLearnerId(req.query?.learnerId);
       if (!await requireParentLearner(session, learnerId)) return json(res, 403, { error: { code: 'LEARNER_ACCESS_DENIED', message: 'Parent is not linked to this learner.' } });
       const cursor = parseCursor(req.query?.cursor);
       const rows = cursor
@@ -106,8 +119,7 @@ export default async function handler(req, res) {
       return json(res, 200, { ok: true, conversations, pagination: { limit: HISTORY_PAGE_SIZE, hasMore, nextCursor } });
     }
     if (req.method !== 'POST') return json(res, 405, { error: { code: 'METHOD_NOT_ALLOWED', message: 'GET or POST required.' } }, { Allow: 'GET, POST' });
-    const learnerId = clean(req.body?.learnerId, 128);
-    if (!learnerId) return json(res, 400, { error: { code: 'INVALID_LEARNER', message: 'learnerId is required.' } });
+    const learnerId = boundedLearnerId(req.body?.learnerId);
     if (!await requireParentLearner(session, learnerId)) return json(res, 403, { error: { code: 'LEARNER_ACCESS_DENIED', message: 'Parent is not linked to this learner.' } });
     const context = await loadLearningContext(learnerId);
     const topic = context.topic;
