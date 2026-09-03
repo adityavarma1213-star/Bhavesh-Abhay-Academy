@@ -21,9 +21,16 @@
 
     if (!response?.body || typeof response.body.getReader !== 'function') {
       try {
-        const body = await response.json();
-        return { ok: true, body };
-      } catch (_) {
+        const text = await response.text();
+        const size = typeof TextEncoder !== 'undefined'
+          ? new TextEncoder().encode(text).byteLength
+          : typeof Buffer !== 'undefined'
+            ? Buffer.byteLength(text, 'utf8')
+            : text.length;
+        if (size > MAX_RESPONSE_BYTES) return { ok: false, error: 'ACCOUNT_DELETION_RESPONSE_TOO_LARGE' };
+        return { ok: true, body: JSON.parse(text) };
+      } catch (error) {
+        if (error?.message === 'ACCOUNT_DELETION_RESPONSE_TOO_LARGE') return { ok: false, error: 'ACCOUNT_DELETION_RESPONSE_TOO_LARGE' };
         return { ok: false, error: 'ACCOUNT_DELETION_INVALID_RESPONSE' };
       }
     }
@@ -69,53 +76,23 @@
 
     try {
       const response = await fetch(ENDPOINT, {
-        method: 'DELETE',
-        credentials: 'include',
-        cache: 'no-store',
+        method: 'DELETE', credentials: 'include', cache: 'no-store',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         body: JSON.stringify({ confirmation: CONFIRMATION }),
         ...(controller ? { signal: controller.signal } : {}),
       });
-
       const parsed = await readJsonResponse(response);
       if (!parsed.ok) return { ok: false, error: parsed.error, message: 'Account deletion returned an invalid response. No completion is claimed.' };
       const body = parsed.body;
-
-      if (!response.ok) {
-        return {
-          ok: false,
-          status: response.status,
-          error: body?.error?.code || body?.error || 'ACCOUNT_DELETION_FAILED',
-          message: body?.error?.message || body?.message || 'Account deletion could not be completed.',
-        };
-      }
-
-      return {
-        ok: true,
-        status: response.status,
-        deleted: body?.deleted === true,
-        learnerCount: Number.isFinite(Number(body?.learnerCount)) ? Number(body.learnerCount) : null,
-        message: body?.message || 'Account deletion completed.',
-      };
+      if (!response.ok) return { ok: false, status: response.status, error: body?.error?.code || body?.error || 'ACCOUNT_DELETION_FAILED', message: body?.error?.message || body?.message || 'Account deletion could not be completed.' };
+      return { ok: true, status: response.status, deleted: body?.deleted === true, learnerCount: Number.isFinite(Number(body?.learnerCount)) ? Number(body.learnerCount) : null, message: body?.message || 'Account deletion completed.' };
     } catch (error) {
-      if (error?.name === 'AbortError') {
-        return { ok: false, error: 'ACCOUNT_DELETION_TIMEOUT', message: 'Account deletion request timed out. No completion is claimed.' };
-      }
+      if (error?.name === 'AbortError') return { ok: false, error: 'ACCOUNT_DELETION_TIMEOUT', message: 'Account deletion request timed out. No completion is claimed.' };
       return { ok: false, error: 'ACCOUNT_DELETION_NETWORK_ERROR', message: 'Account deletion could not reach the server. No completion is claimed.' };
-    } finally {
-      if (timeout) clearTimeout(timeout);
-    }
+    } finally { if (timeout) clearTimeout(timeout); }
   }
 
   function confirmationPhrase() { return CONFIRMATION; }
   function endpoint() { return ENDPOINT; }
-
-  global.BAAAccountDeletion = {
-    deleteAccount,
-    confirmationPhrase,
-    endpoint,
-    defaultTimeoutMs: DEFAULT_TIMEOUT_MS,
-    maxResponseBytes: MAX_RESPONSE_BYTES,
-    maxConfirmationChars: MAX_CONFIRMATION_CHARS,
-  };
+  global.BAAAccountDeletion = { deleteAccount, confirmationPhrase, endpoint, defaultTimeoutMs: DEFAULT_TIMEOUT_MS, maxResponseBytes: MAX_RESPONSE_BYTES, maxConfirmationChars: MAX_CONFIRMATION_CHARS };
 })(typeof window !== 'undefined' ? window : global);
