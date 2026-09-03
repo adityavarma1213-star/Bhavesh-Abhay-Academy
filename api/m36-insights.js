@@ -3,13 +3,20 @@ import { requireAuth, requireLearnerAccess } from './_lib/auth.js';
 import { sql } from './_lib/db.js';
 
 export const config={runtime:'nodejs'};
+const MAX_LEARNER_ID_CHARS=100;
 const clean=(v,max=120)=>String(v??'').trim().slice(0,max);
 const VALID_CORRECTNESS=new Set(['correct','partially_correct','incorrect']);
+function requireLearnerId(value){
+  const normalized=typeof value==='string'?value.trim():'';
+  if(!normalized){const e=new Error('A learner identifier is required.');e.status=400;e.code='LEARNER_ID_REQUIRED';throw e;}
+  if(normalized.length>MAX_LEARNER_ID_CHARS){const e=new Error('Learner identifier exceeds the allowed length.');e.status=400;e.code='LEARNER_ID_TOO_LONG';throw e;}
+  return normalized;
+}
 export default async function handler(req,res){
   res.setHeader('Cache-Control','private, no-store, max-age=0');
   if(req.method!=='GET')return json(res,405,{error:{code:'METHOD_NOT_ALLOWED',message:'GET required.'}},{Allow:'GET','Cache-Control':'private, no-store, max-age=0'});
   try{
-    const session=await requireAuth(req),learnerId=clean(req.query?.learnerId);
+    const session=await requireAuth(req),learnerId=requireLearnerId(req.query?.learnerId);
     await requireLearnerAccess(session,learnerId);
     const attempts=await sql`SELECT COUNT(*) FILTER (WHERE status IN ('submitted','evaluated','completed'))::int AS completed FROM assessment_attempts WHERE learner_id=${learnerId}`;
     const evidence=await sql`SELECT COUNT(*) FILTER (WHERE correctness IN ('correct','partially_correct','incorrect'))::int AS answered,COUNT(*) FILTER (WHERE correctness='correct')::int AS correct,COUNT(DISTINCT (COALESCE(subject,'') || ':' || concept)) FILTER (WHERE correctness IN ('correct','partially_correct','incorrect'))::int AS concepts,COUNT(*) FILTER (WHERE correctness IS NULL OR correctness NOT IN ('correct','partially_correct','incorrect'))::int AS excluded FROM learning_evidence WHERE learner_id=${learnerId}`;
