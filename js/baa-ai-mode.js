@@ -18,8 +18,15 @@
 
     if (!response?.body || typeof response.body.getReader !== 'function') {
       try {
-        return { ok: true, data: await response.json() };
-      } catch (_) {
+        const text = await response.text();
+        const bytes = typeof TextEncoder !== 'undefined' ? new TextEncoder().encode(text) : null;
+        const size = bytes ? bytes.byteLength : typeof Buffer !== 'undefined' ? Buffer.byteLength(text, 'utf8') : text.length;
+        if (size > MAX_RESPONSE_BYTES) {
+          return { ok: false, error: { code: 'AI_MODE_RESPONSE_TOO_LARGE', message: 'AI Mode returned too much data.' } };
+        }
+        return { ok: true, data: JSON.parse(text) };
+      } catch (error) {
+        if (error?.message === 'AI_MODE_RESPONSE_TOO_LARGE') return { ok: false, error: { code: 'AI_MODE_RESPONSE_TOO_LARGE', message: 'AI Mode returned too much data.' } };
         return { ok: false, error: { code: 'AI_MODE_INVALID_RESPONSE', message: 'AI Mode returned an invalid response.' } };
       }
     }
@@ -69,8 +76,6 @@
     return {
       learnerId: String(global.BAA_LEARNER_ID || '').trim(),
       goal: (planner.getGoals?.()[0]?.text || '').trim(),
-      // Kept for backward-compatible local preview/debug consumers only.
-      // The production API ignores these values and derives evidence server-side.
       concepts: states.map((c) => ({
         concept: c.concept,
         state: c.state,
