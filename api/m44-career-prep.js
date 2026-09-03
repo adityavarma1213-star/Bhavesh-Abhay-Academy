@@ -4,6 +4,7 @@ import { sql, withTransaction } from './_lib/db.js';
 
 export const config = { runtime: 'nodejs' };
 const NO_STORE = { 'Cache-Control': 'private, no-store, max-age=0' };
+const MAX_LEARNER_ID_CHARS = 120;
 const clean = (v,max=240) => String(v ?? '').trim().slice(0,max);
 const strings = (v,max=120) => [...new Set((Array.isArray(v)?v:[]).filter(x=>typeof x==='string').map(x=>clean(x,max)).filter(Boolean))].slice(0,40);
 function body(req){
@@ -31,7 +32,9 @@ export default async function handler(req,res){
   res.setHeader('Cache-Control','private, no-store, max-age=0');
   try{
     const session=await requireAuth(req);
-    const learnerId=clean(req.query?.learnerId,120);
+    const learnerId=String(req.query?.learnerId??'').trim();
+    if(!learnerId)return json(res,400,{ok:false,error:{code:'LEARNER_ID_REQUIRED',message:'learnerId is required.'}},NO_STORE);
+    if(learnerId.length>MAX_LEARNER_ID_CHARS)return json(res,400,{ok:false,error:{code:'LEARNER_ID_TOO_LONG',message:`learnerId must be at most ${MAX_LEARNER_ID_CHARS} characters.`}},NO_STORE);
     await requireLearnerAccess(session,learnerId);
     if(req.method==='GET'){
       const r=await sql`SELECT learner_id AS "learnerId",goal,skills,projects,created_at AS "createdAt",updated_at AS "updatedAt" FROM career_prep_profiles WHERE learner_id=${learnerId} LIMIT 1`;
