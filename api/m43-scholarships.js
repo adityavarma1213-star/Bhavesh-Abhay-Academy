@@ -11,20 +11,26 @@ const PROVIDER_TOKEN=String(process.env.BAA_SCHOLARSHIPS_PROVIDER_TOKEN||'').tri
 const PROVIDER_TIMEOUT_MS=8000;
 const MAX_PROVIDER_BYTES=1024*1024;
 const MAX_RESULTS=200;
+const MAX_ID_CHARS=120;
+const MAX_TITLE_CHARS=240;
+const MAX_PROVIDER_NAME_CHARS=160;
+const MAX_COUNTRY_CHARS=80;
+const MAX_LEVEL_CHARS=80;
+const MAX_SOURCE_URL_CHARS=1000;
 
 function cleanRecord(x){
   const deadline=x.deadline||null;
   return {
-    id:String(x.id||id('sch')).trim().slice(0,120),
-    title:String(x.title||'').trim().slice(0,240),
-    provider:String(x.provider||'').trim().slice(0,160),
-    country:x.country?String(x.country).trim().slice(0,80):null,
-    level:x.level?String(x.level).trim().slice(0,80):null,
+    id:String(x.id||id('sch')).trim().slice(0,MAX_ID_CHARS),
+    title:String(x.title||'').trim().slice(0,MAX_TITLE_CHARS),
+    provider:String(x.provider||'').trim().slice(0,MAX_PROVIDER_NAME_CHARS),
+    country:x.country?String(x.country).trim().slice(0,MAX_COUNTRY_CHARS):null,
+    level:x.level?String(x.level).trim().slice(0,MAX_LEVEL_CHARS):null,
     fields:Array.isArray(x.fields)?[...new Set(x.fields.map(v=>String(v).trim().slice(0,80)).filter(Boolean))].slice(0,30):[],
     eligibility:x.eligibility&&typeof x.eligibility==='object'?x.eligibility:{},
     amountText:x.amountText?String(x.amountText).trim().slice(0,240):null,
     deadline:/^\d{4}-\d{2}-\d{2}$/.test(String(deadline))?String(deadline):null,
-    sourceUrl:x.sourceUrl?String(x.sourceUrl).trim().slice(0,1000):null,
+    sourceUrl:x.sourceUrl?String(x.sourceUrl).trim().slice(0,MAX_SOURCE_URL_CHARS):null,
   };
 }
 
@@ -124,8 +130,8 @@ export default async function handler(req,res){
   try{
     const s=await requireAuth(req);
     if(req.method==='GET'){
-      const country=req.query?.country?String(req.query.country).trim().slice(0,80):null;
-      const level=req.query?.level?String(req.query.level).trim().slice(0,80):null;
+      const country=req.query?.country?String(req.query.country).trim().slice(0,MAX_COUNTRY_CHARS):null;
+      const level=req.query?.level?String(req.query.level).trim().slice(0,MAX_LEVEL_CHARS):null;
       const field=req.query?.field?String(req.query.field).trim().slice(0,80):null;
       const local=await sql`SELECT id,title,provider,country,level,fields,eligibility,amount_text AS "amountText",deadline,source_url AS "sourceUrl" FROM scholarships WHERE status='published' AND source_url IS NOT NULL AND source_url LIKE 'https://%' AND (${country}::text IS NULL OR country=${country}) AND (${level}::text IS NULL OR level=${level}) AND (${field}::text IS NULL OR fields ? ${field}) AND (deadline IS NULL OR deadline>=CURRENT_DATE) ORDER BY deadline NULLS LAST,title ASC LIMIT 200`;
       const provider=await fetchProvider(req);
@@ -136,7 +142,12 @@ export default async function handler(req,res){
     }
     if(!hasRole(s,'admin'))return json(res,403,{error:{code:'FORBIDDEN',message:'Administrator role required.'}});
     if(req.method==='POST'){
-      const x=cleanRecord(req.body||{});
+      const raw=req.body&&typeof req.body==='object'?req.body:{};
+      const rawLengths=[['id',MAX_ID_CHARS],['title',MAX_TITLE_CHARS],['provider',MAX_PROVIDER_NAME_CHARS],['country',MAX_COUNTRY_CHARS],['level',MAX_LEVEL_CHARS],['sourceUrl',MAX_SOURCE_URL_CHARS]];
+      for(const [field,max] of rawLengths){
+        if(raw[field]!=null&&String(raw[field]).trim().length>max)return json(res,400,{error:{code:'VALUE_TOO_LONG',message:`${field} must be at most ${max} characters.`}});
+      }
+      const x=cleanRecord(raw);
       if(!x.title||!x.provider)return json(res,400,{error:{code:'INVALID_SCHOLARSHIP',message:'title and provider are required.'}});
       if(x.sourceUrl&&!isHttpsUrl(x.sourceUrl))return json(res,400,{error:{code:'INVALID_SOURCE_URL',message:'sourceUrl must use HTTPS.'}});
       await sql`INSERT INTO scholarships(id,title,provider,country,level,fields,eligibility,amount_text,deadline,source_url,status,created_by) VALUES(${x.id},${x.title},${x.provider},${x.country},${x.level},${JSON.stringify(x.fields)}::jsonb,${JSON.stringify(x.eligibility)}::jsonb,${x.amountText},${x.deadline||null},${x.sourceUrl},'draft',${s.user_id}) ON CONFLICT(id) DO UPDATE SET title=EXCLUDED.title,provider=EXCLUDED.provider,country=EXCLUDED.country,level=EXCLUDED.level,fields=EXCLUDED.fields,eligibility=EXCLUDED.eligibility,amount_text=EXCLUDED.amount_text,deadline=EXCLUDED.deadline,source_url=EXCLUDED.source_url,updated_at=NOW()`;
