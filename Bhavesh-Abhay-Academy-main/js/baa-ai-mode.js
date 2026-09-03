@@ -9,6 +9,7 @@
   'use strict';
 
   const MAX_CONCEPTS = 20;
+  const MAX_RESPONSE_BYTES = 1024 * 1024;
 
   function getInput() {
     const intel = global.BAAIntelligence;
@@ -36,6 +37,46 @@
     };
   }
 
+  async function readBoundedResponse(response) {
+    if (response?.body && typeof response.body.getReader === 'function') {
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let totalBytes = 0;
+      let text = '';
+      try {
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          totalBytes += value?.byteLength || 0;
+          if (totalBytes > MAX_RESPONSE_BYTES) {
+            try { await reader.cancel(); } catch {}
+            const error = new Error('AI Mode response exceeded the maximum allowed size.');
+            error.code = 'AI_MODE_RESPONSE_TOO_LARGE';
+            throw error;
+          }
+          text += decoder.decode(value, { stream: true });
+        }
+        text += decoder.decode();
+        return text;
+      } finally {
+        try { reader.releaseLock(); } catch {}
+      }
+    }
+
+    const text = await response.text();
+    const bytes = typeof TextEncoder === 'function'
+      ? new TextEncoder().encode(text).byteLength
+      : (typeof Buffer !== 'undefined' && typeof Buffer.byteLength === 'function'
+        ? Buffer.byteLength(text, 'utf8')
+        : unescape(encodeURIComponent(text)).length);
+    if (bytes > MAX_RESPONSE_BYTES) {
+      const error = new Error('AI Mode response exceeded the maximum allowed size.');
+      error.code = 'AI_MODE_RESPONSE_TOO_LARGE';
+      throw error;
+    }
+    return text;
+  }
+
   async function generatePlan(goal, previousPlan = null) {
     const input = getInput();
     const finalGoal = String(goal || input.goal || '').trim().slice(0, 120);
@@ -57,7 +98,15 @@
     }
 
     let data = null;
-    try { data = await response.json(); } catch {}
+    try {
+      const text = await readBoundedResponse(response);
+      data = text ? JSON.parse(text) : null;
+    } catch (error) {
+      if (error?.code === 'AI_MODE_RESPONSE_TOO_LARGE') {
+        return { ok: false, error: { code: error.code, message: error.message } };
+      }
+      data = null;
+    }
     if (!response.ok) {
       return { ok: false, error: data?.error || { code: 'AI_MODE_ERROR', message: 'AI Mode could not build a plan.' } };
     }
