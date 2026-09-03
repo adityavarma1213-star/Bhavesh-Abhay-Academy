@@ -7,6 +7,12 @@ export const config = { runtime: 'nodejs' };
 const noStore = { 'Cache-Control': 'private, no-store, max-age=0' };
 const BLOCKED = ['self-harm', 'suicide', 'sexual exploitation', 'buy drugs'];
 const clean = (value, max) => String(value ?? '').trim().slice(0, max);
+function bounded(value, max, code, message, required = false) {
+  const text = String(value ?? '').trim();
+  if (required && !text) { const error = new Error(message); error.status = 400; error.code = code; throw error; }
+  if (text.length > max) { const error = new Error(message); error.status = 400; error.code = code; throw error; }
+  return text;
+}
 function parseLimit(value) {
   if (value == null || String(value).trim() === '') return 100;
   const parsed = Number(value);
@@ -20,8 +26,10 @@ function parseLimit(value) {
 }
 
 function moderate(text) {
-  const value = clean(text, 4000);
-  if (!value) return { ok: false, code: 'INVALID_POST', message: 'Post text is required.' };
+  const raw = String(text ?? '').trim();
+  if (!raw) return { ok: false, code: 'INVALID_POST', message: 'Post text is required.' };
+  if (raw.length > 4000) return { ok: false, code: 'POST_TOO_LONG', message: 'Post text must be 4000 characters or fewer.' };
+  const value = clean(raw, 4000);
   const lower = value.toLowerCase();
   if (BLOCKED.some(term => lower.includes(term))) {
     return { ok: false, code: 'POST_BLOCKED_BY_SAFETY_FILTER', message: 'This post was blocked by the community safety filter.' };
@@ -82,7 +90,14 @@ async function requireGroupAccess(session, groupId) {
 
 function readCursor(query) {
   const createdAt = query?.cursorCreatedAt ? String(query.cursorCreatedAt).trim() : '';
-  const id = query?.cursorId ? clean(query.cursorId, 180) : '';
+  const rawId = query?.cursorId ? String(query.cursorId).trim() : '';
+  if (rawId.length > 180) {
+    const err = new Error('cursorId must be 180 characters or fewer.');
+    err.status = 400;
+    err.code = 'CURSOR_ID_TOO_LONG';
+    throw err;
+  }
+  const id = rawId;
   if (!createdAt && !id) return null;
   if (!createdAt || !id || Number.isNaN(Date.parse(createdAt))) {
     const err = new Error('cursorCreatedAt and cursorId must identify a valid post cursor.');
@@ -97,7 +112,9 @@ export default async function handler(req, res) {
   try {
     const session = await requireAuth(req);
     if (req.method === 'GET') {
-      const groupId = clean(req.query?.groupId, 120) || 'general';
+      const rawGroupId = String(req.query?.groupId ?? '').trim();
+      if (rawGroupId.length > 120) return json(res, 400, { error: { code: 'GROUP_ID_TOO_LONG', message: 'groupId must be 120 characters or fewer.' } }, noStore);
+      const groupId = rawGroupId || 'general';
       await requireGroupAccess(session, groupId);
       const limit = parseLimit(req.query?.limit);
       const cursor = readCursor(req.query);
@@ -134,7 +151,7 @@ export default async function handler(req, res) {
 
     const checked = moderate(req.body?.text);
     if (!checked.ok) return json(res, 422, { error: { code: checked.code, message: checked.message } }, noStore);
-    const groupId = clean(req.body?.groupId, 120) || 'general';
+    const groupId = bounded(req.body?.groupId || 'general', 120, 'GROUP_ID_TOO_LONG', 'groupId must be 120 characters or fewer.') || 'general';
     await requireGroupAccess(session, groupId);
     const id = postId(session.user_id);
     const inserted = await sql`
