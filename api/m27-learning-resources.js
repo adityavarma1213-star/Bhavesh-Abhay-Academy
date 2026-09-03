@@ -5,7 +5,14 @@ import { sql } from './_lib/db.js';
 export const config = { runtime: 'nodejs' };
 const FORMATS = new Set(['visual','video','interactive','practice']);
 const MIN_EVIDENCE = 3;
+const MAX_LEARNER_ID = 120;
+const MAX_FORMAT = 30;
 const clean = (v, max=160) => String(v ?? '').trim().slice(0,max);
+const boundedQuery = (v, max, code) => {
+  const raw = String(v ?? '').trim();
+  if (raw.length > max) { const e = new Error(code); e.status = 400; e.code = code; throw e; }
+  return raw;
+};
 const encode = (v) => encodeURIComponent(String(v || '').trim());
 function urlFor(format, query){
   const q=encode(query);
@@ -39,9 +46,9 @@ export default async function handler(req,res){
   if(req.method!=='GET') return json(res,405,{error:{code:'METHOD_NOT_ALLOWED',message:'GET required.'}},{Allow:'GET'});
   try{
     const session=await requireAuth(req);
-    const learnerId=clean(req.query?.learnerId,120);
+    const learnerId=boundedQuery(req.query?.learnerId,MAX_LEARNER_ID,'LEARNER_ID_TOO_LONG');
     await requireLearnerAccess(session,learnerId);
-    const preferred=clean(req.query?.format,30);
+    const preferred=boundedQuery(req.query?.format,MAX_FORMAT,'FORMAT_TOO_LONG');
     const preference=FORMATS.has(preferred)?preferred:null;
     const rows=await sql`SELECT subject,chapter,concept,
       COUNT(*)::int AS evidence_count,
