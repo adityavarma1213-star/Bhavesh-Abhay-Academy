@@ -9,9 +9,23 @@ export const config = { runtime: 'nodejs' };
 const MIN_EVIDENCE = 3;
 const MEMORY_PAGE_SIZE = 500;
 const AI_CONTEXT_CONCEPT_LIMIT = 40;
+const MAX_LEARNER_ID_CHARS = 100;
 
 function cleanText(value, max = 120) {
   return typeof value === 'string' ? value.replace(/\s+/g, ' ').trim().slice(0, max) : '';
+}
+
+function readLearnerId(value) {
+  if (typeof value !== 'string') return '';
+  const normalized = value.trim();
+  if (!normalized) return '';
+  if (normalized.length > MAX_LEARNER_ID_CHARS) {
+    const error = new Error('Learner identifier exceeds the allowed length.');
+    error.status = 400;
+    error.code = 'LEARNER_ID_TOO_LONG';
+    throw error;
+  }
+  return normalized;
 }
 
 function stateFor(row) {
@@ -62,7 +76,7 @@ async function loadAllMemory(learnerId) {
 export default async function handler(req, res) {
   try {
     const session = await requireAuth(req);
-    const learnerId = cleanText(req.query?.learnerId, 100);
+    const learnerId = readLearnerId(req.query?.learnerId);
     await requireLearnerAccess(session, learnerId);
     noStore(res);
 
