@@ -14,7 +14,13 @@ async function readJsonResponse(response){
  const declared=Number(response?.headers?.get?.('content-length'));
  if(Number.isFinite(declared)&&declared>MAX_RESPONSE_BYTES){try{response.body?.cancel?.();}catch(_){}throw new Error('GOALS_RESPONSE_TOO_LARGE');}
  if(!response?.body||typeof response.body.getReader!=='function'){
-  try{return await response.json();}catch(_){throw new Error('GOALS_INVALID_RESPONSE');}
+  try{
+   const text=await response.text();
+   const bytes=typeof TextEncoder!=='undefined'?new TextEncoder().encode(text):null;
+   const size=bytes?bytes.byteLength:typeof Buffer!=='undefined'?Buffer.byteLength(text,'utf8'):text.length;
+   if(size>MAX_RESPONSE_BYTES)throw new Error('GOALS_RESPONSE_TOO_LARGE');
+   return JSON.parse(text);
+  }catch(error){throw new Error(error?.message==='GOALS_RESPONSE_TOO_LARGE'?'GOALS_RESPONSE_TOO_LARGE':'GOALS_INVALID_RESPONSE');}
  }
  const reader=response.body.getReader();
  const chunks=[];let total=0;
