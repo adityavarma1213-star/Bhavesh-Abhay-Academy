@@ -14,7 +14,15 @@
     const declared=Number(response?.headers?.get?.('content-length'));
     if(Number.isFinite(declared)&&declared>MAX_RESPONSE_BYTES){try{response.body?.cancel?.();}catch(_){}throw Object.assign(new Error('Learning passport response is too large.'),{code:'PASSPORT_RESPONSE_TOO_LARGE'});}
     if(!response?.body||typeof response.body.getReader!=='function'){
-      try{return await response.json();}catch(_){throw Object.assign(new Error('Learning passport returned an invalid response.'),{code:'PASSPORT_INVALID_RESPONSE'});}
+      try{
+        const text=await response.text();
+        const size=typeof TextEncoder!=='undefined'?new TextEncoder().encode(text).byteLength:typeof Buffer!=='undefined'?Buffer.byteLength(text,'utf8'):text.length;
+        if(size>MAX_RESPONSE_BYTES)throw Object.assign(new Error('Learning passport response is too large.'),{code:'PASSPORT_RESPONSE_TOO_LARGE'});
+        return JSON.parse(text);
+      }catch(error){
+        if(error?.code==='PASSPORT_RESPONSE_TOO_LARGE')throw error;
+        throw Object.assign(new Error('Learning passport returned an invalid response.'),{code:'PASSPORT_INVALID_RESPONSE'});
+      }
     }
     const reader=response.body.getReader(),chunks=[],decoder=new TextDecoder();
     let total=0;
@@ -33,9 +41,6 @@
     try{return JSON.parse(text);}catch(_){throw Object.assign(new Error('Learning passport returned an invalid response.'),{code:'PASSPORT_INVALID_RESPONSE'});}
   }
   function build(){
-    // Once authenticated server evidence has loaded, it is the canonical
-    // passport source. Do not silently fall back to a stale browser snapshot
-    // while a server record is available.
     if(serverRecord)return serverRecord;
     const a=global.BAAAssessment;
     if(!a)return {schemaVersion:SCHEMA_VERSION,status:'unavailable'};
@@ -58,9 +63,7 @@
   async function autoLoad(){
     const id=String(global.BAA_LEARNER_ID||'').trim();
     if(!id)return;
-    try{await load(id);}catch(error){
-      global.dispatchEvent(new CustomEvent('baa:m19-passport-unavailable',{detail:{message:error.message}}));
-    }
+    try{await load(id);}catch(error){global.dispatchEvent(new CustomEvent('baa:m19-passport-unavailable',{detail:{message:error.message}}));}
   }
   function exportJson(record){return JSON.stringify(record||build(),null,2);}
   global.BAALearningPassport={build,load,autoLoad,exportJson,getServerRecord:function(){return serverRecord;}};
