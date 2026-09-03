@@ -23,7 +23,15 @@
       throw new Error('M31_RESPONSE_TOO_LARGE');
     }
     if(!response?.body||typeof response.body.getReader!=='function'){
-      try{return await response.json();}catch(_){throw new Error('M31_INVALID_RESPONSE');}
+      try{
+        const text=await response.text();
+        const bytes=new TextEncoder().encode(text);
+        if(bytes.byteLength>MAX_RESPONSE_BYTES) throw new Error('M31_RESPONSE_TOO_LARGE');
+        try{return JSON.parse(text);}catch(_){throw new Error('M31_INVALID_RESPONSE');}
+      }catch(error){
+        if(error?.message==='M31_RESPONSE_TOO_LARGE'||error?.message==='M31_INVALID_RESPONSE') throw error;
+        throw new Error('M31_INVALID_RESPONSE');
+      }
     }
     const reader=response.body.getReader();
     const chunks=[];let total=0;
