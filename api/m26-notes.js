@@ -7,6 +7,12 @@ const MIN_EVIDENCE = 3;
 const VALID_CORRECTNESS = new Set(['correct', 'partially_correct', 'incorrect']);
 const EVIDENCE_PAGE_SIZE = 500;
 const clean = (v, max = 160) => String(v ?? '').trim().slice(0, max);
+function bounded(value, max, code, message, required = false) {
+  const text = String(value ?? '').trim();
+  if (required && !text) { const error = new Error(message); error.status = 400; error.code = code; throw error; }
+  if (text.length > max) { const error = new Error(message); error.status = 400; error.code = code; throw error; }
+  return text;
+}
 
 async function loadAllEvidence(learnerId) {
   const rows = [];
@@ -44,8 +50,7 @@ export default async function handler(req, res) {
     const isTeacher = hasRole(session, 'teacher');
     if (!isTeacher && !isAdmin) return json(res, 403, { error: { code: 'FORBIDDEN', message: 'Teacher or administrator role required.' } });
 
-    const learnerId = clean(req.query?.learnerId, 120);
-    if (!learnerId) return json(res, 400, { error: { code: 'INVALID_LEARNER', message: 'learnerId is required.' } });
+    const learnerId = bounded(req.query?.learnerId, 120, 'LEARNER_ID_TOO_LONG', 'learnerId must be 120 characters or fewer.', true);
 
     const accessRows = isAdmin
       ? await sql`SELECT id FROM learners WHERE id=${learnerId} LIMIT 1`
@@ -105,7 +110,7 @@ export default async function handler(req, res) {
     else lines.push('No recorded evidence currently indicates a specific area needing attention from concepts with enough evidence.');
     const recent = attempts.rows[0];
     if (recent) {
-      const title = clean(recent.assessment_title || 'recent assessment', 120);
+      const title = bounded(recent.assessment_title || 'recent assessment', 120, 'ASSESSMENT_TITLE_TOO_LONG', 'assessment title exceeds the supported length.');
       const score = Number(recent.score), max = Number(recent.max_score);
       lines.push(Number.isFinite(score) && Number.isFinite(max) && max > 0 ? `Most recent completed assessment: ${title} — ${score}/${max}.` : `Most recent completed assessment: ${title}.`);
     }
