@@ -20,7 +20,8 @@ function boundedMetadata(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
   try {
     const serialized = JSON.stringify(value);
-    if (serialized.length > MAX_METADATA_BYTES) return null;
+    const byteLength = typeof TextEncoder === 'function' ? new TextEncoder().encode(serialized).byteLength : Buffer.byteLength(serialized, 'utf8');
+    if (byteLength > MAX_METADATA_BYTES) return null;
     return JSON.parse(serialized);
   } catch { return null; }
 }
