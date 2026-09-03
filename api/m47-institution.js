@@ -4,6 +4,24 @@ import { sql } from './_lib/db.js';
 
 export const config = { runtime: 'nodejs' };
 const MIN_EVIDENCE = 3;
+const MAX_CLASS_ID_CHARS = 100;
+
+function requireClassId(value) {
+  const normalized = typeof value === 'string' ? value.trim() : '';
+  if (!normalized) {
+    const error = new Error('classId is required.');
+    error.status = 400;
+    error.code = 'INVALID_CLASS';
+    throw error;
+  }
+  if (normalized.length > MAX_CLASS_ID_CHARS) {
+    const error = new Error('classId exceeds the allowed length.');
+    error.status = 400;
+    error.code = 'CLASS_ID_TOO_LONG';
+    throw error;
+  }
+  return normalized;
+}
 
 export default async function handler(req, res) {
   const NO_STORE = { 'Cache-Control': 'private, no-store, max-age=0' };
@@ -15,8 +33,7 @@ export default async function handler(req, res) {
     if (!isAdmin && !isTeacher) return json(res, 403, { error: { code: 'FORBIDDEN', message: 'Teacher or administrator role required.' } }, NO_STORE);
     if (req.method !== 'GET') return json(res, 405, { error: { code: 'METHOD_NOT_ALLOWED', message: 'GET required.' } }, { Allow: 'GET', ...NO_STORE });
 
-    const classId = String(req.query?.classId || '').trim();
-    if (!classId) return json(res, 400, { error: { code: 'INVALID_CLASS', message: 'classId is required.' } }, NO_STORE);
+    const classId = requireClassId(req.query?.classId);
 
     const classRows = isAdmin
       ? await sql`SELECT id,name FROM classes WHERE id=${classId} LIMIT 1`
