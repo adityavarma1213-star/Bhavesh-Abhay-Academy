@@ -6,19 +6,35 @@ import { requireAuth, requireLearnerAccess } from './_lib/auth.js';
 export const config = { runtime: 'nodejs' };
 const MAX_STEPS = 20;
 const MAX_TITLE = 120;
+const MAX_LEARNER_ID = 100;
+const MAX_STEP_ID = 80;
+const MAX_TYPE = 20;
 const MIN_MINUTES = 5;
 const MAX_MINUTES = 180;
 const VALID_TYPES = new Set(['learn', 'practice', 'review', 'assessment', 'tutor']);
 
 function cleanText(value, max = MAX_TITLE) { return typeof value === 'string' ? value.replace(/\s+/g, ' ').trim().slice(0, max) : ''; }
+function boundedText(value, max) {
+  if (typeof value !== 'string') return null;
+  const normalized = value.replace(/\s+/g, ' ').trim();
+  return normalized.length > max ? null : normalized;
+}
+function requireLearnerId(value) {
+  if (typeof value !== 'string') return null;
+  const normalized = value.trim();
+  if (!normalized || normalized.length > MAX_LEARNER_ID) return null;
+  return normalized;
+}
 function normalizeSteps(value) {
   if (!Array.isArray(value) || value.length > MAX_STEPS) return null;
   const steps = [];
   const usedIds = new Set();
   for (const raw of value) {
-    const title = cleanText(raw?.title), minutes = Number(raw?.minutes), type = cleanText(raw?.type, 20);
+    const title = boundedText(raw?.title, MAX_TITLE);
+    const minutes = Number(raw?.minutes);
+    const type = boundedText(raw?.type, MAX_TYPE);
     if (!title || !Number.isInteger(minutes) || minutes < MIN_MINUTES || minutes > MAX_MINUTES || !VALID_TYPES.has(type)) return null;
-    let id = cleanText(raw?.id, 80) || randomUUID();
+    let id = boundedText(raw?.id, MAX_STEP_ID) || randomUUID();
     if (usedIds.has(id)) return null;
     usedIds.add(id);
     steps.push({ id, title, minutes, type, completed: Boolean(raw?.completed) });
@@ -34,7 +50,8 @@ function conflict(res, updatedAt) {
 export default async function handler(req, res) {
   try {
     const session = await requireAuth(req);
-    const learnerId = String(req.query?.learnerId || '').trim();
+    const learnerId = requireLearnerId(req.query?.learnerId);
+    if (!learnerId) return json(res, 400, { error: { code: 'LEARNER_ID_INVALID', message: 'A valid learner identifier is required.' } });
     await requireLearnerAccess(session, learnerId);
     noStore(res);
 
