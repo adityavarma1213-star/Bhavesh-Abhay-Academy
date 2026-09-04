@@ -52,6 +52,13 @@ function readOptionalNumber(value,name){
   if(!Number.isFinite(n)||n<0){const e=new Error(`${name} must be a non-negative number.`);e.status=400;e.code='INVALID_NUMBER';throw e;}
   return n;
 }
+function readBody(req){
+  if(req.body&&typeof req.body==='object') return req.body;
+  if(typeof req.body!=='string') return {};
+  try{return JSON.parse(req.body);}catch{
+    const e=new Error('Request body must contain valid JSON.');e.status=400;e.code='INVALID_JSON_BODY';throw e;
+  }
+}
 
 async function enforceParentMentorPolicy(session, learnerId){
   if(!learnerId || hasRole(session,'admin')) return;
@@ -78,7 +85,7 @@ export default async function handler(req,res){
       return json(res,200,{ok:true,results,nextCursor});
     }
     if(req.method==='POST'){
-      const b=req.body||{};
+      const b=readBody(req);
       if(hasRole(s,'student')||hasRole(s,'parent')){
         const mentorId=requireBounded(b.mentorId,MAX_MENTOR_ID_CHARS,'mentorId',{required:true});
         const learnerId=requireBounded(b.learnerId,MAX_LEARNER_ID_CHARS,'learnerId',{required:true});
@@ -115,8 +122,9 @@ export default async function handler(req,res){
     if(req.method==='PATCH'){
       if(!hasRole(s,'admin')) return json(res,403,{error:{code:'FORBIDDEN',message:'Administrator role required.'}});
       const mentorId=requireBounded(req.query?.id,MAX_MENTOR_ID_CHARS,'mentorId',{required:true});
-      const verification=String(req.body?.verificationStatus||'');
-      const safeguarding=String(req.body?.safeguardingStatus||'');
+      const b=readBody(req);
+      const verification=String(b.verificationStatus||'');
+      const safeguarding=String(b.safeguardingStatus||'');
       if(!VERIFICATION.includes(verification)||!SAFEGUARDING.includes(safeguarding)) return json(res,400,{error:{code:'INVALID_VERIFICATION_STATE',message:'Valid mentor id, verificationStatus and safeguardingStatus are required.'}});
       if(verification==='verified'&&safeguarding!=='verified') return json(res,409,{error:{code:'SAFEGUARDING_REQUIRED',message:'A mentor cannot be verified for marketplace use until safeguarding is verified.'}});
       const updated=await sql`UPDATE mentor_profiles SET verification_status=${verification},safeguarding_status=${safeguarding},updated_at=NOW() WHERE id=${mentorId} RETURNING id`;
@@ -126,7 +134,7 @@ export default async function handler(req,res){
     }
     if(req.method==='PUT'&&req.query?.action==='request-status'){
       if(!hasRole(s,'admin')&&!hasRole(s,'teacher')) return json(res,403,{error:{code:'FORBIDDEN',message:'Administrator or teacher role required.'}});
-      const requestId=requireBounded(req.query?.id,MAX_MENTOR_ID_CHARS,'requestId',{required:true}); const status=String(req.body?.status||'');
+      const requestId=requireBounded(req.query?.id,MAX_MENTOR_ID_CHARS,'requestId',{required:true}); const b=readBody(req); const status=String(b.status||'');
       if(!REQUEST_STATUS.includes(status)) return json(res,400,{error:{code:'INVALID_REQUEST_STATUS',message:'Valid request id and status are required.'}});
       const request=await sql`SELECT id,mentor_id,learner_id,status FROM mentor_requests WHERE id=${requestId} LIMIT 1`;
       if(!request.rows.length) return json(res,404,{error:{code:'MENTOR_REQUEST_NOT_FOUND',message:'Mentoring request not found.'}});
