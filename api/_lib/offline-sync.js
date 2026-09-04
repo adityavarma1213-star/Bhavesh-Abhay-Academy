@@ -10,7 +10,7 @@ export async function beginOfflineOperation(req, { learnerId, endpoint }) {
   if (!operationId) return { enabled: false };
   const createdRaw = header(req, 'x-baa-operation-created-at');
   const createdAt = createdRaw && !Number.isNaN(Date.parse(createdRaw)) ? new Date(createdRaw).toISOString() : new Date().toISOString();
-  const existing = await sql`SELECT operation_id,learner_id,status,response,rejection_code,operation_created_at FROM offline_sync_inbox WHERE operation_id=${operationId} LIMIT 1`;
+  const existing = await sql`SELECT operation_id,learner_id,endpoint,status,response,rejection_code,operation_created_at FROM offline_sync_inbox WHERE operation_id=${operationId} LIMIT 1`;
   if (existing.rows.length) {
     const row = existing.rows[0];
     if (row.learner_id !== learnerId || row.endpoint !== endpoint) {
