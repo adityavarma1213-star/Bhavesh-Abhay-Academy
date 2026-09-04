@@ -4,6 +4,7 @@
   'use strict';
   const API='/api/m21-23-evidence';
   const MAX_RESPONSE_BYTES=1024*1024;
+  const MAX_LEARNER_ID_CHARS=120;
   const clean=v=>String(v==null?'':v);
   async function readJsonResponse(response){
     const declared=Number(response?.headers?.get?.('content-length')||0);
@@ -31,7 +32,8 @@
     }finally{try{reader.releaseLock();}catch(_) {}}
   }
   async function load(learnerId){
-    if(!learnerId) throw new Error('LEARNER_ID_REQUIRED');
+    if(typeof learnerId!=='string'||!learnerId.trim()) throw new Error('LEARNER_ID_REQUIRED');
+    if(learnerId.length>MAX_LEARNER_ID_CHARS) throw new Error('LEARNER_ID_TOO_LONG');
     const r=await fetch(`${API}?learnerId=${encodeURIComponent(learnerId)}`,{credentials:'include',cache:'no-store',headers:{Accept:'application/json'}});
     let data;
     try{data=await readJsonResponse(r);}catch(error){throw error;}
@@ -61,7 +63,7 @@
     if(!practice&&!weak&&!strong)return;
     if(practice&&!practice.dataset.m21Server){
       practice.dataset.m21Server='1';
-      practice.addEventListener('click',async function(e){e.stopImmediatePropagation();const out=document.getElementById('m21PracticeResult');try{const data=await load(learner);const limit=Math.max(1,Math.min(20,Number(document.getElementById('m21PracticeLimit')?.value)||5));renderPractice(out,(data.practiceQuestions||[]).slice(0,limit));}catch(error){renderPractice(out,[],error?.message==='M21_23_RESPONSE_TOO_LARGE'?'Server evidence response exceeded the safe response limit.':error?.message==='M21_23_INVALID_RESPONSE'?'Server evidence returned an invalid response.':'Live evidence is unavailable right now.','practice');}},true);
+      practice.addEventListener('click',async function(e){e.stopImmediatePropagation();const out=document.getElementById('m21PracticeResult');try{const data=await load(learner);const limit=Math.max(1,Math.min(20,Number(document.getElementById('m21PracticeLimit')?.value)||5));renderPractice(out,(data.practiceQuestions||[]).slice(0,limit));}catch(error){renderPractice(out,[],error?.message==='M21_23_RESPONSE_TOO_LARGE'?'Server evidence response exceeded the safe response limit.':error?.message==='M21_23_INVALID_RESPONSE'?'Server evidence returned an invalid response.':error?.message==='LEARNER_ID_TOO_LONG'?'Learner identifier exceeds the safe limit.':'Live evidence is unavailable right now.','practice');}},true);
     }
     if(weak&&!weak.dataset.m22Server){
       weak.dataset.m22Server='1';
