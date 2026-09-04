@@ -6,9 +6,10 @@ export const config = { runtime: 'nodejs' };
 const MIN_EVIDENCE = 3;
 const VALID_CORRECTNESS = new Set(['correct', 'partially_correct', 'incorrect']);
 const EVIDENCE_PAGE_SIZE = 500;
-const clean = (v, max = 160) => String(v ?? '').trim().slice(0, max);
+const clean = (v) => String(v ?? '').trim();
+const display = (v, max = 160) => clean(v).slice(0, max);
 function bounded(value, max, code, message, required = false) {
-  const text = String(value ?? '').trim();
+  const text = clean(value);
   if (required && !text) { const error = new Error(message); error.status = 400; error.code = code; throw error; }
   if (text.length > max) { const error = new Error(message); error.status = 400; error.code = code; throw error; }
   return text;
@@ -93,8 +94,8 @@ export default async function handler(req, res) {
 
     const groups = new Map();
     for (const row of rows) {
-      const key = `${row.subject || 'General'}::${row.concept || 'Unspecified concept'}`;
-      const g = groups.get(key) || { subject: row.subject || 'General', concept: row.concept || 'Unspecified concept', correct: 0, concern: 0, total: 0 };
+      const key = `${clean(row.subject) || 'General'}::${clean(row.concept) || 'Unspecified concept'}`;
+      const g = groups.get(key) || { subject: clean(row.subject) || 'General', concept: clean(row.concept) || 'Unspecified concept', correct: 0, concern: 0, total: 0 };
       g.total += 1;
       if (row.correctness === 'correct') g.correct += 1;
       if (['incorrect','partially_correct'].includes(row.correctness)) g.concern += 1;
@@ -104,9 +105,9 @@ export default async function handler(req, res) {
     const strengths = ordered.filter(g => g.total >= MIN_EVIDENCE && g.correct > g.concern).slice(0,3);
     const attention = ordered.filter(g => g.total >= MIN_EVIDENCE && g.concern > 0).slice(0,3);
     const lines = ['Teacher note — evidence-backed academic summary.'];
-    if (strengths.length) lines.push(`Strengths supported by recorded evidence: ${strengths.map(g => `${g.subject} / ${g.concept}`).join(', ')}.`);
+    if (strengths.length) lines.push(`Strengths supported by recorded evidence: ${strengths.map(g => `${display(g.subject)} / ${display(g.concept)}`).join(', ')}.`);
     else lines.push('No clear evidence-backed strength pattern was identified from concepts with enough evidence.');
-    if (attention.length) lines.push(`Areas needing attention: ${attention.map(g => `${g.subject} / ${g.concept}`).join(', ')}.`);
+    if (attention.length) lines.push(`Areas needing attention: ${attention.map(g => `${display(g.subject)} / ${display(g.concept)}`).join(', ')}.`);
     else lines.push('No recorded evidence currently indicates a specific area needing attention from concepts with enough evidence.');
     const recent = attempts.rows[0];
     if (recent) {
