@@ -20,7 +20,13 @@ const ALLOWED_CONFIDENCE = new Set(['high', 'medium', 'low']);
 function noStore(res) { res.setHeader('Cache-Control', 'private, no-store, max-age=0'); }
 function parseBody(req) {
   if (req.body && typeof req.body === 'object') return req.body;
-  try { return JSON.parse(req.body || '{}'); } catch { return {}; }
+  try { return JSON.parse(req.body || '{}'); }
+  catch {
+    const error = new Error('Request body must be valid JSON.');
+    error.status = 400;
+    error.code = 'INVALID_JSON_BODY';
+    throw error;
+  }
 }
 function cleanString(value, max) {
   if (typeof value !== 'string') return null;
