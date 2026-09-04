@@ -23,7 +23,15 @@ function parseBody(req) {
   try { return JSON.parse(req.body || '{}'); } catch { return {}; }
 }
 function cleanString(value, max) {
-  return typeof value === 'string' ? value.trim().slice(0, max) : null;
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (trimmed.length > max) {
+    const error = new Error(`Value must be at most ${max} characters.`);
+    error.status = 400;
+    error.code = 'VALUE_TOO_LONG';
+    throw error;
+  }
+  return trimmed;
 }
 function cleanAttachment(a) {
   if (!a || typeof a !== 'object' || !['image', 'pdf'].includes(a.type)) return null;
@@ -57,7 +65,9 @@ function cleanEvaluation(e, submissionId, text) {
   if (verdict.overallAssessment !== e.overallAssessment || verdict.confidence !== e.confidence) return null;
   if (Boolean(verdict.humanReviewRequired) !== Boolean(e.humanReviewRequired)) return null;
   if (JSON.stringify(signedLearningSignals) !== JSON.stringify(suppliedLearningSignals)) return null;
-  const list = (v, maxItems, maxChars) => Array.isArray(v) ? v.filter(x => typeof x === 'string').slice(0, maxItems).map(x => x.slice(0, maxChars)) : [];
+  const list = (v, maxItems, maxChars) => Array.isArray(v)
+    ? v.filter(x => typeof x === 'string').map(x => cleanString(x, maxChars)).slice(0, maxItems)
+    : [];
   return {
     schemaVersion: 1,
     evaluationType: e.evaluationType === 'image_or_text' ? 'image_or_text' : 'text',
