@@ -10,7 +10,11 @@ const PAGE_SIZE = 500;
 const MAX_LEARNER_ID_CHARS = 100;
 const MAX_SUBJECT_CHARS = 120;
 const MAX_CHAPTER_CHARS = 160;
-const clean = (v, max = 160) => String(v ?? '').trim().slice(0, max);
+// Do not use this helper for grouping identities: silently truncating a
+// concept or mistake label can collapse distinct stored evidence into one
+// bucket. Display fields may be bounded separately at the response edge.
+const clean = (v) => String(v ?? '').trim();
+const display = (v, max = 180) => clean(v).slice(0, max);
 function bounded(value, max, code, message) {
   if (typeof value !== 'string') { const e = new Error(message); e.status = 400; e.code = code; throw e; }
   const normalized = value.trim();
@@ -93,7 +97,7 @@ export default async function handler(req, res) {
       const details = Array.isArray(row.findingDetails) ? row.findingDetails : [];
       const labels = details.length ? details : ['general_error'];
       for (const raw of labels) {
-        const label = clean(raw, 180) || 'general_error';
+        const label = clean(raw) || 'general_error';
         const reasonType = TYPES.has(label) ? label : (label.toLowerCase().includes('concept') ? 'concept_gap' : 'unknown');
         const key = `${row.subject || 'Unknown'}::${row.chapter || 'Unspecified'}::${reasonType}`;
         if (!map[key]) map[key] = { subject: row.subject || null, chapter: row.chapter || null, reasonType, count: 0, questions: new Set(), lastSeen: null, reviewRequired: 0 };
@@ -102,7 +106,7 @@ export default async function handler(req, res) {
         if (!map[key].lastSeen || new Date(row.createdAt) > new Date(map[key].lastSeen)) map[key].lastSeen = row.createdAt;
         if (row.humanReviewRequired || row.evaluationFailed) map[key].reviewRequired += 1;
 
-        const concept = clean(row.concept, 180) || 'Unspecified concept';
+        const concept = clean(row.concept) || 'Unspecified concept';
         const ckey = `${row.subject || 'Unknown'}::${row.chapter || 'Unspecified'}::${concept}`;
         if (!conceptMap[ckey]) conceptMap[ckey] = { subject: row.subject || null, chapter: row.chapter || null, concept, count: 0, reasonTypes: new Set(), lastSeen: null };
         conceptMap[ckey].count += 1;
@@ -113,7 +117,7 @@ export default async function handler(req, res) {
     const groups = Object.values(map).map(g => ({ ...g, questions: g.questions.size, confidence: g.reviewRequired ? 'review_required' : 'evidence_based' })).sort((a,b) => b.count-a.count || String(a.subject).localeCompare(String(b.subject)));
     const commonMistakes = Object.values(conceptMap)
       .filter(g => g.count >= MIN_COMMON_EVIDENCE)
-      .map(g => ({ ...g, reasonTypes: [...g.reasonTypes] }))
+      .map(g => ({ ...g, concept: display(g.concept, 180), reasonTypes: [...g.reasonTypes] }))
       .sort((a,b) => b.count-a.count || String(a.concept).localeCompare(String(b.concept)))
       .slice(0, 25);
     const reasonSummary = groups.reduce((out,g) => { out[g.reasonType]=(out[g.reasonType]||0)+g.count; return out; }, {});
