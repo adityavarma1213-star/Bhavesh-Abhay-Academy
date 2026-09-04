@@ -4,6 +4,8 @@ import { requireAuth, requireLearnerAccess } from './_lib/auth.js';
 
 export const config = { runtime: 'nodejs' };
 const MAX_STEPS = 14;
+const MAX_LEARNER_ID_CHARS = 120;
+const MAX_VERSION_CHARS = 64;
 const VALID_TYPES = new Set(['learn', 'practice', 'review', 'assessment', 'tutor', 'custom']);
 const VALID_SOURCES = new Set(['ai', 'custom']);
 const VALID_PRIORITIES = new Set(['student', 'balanced', 'ai']);
@@ -32,53 +34,58 @@ function conflict(res, updatedAt) {
 
 function parseExpectedUpdatedAt(value) {
   if (value === undefined || value === null || value === '') return null;
-  const parsed = new Date(String(value).trim());
+  if (typeof value !== 'string' || value.trim().length > MAX_VERSION_CHARS) return '__too_long__';
+  const parsed = new Date(value.trim());
   return Number.isNaN(parsed.getTime()) ? '__invalid__' : parsed.toISOString();
 }
 
 export default async function handler(req, res) {
   try {
     const session = await requireAuth(req);
-    const learnerId = String(req.query?.learnerId || '').trim();
-    await requireLearnerAccess(session, learnerId);
+    const learnerId = req.query?.learnerId;
+    if (typeof learnerId !== 'string' || !learnerId.trim()) return json(res, 400, { error: { code: 'LEARNER_ID_REQUIRED', message: 'learnerId is required.' } }, NO_STORE);
+    if (learnerId.trim().length > MAX_LEARNER_ID_CHARS) return json(res, 400, { error: { code: 'LEARNER_ID_TOO_LONG', message: `learnerId must be ${MAX_LEARNER_ID_CHARS} characters or fewer.` } }, NO_STORE);
+    const normalizedLearnerId = learnerId.trim();
+    await requireLearnerAccess(session, normalizedLearnerId);
     if (req.method === 'GET') {
-      const result = await sql`SELECT path, updated_at FROM hybrid_learning_paths WHERE learner_id=${learnerId}`;
+      const result = await sql`SELECT path, updated_at FROM hybrid_learning_paths WHERE learner_id=${normalizedLearnerId}`;
       const row = result.rows[0];
-      return json(res, 200, { ok: true, learnerId, path: row?.path || { schemaVersion: 1, mode: 'hybrid', steps: [], totalMinutes: 0 }, updatedAt: row?.updated_at || null }, NO_STORE);
+      return json(res, 200, { ok: true, learnerId: normalizedLearnerId, path: row?.path || { schemaVersion: 1, mode: 'hybrid', steps: [], totalMinutes: 0 }, updatedAt: row?.updated_at || null }, NO_STORE);
     }
     if (req.method === 'PUT') {
       const path = normalizePath(req.body);
       if (!path) return json(res, 400, { error: { code: 'INVALID_HYBRID_PATH', message: 'A valid bounded Hybrid Mode path is required.' } }, NO_STORE);
       const expectedUpdatedAt = parseExpectedUpdatedAt(req.body?.expectedUpdatedAt);
+      if (expectedUpdatedAt === '__too_long__') return json(res, 400, { error: { code: 'VALUE_TOO_LONG', message: `expectedUpdatedAt must be ${MAX_VERSION_CHARS} characters or fewer.` } }, NO_STORE);
       if (expectedUpdatedAt === '__invalid__') return json(res, 400, { error: { code: 'INVALID_EXPECTED_UPDATED_AT', message: 'expectedUpdatedAt must be a valid timestamp.' } }, NO_STORE);
 
-      const current = await sql`SELECT updated_at FROM hybrid_learning_paths WHERE learner_id=${learnerId}`;
+      const current = await sql`SELECT updated_at FROM hybrid_learning_paths WHERE learner_id=${normalizedLearnerId}`;
       const currentUpdatedAt = current.rows[0]?.updated_at || null;
       if (currentUpdatedAt && (!expectedUpdatedAt || new Date(expectedUpdatedAt).getTime() !== new Date(currentUpdatedAt).getTime())) return conflict(res, currentUpdatedAt);
       if (!currentUpdatedAt && expectedUpdatedAt) return conflict(res, null);
 
       let saved;
       if (currentUpdatedAt) {
-        saved = await sql`UPDATE hybrid_learning_paths SET path=${JSON.stringify(path)}::jsonb, updated_at=NOW() WHERE learner_id=${learnerId} AND updated_at=${currentUpdatedAt} RETURNING updated_at`;
+        saved = await sql`UPDATE hybrid_learning_paths SET path=${JSON.stringify(path)}::jsonb, updated_at=NOW() WHERE learner_id=${normalizedLearnerId} AND updated_at=${currentUpdatedAt} RETURNING updated_at`;
         if (!saved.rows[0]) {
-          const latest = await sql`SELECT updated_at FROM hybrid_learning_paths WHERE learner_id=${learnerId}`;
+          const latest = await sql`SELECT updated_at FROM hybrid_learning_paths WHERE learner_id=${normalizedLearnerId}`;
           return conflict(res, latest.rows[0]?.updated_at || null);
         }
       } else {
-        saved = await sql`INSERT INTO hybrid_learning_paths(learner_id, path, updated_at) VALUES(${learnerId}, ${JSON.stringify(path)}::jsonb, NOW()) ON CONFLICT(learner_id) DO NOTHING RETURNING updated_at`;
+        saved = await sql`INSERT INTO hybrid_learning_paths(learner_id, path, updated_at) VALUES(${normalizedLearnerId}, ${JSON.stringify(path)}::jsonb, NOW()) ON CONFLICT(learner_id) DO NOTHING RETURNING updated_at`;
         if (!saved.rows[0]) {
-          const latest = await sql`SELECT updated_at FROM hybrid_learning_paths WHERE learner_id=${learnerId}`;
+          const latest = await sql`SELECT updated_at FROM hybrid_learning_paths WHERE learner_id=${normalizedLearnerId}`;
           return conflict(res, latest.rows[0]?.updated_at || null);
         }
       }
       const updatedAt = saved.rows[0]?.updated_at || null;
-      await writeAudit({ actorUserId: session.user_id, action: 'HYBRID_MODE_PATH_SAVED', entityType: 'learner', entityId: learnerId, metadata: { stepCount: path.steps.length, expectedUpdatedAt } });
-      return json(res, 200, { ok: true, learnerId, path, updatedAt }, NO_STORE);
+      await writeAudit({ actorUserId: session.user_id, action: 'HYBRID_MODE_PATH_SAVED', entityType: 'learner', entityId: normalizedLearnerId, metadata: { stepCount: path.steps.length, expectedUpdatedAt } });
+      return json(res, 200, { ok: true, learnerId: normalizedLearnerId, path, updatedAt }, NO_STORE);
     }
     if (req.method === 'DELETE') {
-      await sql`DELETE FROM hybrid_learning_paths WHERE learner_id=${learnerId}`;
-      await writeAudit({ actorUserId: session.user_id, action: 'HYBRID_MODE_PATH_CLEARED', entityType: 'learner', entityId: learnerId, metadata: {} });
-      return json(res, 200, { ok: true, learnerId }, NO_STORE);
+      await sql`DELETE FROM hybrid_learning_paths WHERE learner_id=${normalizedLearnerId}`;
+      await writeAudit({ actorUserId: session.user_id, action: 'HYBRID_MODE_PATH_CLEARED', entityType: 'learner', entityId: normalizedLearnerId, metadata: {} });
+      return json(res, 200, { ok: true, learnerId: normalizedLearnerId }, NO_STORE);
     }
     return json(res, 405, { error: { code: 'METHOD_NOT_ALLOWED', message: 'GET, PUT or DELETE required.' } }, { Allow: 'GET, PUT, DELETE', ...NO_STORE });
   } catch (e) {
