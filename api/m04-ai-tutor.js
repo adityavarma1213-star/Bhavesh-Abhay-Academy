@@ -11,13 +11,14 @@ const MAX_MEMORY = 24;
 const MAX_EVIDENCE = 120;
 const MAX_ATTEMPTS = 24;
 const MAX_LEARNER_ID_CHARS = 100;
-function clean(value,max=120){return typeof value==='string'?value.replace(/\s+/g,' ').trim().slice(0,max):'';}
+function normalize(value){return typeof value==='string'?value.replace(/\s+/g,' ').trim():'';}
+function display(value,max=120){return normalize(value).slice(0,max);}
 function validateLearnerId(value){
   if(value==null||value==='')return '';
   if(typeof value!=='string'){
     const err=new Error('learnerId must be a string.');err.status=400;err.code='INVALID_LEARNER_ID';throw err;
   }
-  const normalized=value.replace(/\s+/g,' ').trim();
+  const normalized=normalize(value);
   if(!normalized){const err=new Error('A learner context is required.');err.status=400;err.code='LEARNER_REQUIRED';throw err;}
   if(normalized.length>MAX_LEARNER_ID_CHARS){const err=new Error(`learnerId must be at most ${MAX_LEARNER_ID_CHARS} characters.`);err.status=400;err.code='LEARNER_ID_TOO_LONG';throw err;}
   return normalized;
@@ -30,5 +31,12 @@ async function pageAttempts(learnerId,after){return after?sql`SELECT id,score,ma
 function nextAfter(row,dateKey){return {t:String(row[dateKey]),id:String(row.id)};}
 async function readComplete(learnerId,kind,maxRows){const rows=[];let after=null;while(rows.length<maxRows){const result=kind==='memory'?await pageMemory(learnerId,after):kind==='evidence'?await pageEvidence(learnerId,after):await pageAttempts(learnerId,after);if(!result.rows.length)break;rows.push(...result.rows.slice(0,maxRows-rows.length));if(result.rows.length<PAGE_SIZE||rows.length>=maxRows)break;const last=result.rows[result.rows.length-1];after=nextAfter(last,kind==='memory'?'last_updated':kind==='evidence'?'created_at':'end_time');if(kind==='attempts'&&!last.end_time)after.t=String(last.start_time);}}
 return rows;}
-async function buildEvidenceContext(learnerId){if(!learnerId)return null;const [memory,evidence,attempts]=await Promise.all([readComplete(learnerId,'memory',MAX_MEMORY),readComplete(learnerId,'evidence',MAX_EVIDENCE),readComplete(learnerId,'attempts',MAX_ATTEMPTS)]);const states=memory.map(row=>({concept:clean(row.concept,70),status:clean(row.status,30),evidence:Number(row.evidence_count||0),correct:Number(row.correct_count||0)})).filter(row=>row.concept&&row.evidence>=MIN_EVIDENCE);const evidenceCounts=new Map();for(const row of evidence){const concept=clean(row.concept,70);if(concept)evidenceCounts.set(concept,(evidenceCounts.get(concept)||0)+1);}const mistakes=evidence.filter(row=>row.correctness!==true&&row.correctness!=='correct').filter(row=>{const concept=clean(row.concept,70);return concept&&Number(evidenceCounts.get(concept)||0)>=MIN_EVIDENCE;}).slice(0,8).map(row=>[clean(row.subject,30),clean(row.chapter,40),clean(row.concept,60),clean(row.error_type,40)].filter(Boolean).join(' / ')).filter(Boolean);const percentages=attempts.map(row=>Math.round((Number(row.score)/Number(row.max_score))*1000)/10);if(!states.length&&!mistakes.length&&!percentages.length)return null;return JSON.stringify({conceptStates:states,recentPossibleMisconceptions:mistakes,recentAssessmentPercentages:percentages,evidenceGate:{minimumEvidence:MIN_EVIDENCE,unit:'answered evidence items per concept',sparseConceptsExcluded:true},evidencePolicy:'Use only as academic evidence; do not diagnose or infer personal traits.'}).slice(0,1150);}
+async function buildEvidenceContext(learnerId){if(!learnerId)return null;const [memory,evidence,attempts]=await Promise.all([readComplete(learnerId,'memory',MAX_MEMORY),readComplete(learnerId,'evidence',MAX_EVIDENCE),readComplete(learnerId,'attempts',MAX_ATTEMPTS)]);
+const states=memory.map(row=>({concept:display(row.concept,70),status:display(row.status,30),evidence:Number(row.evidence_count||0),correct:Number(row.correct_count||0),_identity:normalize(row.concept)})).filter(row=>row._identity&&row.evidence>=MIN_EVIDENCE).map(({_identity,...row})=>row);
+const evidenceCounts=new Map();
+for(const row of evidence){const concept=normalize(row.concept);if(concept)evidenceCounts.set(concept,(evidenceCounts.get(concept)||0)+1);}
+const mistakes=evidence.filter(row=>row.correctness!==true&&row.correctness!=='correct').filter(row=>{const concept=normalize(row.concept);return concept&&Number(evidenceCounts.get(concept)||0)>=MIN_EVIDENCE;}).slice(0,8).map(row=>[display(row.subject,30),display(row.chapter,40),display(row.concept,60),display(row.error_type,40)].filter(Boolean).join(' / ')).filter(Boolean);
+const percentages=attempts.map(row=>Math.round((Number(row.score)/Number(row.max_score))*1000)/10);
+if(!states.length&&!mistakes.length&&!percentages.length)return null;
+return JSON.stringify({conceptStates:states,recentPossibleMisconceptions:mistakes,recentAssessmentPercentages:percentages,evidenceGate:{minimumEvidence:MIN_EVIDENCE,unit:'answered evidence items per concept',sparseConceptsExcluded:true},evidencePolicy:'Use only as academic evidence; do not diagnose or infer personal traits.'}).slice(0,1150);}
 export default async function handler(req,res){try{res.setHeader('Cache-Control','private, no-store, max-age=0');if(req.method!=='POST')return json(res,405,{error:{code:'METHOD_NOT_ALLOWED',message:'POST required.'}});const session=await requireAuth(req);const body=await req.json();const learnerId=await resolveLearnerId(session,body?.learnerId);if(!learnerId)return json(res,400,{error:{code:'LEARNER_REQUIRED',message:'A learner context is required for the production AI Tutor path.'}});await enforceParentPolicy(session,learnerId);const learningContext=await buildEvidenceContext(learnerId);const authoritativeBody={...body,learnerId:undefined,learningContext};req.json=async()=>authoritativeBody;return baseHandler(req,res);}catch(e){return json(res,e.status||500,{error:{code:e.code||'AI_TUTOR_EVIDENCE_API_FAILED',message:e.status?e.message:'AI Tutor evidence service unavailable.'}});}}
