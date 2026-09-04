@@ -97,6 +97,12 @@ function escapeIcs(value) {
     .replace(/\r?\n/g, '\\n');
 }
 
+function nextCalendarDate(value) {
+  const date = new Date(`${value}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + 1);
+  return date.toISOString().slice(0, 10).replace(/-/g, '');
+}
+
 function buildIcs(events) {
   const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Bhavesh Abhay Academy//School Calendar//EN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH'];
   for (const event of events) {
@@ -106,7 +112,8 @@ function buildIcs(events) {
     lines.push(`UID:${escapeIcs(uid)}`);
     lines.push(`DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z')}`);
     lines.push(`DTSTART;VALUE=DATE:${date}`);
-    lines.push(`DTEND;VALUE=DATE:${date}`);
+    // RFC 5545 all-day DTEND is exclusive: a one-day event ends on the next day.
+    lines.push(`DTEND;VALUE=DATE:${nextCalendarDate(event.date)}`);
     lines.push(`SUMMARY:${escapeIcs(event.title)}`);
     lines.push(`CATEGORIES:${escapeIcs(event.type)}`);
     if (event.subject) lines.push(`DESCRIPTION:${escapeIcs(`Subject: ${event.subject}`)}`);
