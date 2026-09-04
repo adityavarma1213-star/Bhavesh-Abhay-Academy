@@ -5,6 +5,7 @@ import { requireAuth, requireLearnerAccess } from './_lib/auth.js';
 export const config = { runtime: 'nodejs' };
 const MIN_CONCEPT_EVIDENCE = 3;
 const MEMORY_PAGE_SIZE = 200;
+const MAX_LEARNER_ID_CHARS = 120;
 
 function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
 function confidenceBand(evidenceCount, conceptCount) {
@@ -15,6 +16,14 @@ function confidenceBand(evidenceCount, conceptCount) {
 }
 function noStore(res) { res.setHeader('Cache-Control', 'private, no-store, max-age=0'); }
 function forecastWarning(predicted) { if (predicted < 60) return 'high'; if (predicted < 75) return 'medium'; return 'low'; }
+function readLearnerId(req) {
+  const raw = String(req.query?.learnerId || '').trim();
+  if (!raw) return { error: { code: 'LEARNER_ID_REQUIRED', message: 'learnerId is required.' } };
+  if (raw.length > MAX_LEARNER_ID_CHARS) {
+    return { error: { code: 'LEARNER_ID_TOO_LONG', message: `learnerId must be at most ${MAX_LEARNER_ID_CHARS} characters.` } };
+  }
+  return { learnerId: raw };
+}
 
 async function loadAllMemory(learnerId) {
   const rows = [];
@@ -84,7 +93,9 @@ export default async function handler(req, res) {
   noStore(res);
   try {
     const session = await requireAuth(req);
-    const learnerId = String(req.query?.learnerId || '').trim();
+    const learner = readLearnerId(req);
+    if (learner.error) return json(res, 400, { ok: false, error: learner.error });
+    const learnerId = learner.learnerId;
     await requireLearnerAccess(session, learnerId);
     if (req.method !== 'GET') return json(res, 405, { error: { code: 'METHOD_NOT_ALLOWED', message: 'GET required.' } }, { Allow: 'GET' });
     const attempts = await sql`
