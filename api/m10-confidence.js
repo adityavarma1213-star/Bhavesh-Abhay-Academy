@@ -4,7 +4,15 @@ import { requireAuth, requireLearnerAccess } from './_lib/auth.js';
 
 export const config = { runtime: 'nodejs' };
 const VALID_CORRECTNESS = ['correct', 'partially_correct', 'incorrect'];
+const MAX_LEARNER_ID = 120;
 const NO_STORE = { 'Cache-Control': 'private, no-store, max-age=0' };
+
+function readLearnerId(req) {
+  const raw = String(req.query?.learnerId || '').trim();
+  if (!raw) return { error: { code: 'LEARNER_ID_REQUIRED', message: 'learnerId is required.' } };
+  if (raw.length > MAX_LEARNER_ID) return { error: { code: 'LEARNER_ID_TOO_LONG', message: `learnerId must be at most ${MAX_LEARNER_ID} characters.` } };
+  return { value: raw };
+}
 
 export default async function handler(req, res) {
   try {
@@ -12,7 +20,9 @@ export default async function handler(req, res) {
       return json(res, 405, { error: { code: 'METHOD_NOT_ALLOWED', message: 'GET required.' } }, { Allow: 'GET', ...NO_STORE });
     }
     const session = await requireAuth(req);
-    const learnerId = String(req.query?.learnerId || '').trim();
+    const parsedLearnerId = readLearnerId(req);
+    if (parsedLearnerId.error) return json(res, 400, { error: parsedLearnerId.error }, NO_STORE);
+    const learnerId = parsedLearnerId.value;
     await requireLearnerAccess(session, learnerId);
 
     const result = await sql`
