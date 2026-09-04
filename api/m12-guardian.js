@@ -14,25 +14,29 @@ function buildAcademicAlerts(memoryRows, assessmentRows) {
   const grouped = new Map();
   for (const row of memoryRows) {
     const concept = String(row.concept || '').trim();
+    const subject = String(row.subject || '').trim();
     if (!concept) continue;
-    if (!grouped.has(concept)) grouped.set(concept, []);
-    grouped.get(concept).push(row);
+    const identity = `${subject}\u001f${concept}`;
+    if (!grouped.has(identity)) grouped.set(identity, []);
+    grouped.get(identity).push(row);
   }
 
-  for (const [concept, rows] of grouped.entries()) {
+  for (const [identity, rows] of grouped.entries()) {
     const latest = rows[0];
+    const concept = String(latest?.concept || '').trim();
+    const subject = String(latest?.subject || '').trim();
     const evidenceCount = Number(latest?.evidence_count || 0);
     const correctCount = Number(latest?.correct_count || 0);
     if (latest?.status === 'needs_revision' && evidenceCount >= 3) {
       alerts.push({
-        id: `low_performance:${concept}`,
+        id: `low_performance:${identity}`,
         severity: evidenceCount >= 4 && correctCount <= 1 ? 'high' : 'medium',
         type: 'repeated_low_performance',
         concept,
-        subject: latest.subject || null,
+        subject: subject || null,
         title: `Extra support may help with ${concept.replace(/-/g, ' ')}`,
         reason: `Server learning evidence currently marks this concept for revision after ${evidenceCount} evidence point${evidenceCount === 1 ? '' : 's'}.`,
-        action: { kind: 'practice', concept },
+        action: { kind: 'practice', concept, subject: subject || null },
         requiresHumanReview: false,
       });
     }
@@ -102,6 +106,7 @@ async function loadAllLearningMemory(learnerId) {
   const rows = [];
   const batchSize = 500;
   let cursorAt = null;
+  let cursorSubject = null;
   let cursorConcept = null;
 
   while (true) {
@@ -111,7 +116,7 @@ async function loadAllLearningMemory(learnerId) {
           FROM learning_memory
           WHERE learner_id=${learnerId}
             AND status IN ('mastered','learning','needs_revision')
-          ORDER BY last_updated DESC, concept DESC
+          ORDER BY last_updated DESC, subject DESC NULLS LAST, concept DESC
           LIMIT ${batchSize}
         `
       : await sql`
@@ -119,8 +124,8 @@ async function loadAllLearningMemory(learnerId) {
           FROM learning_memory
           WHERE learner_id=${learnerId}
             AND status IN ('mastered','learning','needs_revision')
-            AND (last_updated, concept) < (${cursorAt}::timestamptz, ${cursorConcept})
-          ORDER BY last_updated DESC, concept DESC
+            AND (last_updated, subject, concept) < (${cursorAt}::timestamptz, ${cursorSubject}, ${cursorConcept})
+          ORDER BY last_updated DESC, subject DESC NULLS LAST, concept DESC
           LIMIT ${batchSize}
         `;
 
@@ -129,6 +134,7 @@ async function loadAllLearningMemory(learnerId) {
 
     const last = batch.rows[batch.rows.length - 1];
     cursorAt = last.last_updated;
+    cursorSubject = last.subject;
     cursorConcept = last.concept;
   }
 
