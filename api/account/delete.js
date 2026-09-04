@@ -8,17 +8,27 @@ import { json, writeAudit } from '../_lib/security.js';
 
 export const config = { runtime: 'nodejs' };
 const MAX_REQUEST_BODY_BYTES = 4096;
+const DELETE_CONFIRMATION = 'DELETE MY ACCOUNT';
 
 function requestBodyWithinLimit(req) {
   const declared = Number(req.headers?.['content-length'] || req.headers?.get?.('content-length'));
   return !Number.isFinite(declared) || declared < 0 || declared <= MAX_REQUEST_BODY_BYTES;
 }
 
+function getConfirmation(req) {
+  const body = req.body;
+  if (!body || typeof body !== 'object' || Array.isArray(body)) return '';
+  if (typeof body.confirmation !== 'string') return '';
+  const confirmation = body.confirmation.trim().toUpperCase();
+  return confirmation.length <= 64 ? confirmation : '';
+}
+
 export default async function handler(req, res) {
+  res.setHeader('Cache-Control', 'private, no-store, max-age=0');
   if (req.method !== 'DELETE' && req.method !== 'POST') {
     return json(res, 405, {
       error: { code: 'METHOD_NOT_ALLOWED', message: 'DELETE or POST required.' }
-    }, { Allow: 'DELETE, POST' });
+    }, { Allow: 'DELETE, POST', 'Cache-Control': 'private, no-store, max-age=0' });
   }
 
   if (!requestBodyWithinLimit(req)) {
@@ -29,12 +39,12 @@ export default async function handler(req, res) {
 
   try {
     const session = await requireAuth(req);
-    const confirmation = String(req.body?.confirmation || '').trim().toUpperCase();
-    if (confirmation.length > 64 || confirmation !== 'DELETE MY ACCOUNT') {
+    const confirmation = getConfirmation(req);
+    if (confirmation !== DELETE_CONFIRMATION) {
       return json(res, 400, {
         error: {
           code: 'DELETE_CONFIRMATION_REQUIRED',
-          message: 'Type DELETE MY ACCOUNT to confirm permanent account deletion.'
+          message: `Type ${DELETE_CONFIRMATION} to confirm permanent account deletion.`
         }
       });
     }
