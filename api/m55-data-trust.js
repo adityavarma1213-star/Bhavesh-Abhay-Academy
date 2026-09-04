@@ -6,10 +6,17 @@ import { json, id } from './_lib/security.js';
 import { sql, withTransaction } from './_lib/db.js';
 
 export const config = { runtime: 'nodejs' };
+const MAX_BODY_CHARS = 4096;
 
 function body(req) {
   if (req.body && typeof req.body === 'object') return req.body;
-  try { return JSON.parse(req.body || '{}'); } catch { return {}; }
+  const raw = String(req.body || '');
+  if (raw.length > MAX_BODY_CHARS) {
+    const err = new Error('Request body exceeds the allowed size.'); err.status = 413; err.code = 'BODY_TOO_LARGE'; throw err;
+  }
+  try { return JSON.parse(raw || '{}'); } catch {
+    const err = new Error('Request body must be valid JSON.'); err.status = 400; err.code = 'INVALID_JSON_BODY'; throw err;
+  }
 }
 
 function noStore(res) {
