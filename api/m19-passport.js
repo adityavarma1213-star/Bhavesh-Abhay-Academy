@@ -3,13 +3,19 @@ import { requireAuth, requireLearnerAccess } from './_lib/auth.js';
 import { sql } from './_lib/db.js';
 
 export const config={runtime:'nodejs'};
-const clean=(v,max=240)=>String(v??'').trim().slice(0,max);
 const MIN_EVIDENCE=3;
 const PAGE_SIZE=500;
 const ATTEMPT_PAGE_SIZE=50;
+const MAX_LEARNER_ID_CHARS=120;
 const VALID_CORRECTNESS=new Set(['correct','partially_correct','incorrect']);
 const noStore={ 'Cache-Control':'private, no-store, max-age=0' };
 
+function parseLearnerId(raw){
+  if(typeof raw!=='string'||!raw.trim()){const error=new Error('Learner ID is required.');error.status=400;error.code='LEARNER_ID_REQUIRED';throw error;}
+  const value=raw.trim();
+  if(value.length>MAX_LEARNER_ID_CHARS){const error=new Error('Learner ID exceeds the maximum length.');error.status=400;error.code='LEARNER_ID_TOO_LONG';throw error;}
+  return value;
+}
 function parseCursor(raw){
   if(!raw)return null;
   try{
@@ -56,11 +62,11 @@ async function loadAllEvidence(learnerId){
   return rows;
 }
 
-export default async function handler(req,res){
+async function handler(req,res){
   if(req.method!=='GET')return json(res,405,{error:{code:'METHOD_NOT_ALLOWED',message:'GET required.'}},{Allow:'GET',...noStore});
   try{
     const session=await requireAuth(req);
-    const learnerId=clean(req.query?.learnerId,120);
+    const learnerId=parseLearnerId(req.query?.learnerId);
     await requireLearnerAccess(session,learnerId);
     const learner=await sql`SELECT id,display_name AS "displayName" FROM learners WHERE id=${learnerId} AND deactivated_at IS NULL LIMIT 1`;
     if(!learner.rows.length)return json(res,404,{error:{code:'LEARNER_NOT_FOUND',message:'Learner not found.'},...noStore});
@@ -93,3 +99,5 @@ export default async function handler(req,res){
     return json(res,200,{ok:true,schemaVersion:2,student:learner.rows[0].displayName,learnerId,issuedAt:new Date().toISOString(),status:'server_evidence_record',evidenceGate:{minimumEvidencePerConcept:MIN_EVIDENCE,sparseConceptsAreNotCharacterized:true,validCorrectnessStates:[...VALID_CORRECTNESS]},competencies,assessments:visibleAttempts,assessmentPagination:{limit:attemptLimit,nextCursor:nextAttemptCursor,hasMore:hasMoreAttempts},evidenceCount:validEvidence.length,excludedEvidenceCount:evidence.length-validEvidence.length,limitations:['Evidence-backed inside BAA server records; not an external credential.','Assessment attempts are returned newest-first with keyset pagination so older stored outcomes can be retrieved without an arbitrary history ceiling.','Concept status is characterized only after the minimum evidence threshold is met.','Only scored evidence with correctness values supported by the server contract is used.','This record must not be presented as an external accreditation or guarantee.','Evidence is read with keyset pagination so older records are not silently dropped at an arbitrary row limit.']},noStore);
   }catch(e){return json(res,e.status||500,{error:{code:e.code||'LEARNING_PASSPORT_FAILED',message:e.status?e.message:'Unable to build learning passport.'}},noStore);}
 }
+
+export default handler;
