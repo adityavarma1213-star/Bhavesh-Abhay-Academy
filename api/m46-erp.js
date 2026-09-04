@@ -13,7 +13,17 @@ const DIRECTIONS = new Set(['pull', 'push']);
 const TEST_TIMEOUT_MS = 8000;
 const MAX_METADATA_BYTES = 16 * 1024;
 function allowed(session) { return ROLES.some(role => hasRole(session, role)); }
-function clean(v, max = 200) { return String(v ?? '').trim().slice(0, max); }
+function clean(v, max = 200) {
+  if (v == null) return '';
+  const value = String(v).trim();
+  if (value.length > max) {
+    const error = new Error(`Value must be at most ${max} characters.`);
+    error.status = 400;
+    error.code = 'VALUE_TOO_LONG';
+    throw error;
+  }
+  return value;
+}
 function noStore(res) { if (typeof res?.setHeader === 'function') res.setHeader('Cache-Control', 'private, no-store, max-age=0'); }
 function body(req) { if (req.body && typeof req.body === 'object') return req.body; try { return JSON.parse(req.body || '{}'); } catch { return {}; } }
 function boundedMetadata(value) {
