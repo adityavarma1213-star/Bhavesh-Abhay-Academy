@@ -3,10 +3,17 @@ import { requireAuth, hasRole } from './_lib/auth.js';
 import { sql } from './_lib/db.js';
 
 export const config = { runtime: 'nodejs' };
-const clean = (v, max = 160) => String(v ?? '').trim().slice(0, max);
 const noStore = { 'Cache-Control': 'private, no-store, max-age=0' };
 const MIN_EVIDENCE = 3;
+const MAX_LEARNER_ID_CHARS = 120;
 const VALID_CORRECTNESS = ['incorrect', 'partially_correct'];
+
+function parseLearnerId(value) {
+  if (typeof value !== 'string' || !value.trim()) return { value: '', error: 'LEARNER_ID_REQUIRED' };
+  const trimmed = value.trim();
+  if (trimmed.length > MAX_LEARNER_ID_CHARS) return { value: '', error: 'LEARNER_ID_TOO_LONG' };
+  return { value: trimmed, error: null };
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') return json(res, 405, { error: { code: 'METHOD_NOT_ALLOWED', message: 'GET required.' } }, { Allow: 'GET', ...noStore });
@@ -15,8 +22,19 @@ export default async function handler(req, res) {
     const isAdmin = hasRole(session, 'admin');
     const isTeacher = hasRole(session, 'teacher');
     if (!isTeacher && !isAdmin) return json(res, 403, { error: { code: 'FORBIDDEN', message: 'Teacher or administrator role required.' } }, noStore);
-    const learnerId = clean(req.query?.learnerId, 120);
-    if (!learnerId) return json(res, 400, { error: { code: 'INVALID_LEARNER', message: 'learnerId is required.' } }, noStore);
+
+    const parsedLearner = parseLearnerId(req.query?.learnerId);
+    if (parsedLearner.error) {
+      return json(res, 400, {
+        error: {
+          code: parsedLearner.error,
+          message: parsedLearner.error === 'LEARNER_ID_TOO_LONG'
+            ? `learnerId must be at most ${MAX_LEARNER_ID_CHARS} characters.`
+            : 'learnerId is required.'
+        }
+      }, noStore);
+    }
+    const learnerId = parsedLearner.value;
 
     const accessRows = isAdmin
       ? await sql`SELECT l.id FROM learners l WHERE l.id=${learnerId} LIMIT 1`
