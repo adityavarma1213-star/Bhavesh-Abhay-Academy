@@ -11,15 +11,20 @@ const DEFAULT_POLICY = Object.freeze({
   plannerEnabled: true,
   plannerDailyMinutes: 30,
 });
+const MAX_LEARNER_ID_CHARS = 120;
+const MAX_UPDATED_AT_CHARS = 64;
 
 function learnerIdFrom(body) {
   const value = typeof body?.learnerId === 'string' ? body.learnerId.trim() : '';
-  return value.slice(0, 100);
+  if (!value) return { value: '', error: 'LEARNER_REQUIRED' };
+  if (value.length > MAX_LEARNER_ID_CHARS) return { value: '', error: 'LEARNER_ID_TOO_LONG' };
+  return { value, error: null };
 }
 
 function expectedUpdatedAtFrom(body) {
   const value = typeof body?.expectedUpdatedAt === 'string' ? body.expectedUpdatedAt.trim() : '';
-  return value.slice(0, 64);
+  if (value.length > MAX_UPDATED_AT_CHARS) return { value: '', error: 'UPDATED_AT_TOO_LONG' };
+  return { value, error: null };
 }
 
 function normalizePolicy(body) {
@@ -72,8 +77,11 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'GET') {
-      const learnerId = learnerIdFrom(req.query || {});
-      if (!learnerId) return json(res, 400, { error: { code: 'LEARNER_REQUIRED', message: 'learnerId is required.' } });
+      const parsed = learnerIdFrom(req.query || {});
+      if (parsed.error) {
+        return json(res, 400, { error: { code: parsed.error, message: parsed.error === 'LEARNER_REQUIRED' ? 'learnerId is required.' : `learnerId must be at most ${MAX_LEARNER_ID_CHARS} characters.` } });
+      }
+      const learnerId = parsed.value;
       await assertParentLearner(session, learnerId);
       const result = await sql`
         SELECT tutor_enabled, mentor_enabled, planner_enabled, planner_daily_minutes, updated_at
@@ -86,11 +94,18 @@ export default async function handler(req, res) {
     }
 
     const body = await req.json();
-    const learnerId = learnerIdFrom(body);
-    if (!learnerId) return json(res, 400, { error: { code: 'LEARNER_REQUIRED', message: 'learnerId is required.' } });
+    const parsedLearner = learnerIdFrom(body);
+    if (parsedLearner.error) {
+      return json(res, 400, { error: { code: parsedLearner.error, message: parsedLearner.error === 'LEARNER_REQUIRED' ? 'learnerId is required.' : `learnerId must be at most ${MAX_LEARNER_ID_CHARS} characters.` } });
+    }
+    const learnerId = parsedLearner.value;
     await assertParentLearner(session, learnerId);
     const policy = normalizePolicy(body);
-    const expectedUpdatedAt = expectedUpdatedAtFrom(body);
+    const parsedExpected = expectedUpdatedAtFrom(body);
+    if (parsedExpected.error) {
+      return json(res, 400, { error: { code: parsedExpected.error, message: `expectedUpdatedAt must be at most ${MAX_UPDATED_AT_CHARS} characters.` } });
+    }
+    const expectedUpdatedAt = parsedExpected.value;
 
     if (expectedUpdatedAt) {
       const current = await sql`
