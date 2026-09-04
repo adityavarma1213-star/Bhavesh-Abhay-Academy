@@ -4,8 +4,12 @@ import { sql } from './_lib/db.js';
 
 export const config = { runtime: 'nodejs' };
 
-const clean = (v, max = 160) => String(v ?? '').trim().slice(0, max);
-const human = v => clean(v, 100).replace(/[-_]+/g, ' ');
+// Stored evidence is already schema-bounded. Do not silently truncate
+// authoritative academic labels here: truncation can merge two distinct
+// concepts that share the same prefix and corrupt learning-state grouping.
+const clean = (v) => String(v ?? '').trim();
+const display = (v, max = 100) => clean(v).slice(0, max);
+const human = v => display(v, 100).replace(/[-_]+/g, ' ');
 const VALID_CORRECTNESS = ['correct', 'partially_correct', 'incorrect'];
 const PAGE_SIZE = 500;
 function requiredBounded(value, max, code, message) {
@@ -75,9 +79,11 @@ export default async function handler(req, res) {
     const rows = await loadAllEvidence(learnerId);
     const grouped = new Map();
     for (const row of rows) {
-      const concept = clean(row.concept, 120);
-      const subject = clean(row.subject, 80);
+      const concept = clean(row.concept);
+      const subject = clean(row.subject);
       if (!concept) continue;
+      // Group by the complete stored values so similarly-prefixed concepts
+      // cannot be collapsed merely because a display helper has a length cap.
       const key = `${subject}\u001f${concept}`;
       if (!grouped.has(key)) grouped.set(key, { concept, subject, evidence: [] });
       grouped.get(key).evidence.push(row);
@@ -91,12 +97,12 @@ export default async function handler(req, res) {
       const recent = evidence.slice(0, 5);
       const recentCorrect = recent.filter(r => r.correctness === 'correct').length;
       const rate = recent.length ? Math.round((recentCorrect / recent.length) * 100) : null;
-      const errorTypes = [...new Set(recent.map(r => clean(r.error_type, 80)).filter(Boolean))].slice(0, 4);
+      const errorTypes = [...new Set(recent.map(r => display(r.error_type, 80)).filter(Boolean))].slice(0, 4);
       return {
         concept,
         conceptLabel: human(concept),
         subject,
-        topic: clean(evidence[0]?.topic, 100),
+        topic: display(evidence[0]?.topic, 100),
         state,
         evidenceCount: evidence.length,
         correctCount: correct,
