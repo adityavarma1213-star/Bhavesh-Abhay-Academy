@@ -12,7 +12,15 @@ const AI_CONTEXT_CONCEPT_LIMIT = 40;
 const MAX_LEARNER_ID_CHARS = 100;
 
 function cleanText(value, max = 120) {
-  return typeof value === 'string' ? value.replace(/\s+/g, ' ').trim().slice(0, max) : '';
+  if (typeof value !== 'string') return '';
+  const normalized = value.replace(/\s+/g, ' ').trim();
+  if (normalized.length > max) {
+    const error = new Error(`Value must be at most ${max} characters.`);
+    error.status = 400;
+    error.code = 'VALUE_TOO_LONG';
+    throw error;
+  }
+  return normalized;
 }
 
 function readLearnerId(value) {
