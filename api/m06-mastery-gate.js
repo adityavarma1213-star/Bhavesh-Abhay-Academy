@@ -3,13 +3,17 @@ import { requireAuth, requireLearnerAccess, hasRole } from './_lib/auth.js';
 import { sql } from './_lib/db.js';
 
 export const config = { runtime: 'nodejs' };
-const clean = (v, max = 180) => String(v ?? '').trim().slice(0, max);
+const clean = (v) => String(v ?? '').trim();
+const display = (v, max = 180) => clean(v).slice(0, max);
 const findingKey = (subject, chapter, concept, label) => `${subject}::${chapter}::${concept}::${label}`.toLowerCase();
 const VALID_CORRECTNESS = new Set(['correct','partially_correct','incorrect']);
 const PAGE_SIZE = 500;
 const MAX_LEARNER_ID_CHARS = 120;
 const MAX_SUBJECT_CHARS = 120;
 const MAX_CHAPTER_CHARS = 180;
+const MAX_CONCEPT_CHARS = 180;
+const MAX_FINDING_CHARS = 180;
+const MAX_REASON_CHARS = 500;
 
 function bounded(value, field, max, { required = true } = {}) {
   if (value == null || String(value).trim() === '') {
@@ -69,19 +73,19 @@ async function buildGate(learnerId, subject, chapter) {
   const findings = new Map();
   const latestConcept = new Map();
   for (const row of validRows) {
-    const concept = clean(row.concept, 180) || 'Unspecified concept';
+    const concept = clean(row.concept) || 'Unspecified concept';
     const conceptKey = `${row.subject}::${row.chapter}::${concept}`;
     if (!latestConcept.has(conceptKey)) latestConcept.set(conceptKey, row.correctness);
     if (!['incorrect','partially_correct'].includes(String(row.correctness))) continue;
     const details = Array.isArray(row.findingDetails) && row.findingDetails.length ? row.findingDetails : [row.commonErrorType || 'general_error'];
     for (const raw of details) {
-      const label = clean(raw, 180) || 'general_error';
+      const label = clean(raw) || 'general_error';
       const key = findingKey(row.subject, row.chapter, concept, label);
       const existing = findings.get(key);
       if (!existing) {
         findings.set(key, {
           key,
-          type: clean(row.commonErrorType || 'concept_gap', 80) || 'concept_gap',
+          type: display(row.commonErrorType || 'concept_gap', 80) || 'concept_gap',
           text: label,
           concept,
           status: 'red',
@@ -132,7 +136,7 @@ async function buildGate(learnerId, subject, chapter) {
         ON CONFLICT (learner_id,subject,chapter,finding_key) DO UPDATE SET status=EXCLUDED.status,attempt_id=EXCLUDED.attempt_id,question_id=EXCLUDED.question_id,last_seen_at=EXCLUDED.last_seen_at,cleared_at=EXCLUDED.cleared_at`;
     }
   }
-  return { learnerId, subject, chapter, status: gateStatus, redCount: red.length, greenCount: green.length, findings: list, bypass: activeBypass, evidenceCount: validRows.length, excludedEvidenceCount, acceptedCorrectness:[...VALID_CORRECTNESS] };
+  return { learnerId, subject, chapter, status: gateStatus, redCount: red.length, greenCount: green.length, findings: list.map(f => ({ ...f, concept: display(f.concept, MAX_CONCEPT_CHARS), text: display(f.text, MAX_FINDING_CHARS) })), bypass: activeBypass, evidenceCount: validRows.length, excludedEvidenceCount, acceptedCorrectness:[...VALID_CORRECTNESS] };
 }
 
 export default async function handler(req, res) {
@@ -155,8 +159,7 @@ export default async function handler(req, res) {
     if (!password) return json(res,400,{error:{code:'PASSWORD_REAUTH_REQUIRED',message:'Parent password re-entry is required.'}});
     const credential = await sql`SELECT password_hash FROM credentials WHERE user_id=${session.user_id} LIMIT 1`;
     if (!credential.rows.length || !verifyPassword(password,credential.rows[0].password_hash)) return json(res,401,{error:{code:'PASSWORD_REAUTH_FAILED',message:'Password verification failed.'}});
-    const reason = clean(body.reason,500);
-    if (!reason) return json(res,400,{error:{code:'BYPASS_REASON_REQUIRED',message:'A reason is required for a progression-gate bypass.'}});
+    const reason = bounded(body.reason, 'reason', MAX_REASON_CHARS);
     const bypassId=id('gatebypass');
     await sql`INSERT INTO learning_gate_bypasses(id,learner_id,parent_user_id,subject,chapter,reason,created_at,ip_address) VALUES(${bypassId},${learnerId},${session.user_id},${subject},${chapter},${reason},NOW(),${clientIp(req)})`;
     await writeAudit({actorUserId:session.user_id,action:'mastery_gate.bypass',entityType:'learner_progression_gate',entityId:`${learnerId}:${subject}:${chapter}`,metadata:{learnerId,subject,chapter,reason,bypassId,ip:clientIp(req)}});
