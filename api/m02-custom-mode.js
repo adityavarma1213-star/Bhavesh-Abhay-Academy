@@ -9,6 +9,7 @@ const MAX_TITLE = 120;
 const MAX_LEARNER_ID = 100;
 const MAX_STEP_ID = 80;
 const MAX_TYPE = 20;
+const MAX_UPDATED_AT = 64;
 const MIN_MINUTES = 5;
 const MAX_MINUTES = 180;
 const VALID_TYPES = new Set(['learn', 'practice', 'review', 'assessment', 'tutor']);
@@ -65,6 +66,9 @@ export default async function handler(req, res) {
       const steps = normalizeSteps(req.body?.steps);
       if (!steps) return json(res, 400, { error: { code: 'INVALID_CUSTOM_PATH', message: 'A valid custom path with up to 20 bounded steps and unique step ids is required.' } });
       const expectedUpdatedAt = req.body?.expectedUpdatedAt ? String(req.body.expectedUpdatedAt).trim() : null;
+      if (expectedUpdatedAt && expectedUpdatedAt.length > MAX_UPDATED_AT) {
+        return json(res, 400, { error: { code: 'VALUE_TOO_LONG', message: `expectedUpdatedAt must be at most ${MAX_UPDATED_AT} characters.` } });
+      }
       const path = { schemaVersion: 1, mode: 'custom', steps };
 
       const current = await sql`SELECT updated_at FROM custom_learning_paths WHERE learner_id=${learnerId}`;
