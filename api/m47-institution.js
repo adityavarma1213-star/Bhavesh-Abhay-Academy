@@ -5,6 +5,7 @@ import { sql } from './_lib/db.js';
 export const config = { runtime: 'nodejs' };
 const MIN_EVIDENCE = 3;
 const MAX_CLASS_ID_CHARS = 100;
+const MAX_INSIGHT_ROWS = 200;
 
 function requireClassId(value) {
   const normalized = typeof value === 'string' ? value.trim() : '';
@@ -43,14 +44,18 @@ export default async function handler(req, res) {
     const [students, attempts, results, concepts] = await Promise.all([
       sql`SELECT COUNT(*)::int AS count FROM class_members WHERE class_id=${classId} AND status='active'`,
       sql`SELECT COUNT(*)::int AS attempts, COUNT(DISTINCT aa.learner_id)::int AS learners, COALESCE(AVG(CASE WHEN aa.max_score>0 THEN aa.score*100.0/aa.max_score END),0)::numeric AS average_percentage FROM class_members cm JOIN assessment_attempts aa ON aa.learner_id=cm.learner_id WHERE cm.class_id=${classId} AND cm.status='active' AND aa.status IN ('submitted','evaluated','completed')`,
-      sql`SELECT a.subject,a.chapter,COUNT(*)::int AS evidence_count,COUNT(*) FILTER (WHERE ar.correctness='correct')::int AS correct_count,COUNT(DISTINCT aa.learner_id)::int AS learners FROM class_members cm JOIN assessment_attempts aa ON aa.learner_id=cm.learner_id JOIN assessment_results ar ON ar.attempt_id=aa.id JOIN assessments a ON a.id=aa.assessment_id WHERE cm.class_id=${classId} AND cm.status='active' AND aa.status IN ('submitted','evaluated','completed') GROUP BY a.subject,a.chapter ORDER BY a.subject,a.chapter`,
-      sql`SELECT le.concept,le.subject,le.topic,COUNT(*)::int AS evidence_count,COUNT(*) FILTER (WHERE le.correctness='correct')::int AS correct_count,COUNT(DISTINCT le.learner_id)::int AS learners FROM class_members cm JOIN learning_evidence le ON le.learner_id=cm.learner_id WHERE cm.class_id=${classId} AND cm.status='active' GROUP BY le.concept,le.subject,le.topic HAVING COUNT(*) >= ${MIN_EVIDENCE} ORDER BY le.subject,le.concept`,
+      sql`SELECT a.subject,a.chapter,COUNT(*)::int AS evidence_count,COUNT(*) FILTER (WHERE ar.correctness='correct')::int AS correct_count,COUNT(DISTINCT aa.learner_id)::int AS learners FROM class_members cm JOIN assessment_attempts aa ON aa.learner_id=cm.learner_id JOIN assessment_results ar ON ar.attempt_id=aa.id JOIN assessments a ON a.id=aa.assessment_id WHERE cm.class_id=${classId} AND cm.status='active' AND aa.status IN ('submitted','evaluated','completed') GROUP BY a.subject,a.chapter ORDER BY a.subject,a.chapter LIMIT ${MAX_INSIGHT_ROWS + 1}`,
+      sql`SELECT le.concept,le.subject,le.topic,COUNT(*)::int AS evidence_count,COUNT(*) FILTER (WHERE le.correctness='correct')::int AS correct_count,COUNT(DISTINCT le.learner_id)::int AS learners FROM class_members cm JOIN learning_evidence le ON le.learner_id=cm.learner_id WHERE cm.class_id=${classId} AND cm.status='active' GROUP BY le.concept,le.subject,le.topic HAVING COUNT(*) >= ${MIN_EVIDENCE} ORDER BY le.subject,le.concept LIMIT ${MAX_INSIGHT_ROWS + 1}`,
     ]);
 
-    const topics = results.rows.map(row => ({ subject: row.subject || null, chapter: row.chapter || null, evidenceCount: Number(row.evidence_count), learners: Number(row.learners), accuracy: Number(row.evidence_count) ? Math.round(Number(row.correct_count) * 100 / Number(row.evidence_count)) : null }));
-    const conceptInsights = concepts.rows.map(row => ({ concept: row.concept, subject: row.subject || null, topic: row.topic || null, evidenceCount: Number(row.evidence_count), learners: Number(row.learners), accuracy: Number(row.evidence_count) ? Math.round(Number(row.correct_count) * 100 / Number(row.evidence_count)) : null, status: Number(row.correct_count) * 100 / Number(row.evidence_count) >= 80 ? 'strong' : Number(row.correct_count) * 100 / Number(row.evidence_count) < 50 ? 'needs_support' : 'developing' }));
+    const topicsTruncated = results.rows.length > MAX_INSIGHT_ROWS;
+    const conceptsTruncated = concepts.rows.length > MAX_INSIGHT_ROWS;
+    const topicRows = topicsTruncated ? results.rows.slice(0, MAX_INSIGHT_ROWS) : results.rows;
+    const conceptRows = conceptsTruncated ? concepts.rows.slice(0, MAX_INSIGHT_ROWS) : concepts.rows;
+    const topics = topicRows.map(row => ({ subject: row.subject || null, chapter: row.chapter || null, evidenceCount: Number(row.evidence_count), learners: Number(row.learners), accuracy: Number(row.evidence_count) ? Math.round(Number(row.correct_count) * 100 / Number(row.evidence_count)) : null }));
+    const conceptInsights = conceptRows.map(row => ({ concept: row.concept, subject: row.subject || null, topic: row.topic || null, evidenceCount: Number(row.evidence_count), learners: Number(row.learners), accuracy: Number(row.evidence_count) ? Math.round(Number(row.correct_count) * 100 / Number(row.evidence_count)) : null, status: Number(row.correct_count) * 100 / Number(row.evidence_count) >= 80 ? 'strong' : Number(row.correct_count) * 100 / Number(row.evidence_count) < 50 ? 'needs_support' : 'developing' }));
     const average = attempts.rows[0]?.average_percentage == null ? null : Math.round(Number(attempts.rows[0].average_percentage) * 10) / 10;
-    return json(res, 200, { ok: true, class: { id: classId, name: classRows.rows[0].name }, summary: { students: Number(students.rows[0]?.count || 0), learnersWithAttempts: Number(attempts.rows[0]?.learners || 0), attempts: Number(attempts.rows[0]?.attempts || 0), averagePercentage: average }, topics, conceptInsights, evidenceGate: { minEvidence: MIN_EVIDENCE, sparseConceptsExcluded: true }, assessmentOutcomeRule: { includedStatuses: ['submitted','evaluated','completed'] } }, NO_STORE);
+    return json(res, 200, { ok: true, class: { id: classId, name: classRows.rows[0].name }, summary: { students: Number(students.rows[0]?.count || 0), learnersWithAttempts: Number(attempts.rows[0]?.learners || 0), attempts: Number(attempts.rows[0]?.attempts || 0), averagePercentage: average }, topics, conceptInsights, evidenceGate: { minEvidence: MIN_EVIDENCE, sparseConceptsExcluded: true }, resultLimits: { maxRows: MAX_INSIGHT_ROWS, topicsTruncated, conceptsTruncated }, assessmentOutcomeRule: { includedStatuses: ['submitted','evaluated','completed'] } }, NO_STORE);
   } catch (e) {
     return json(res, e.status || 500, { error: { code: e.code || 'INSTITUTION_ANALYTICS_FAILED', message: e.status ? e.message : 'Unable to load institution analytics.' } }, NO_STORE);
   }
