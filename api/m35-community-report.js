@@ -5,7 +5,20 @@ import { sql } from './_lib/db.js';
 export const config = { runtime: 'nodejs' };
 const noStore = { 'Cache-Control': 'private, no-store, max-age=0' };
 const REASONS = new Set(['safety','harassment','spam','other']);
-const clean = (value, max) => String(value ?? '').trim().slice(0, max);
+const MAX_POST_ID_CHARS = 160;
+const MAX_REPORTED_TEXT_CHARS = 4000;
+const MAX_REASON_CHARS = 32;
+
+function bounded(value, max, code, message, required = false) {
+  if (typeof value !== 'string') {
+    if (!required && (value == null || value === '')) return '';
+    const error = new Error(message); error.status = 422; error.code = code; throw error;
+  }
+  const normalized = value.trim();
+  if (required && !normalized) { const error = new Error(message); error.status = 422; error.code = code; throw error; }
+  if (normalized.length > max) { const error = new Error(message); error.status = 422; error.code = code; throw error; }
+  return normalized;
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -13,10 +26,9 @@ export default async function handler(req, res) {
   }
   try {
     const session = await requireAuth(req);
-    const postId = clean(req.body?.postId, 160) || null;
-    const submittedText = clean(req.body?.reportedText, 4000);
-    const reason = clean(req.body?.reason, 32).toLowerCase();
-    if (!postId) return json(res, 422, { error: { code: 'INVALID_REPORT', message: 'A post id is required.' } }, noStore);
+    const postId = bounded(req.body?.postId, MAX_POST_ID_CHARS, 'POST_ID_TOO_LONG', `postId must be ${MAX_POST_ID_CHARS} characters or fewer.`, true) || null;
+    const submittedText = bounded(req.body?.reportedText, MAX_REPORTED_TEXT_CHARS, 'REPORTED_TEXT_TOO_LONG', `reportedText must be ${MAX_REPORTED_TEXT_CHARS} characters or fewer.`);
+    const reason = bounded(req.body?.reason, MAX_REASON_CHARS, 'REPORT_REASON_TOO_LONG', `reason must be ${MAX_REASON_CHARS} characters or fewer.`).toLowerCase();
     if (!REASONS.has(reason)) return json(res, 422, { error: { code: 'INVALID_REPORT_REASON', message: 'A supported report reason is required.' } }, noStore);
 
     const postResult = await sql`
@@ -31,7 +43,7 @@ export default async function handler(req, res) {
     // The server is authoritative for report evidence. The browser may include
     // a stale preview for compatibility, but it can never choose what text is
     // persisted in the moderation record.
-    const reportedText = clean(post.body, 4000);
+    const reportedText = typeof post.body === 'string' ? post.body : '';
     const submittedTextMismatch = submittedText && submittedText !== reportedText;
 
     const duplicate = await sql`SELECT id FROM community_reports WHERE reporter_user_id=${session.user_id} AND COALESCE(post_id,'')=COALESCE(${postId},'') AND status='open' AND created_at > NOW() - INTERVAL '24 hours' LIMIT 1`;
