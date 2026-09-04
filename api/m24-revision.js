@@ -4,15 +4,33 @@ import { sql } from './_lib/db.js';
 
 export const config = { runtime: 'nodejs' };
 const MIN_EVIDENCE = 3;
+const MAX_LEARNER_ID_CHARS = 120;
 const VALID_CORRECTNESS = ['correct', 'partially_correct', 'incorrect'];
-const clean = (v, max = 160) => String(v ?? '').trim().slice(0, max);
 const intervalFor = (incorrect, partial, evidence) => incorrect >= 2 ? 1 : partial >= 1 ? 3 : evidence >= 6 ? 30 : evidence >= MIN_EVIDENCE ? 14 : 7;
+
+function parseLearnerId(value) {
+  if (typeof value !== 'string' || !value.trim()) return { value: '', error: 'LEARNER_ID_REQUIRED' };
+  const trimmed = value.trim();
+  if (trimmed.length > MAX_LEARNER_ID_CHARS) return { value: '', error: 'LEARNER_ID_TOO_LONG' };
+  return { value: trimmed, error: null };
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') return json(res, 405, { error: { code: 'METHOD_NOT_ALLOWED', message: 'GET required.' } }, { Allow: 'GET', 'Cache-Control': 'private, no-store, max-age=0' });
   try {
     const session = await requireAuth(req);
-    const learnerId = clean(req.query?.learnerId, 120);
+    const parsedLearner = parseLearnerId(req.query?.learnerId);
+    if (parsedLearner.error) {
+      return json(res, 400, {
+        error: {
+          code: parsedLearner.error,
+          message: parsedLearner.error === 'LEARNER_ID_TOO_LONG'
+            ? `learnerId must be at most ${MAX_LEARNER_ID_CHARS} characters.`
+            : 'learnerId is required.',
+        },
+      }, { 'Cache-Control': 'private, no-store, max-age=0' });
+    }
+    const learnerId = parsedLearner.value;
     await requireLearnerAccess(session, learnerId);
     const rows = await sql`
       SELECT le.subject, le.chapter, le.concept,
