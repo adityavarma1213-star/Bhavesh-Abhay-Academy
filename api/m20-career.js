@@ -15,10 +15,11 @@ const TRACKS = {
   'STEM Research': ['mathematics','science','research','problem-solving','communication'],
   'Data & AI': ['algebra','statistics','coding','logic','data-analysis'],
 };
-const clean = (v,max=160) => String(v ?? '').trim().slice(0,max);
+const clean = (v) => String(v ?? '').trim();
+const display = (v,max=160) => clean(v).slice(0,max);
 const normalize = v => clean(v).toLowerCase().replace(/[_\s]+/g,'-');
-const humanize = v => clean(v,80).replace(/-/g,' ');
-const label = r => r.title ? clean(r.title,120) : r.concept ? clean(r.concept,120) : 'Academic evidence';
+const humanize = v => display(v,80).replace(/-/g,' ');
+const label = r => r.title ? display(r.title,120) : r.concept ? display(r.concept,120) : 'Academic evidence';
 
 function requireLearnerId(value) {
   const normalized = typeof value === 'string' ? value.trim() : '';
