@@ -17,7 +17,14 @@ const MAX_PROVIDER_NAME_CHARS=160;
 const MAX_COUNTRY_CHARS=80;
 const MAX_LEVEL_CHARS=80;
 const MAX_SOURCE_URL_CHARS=1000;
-
+function boundedText(value,max,name,{required=false,code='VALUE_TOO_LONG'}={}){
+  if(value==null)return required?'':null;
+  if(typeof value!=='string'){const e=new Error(`${name} must be a string.`);e.status=400;e.code='INVALID_VALUE';throw e;}
+  const text=value.trim();
+  if(required&&!text){const e=new Error(`${name} is required.`);e.status=400;e.code='REQUIRED_VALUE';throw e;}
+  if(text.length>max){const e=new Error(`${name} must be at most ${max} characters.`);e.status=400;e.code=code;throw e;}
+  return text;
+}
 function cleanRecord(x){
   const deadline=x.deadline||null;
   return {
@@ -33,7 +40,6 @@ function cleanRecord(x){
     sourceUrl:x.sourceUrl?String(x.sourceUrl).trim().slice(0,MAX_SOURCE_URL_CHARS):null,
   };
 }
-
 function noStore(res){res.setHeader('Cache-Control','private, no-store, max-age=0');}
 function isHttpsUrl(value){return typeof value==='string'&&/^https:\/\//i.test(value);}
 function isPrivateIpv4(host){
@@ -87,7 +93,6 @@ function isSafeProviderUrl(value){
     return true;
   }catch{return false;}
 }
-
 async function fetchProvider(req){
   if(!PROVIDER_URL)return {configured:false,results:[],message:'Scholarship provider is not configured. Live scholarship data is unavailable.'};
   let target;
@@ -97,13 +102,15 @@ async function fetchProvider(req){
     if(!(await resolvesToPublicDnsHost(base.hostname)))return {configured:true,results:[],message:'Scholarship provider hostname does not resolve exclusively to public addresses.'};
     const params=new URLSearchParams();
     for(const key of ['country','level','field']){
-      const value=String(req.query?.[key]||'').trim().slice(0,80);
+      const value=boundedText(req.query?.[key],key==='field'?80:key==='country'?MAX_COUNTRY_CHARS:MAX_LEVEL_CHARS,key,{required:false,code:'VALUE_TOO_LONG'});
       if(value)params.set(key,value);
     }
     target=new URL(base.toString());
     for(const [key,value] of params)target.searchParams.set(key,value);
-  }catch{return {configured:true,results:[],message:'Scholarship provider URL is invalid or not publicly reachable.'};}
-
+  }catch(error){
+    if(error?.status===400)throw error;
+    return {configured:true,results:[],message:'Scholarship provider URL is invalid or not publicly reachable.'};
+  }
   const controller=new AbortController();
   const timer=setTimeout(()=>controller.abort(),PROVIDER_TIMEOUT_MS);
   try{
@@ -115,24 +122,21 @@ async function fetchProvider(req){
     const bytes=await response.arrayBuffer();
     if(bytes.byteLength>MAX_PROVIDER_BYTES)return {configured:true,results:[],message:'Scholarship provider response is too large.'};
     let body;
-    try{body=JSON.parse(new TextDecoder().decode(bytes));}
-    catch{return {configured:true,results:[],message:'Scholarship provider returned invalid JSON.'};}
+    try{body=JSON.parse(new TextDecoder().decode(bytes));}catch{return {configured:true,results:[],message:'Scholarship provider returned invalid JSON.'};}
     const source=Array.isArray(body)?body:Array.isArray(body?.results)?body.results:Array.isArray(body?.scholarships)?body.scholarships:[];
     const results=source.map(cleanRecord).filter(x=>x.title&&x.provider&&isHttpsUrl(x.sourceUrl)).slice(0,MAX_RESULTS);
     return {configured:true,results,message:null};
-  }catch(error){
-    return {configured:true,results:[],message:error?.name==='AbortError'?'Scholarship provider timed out.':'Scholarship provider could not be reached.'};
-  }finally{clearTimeout(timer);}
+  }catch(error){return {configured:true,results:[],message:error?.name==='AbortError'?'Scholarship provider timed out.':'Scholarship provider could not be reached.'};}
+  finally{clearTimeout(timer);}
 }
-
 export default async function handler(req,res){
   noStore(res);
   try{
     const s=await requireAuth(req);
     if(req.method==='GET'){
-      const country=req.query?.country?String(req.query.country).trim().slice(0,MAX_COUNTRY_CHARS):null;
-      const level=req.query?.level?String(req.query.level).trim().slice(0,MAX_LEVEL_CHARS):null;
-      const field=req.query?.field?String(req.query.field).trim().slice(0,80):null;
+      const country=boundedText(req.query?.country,MAX_COUNTRY_CHARS,'country');
+      const level=boundedText(req.query?.level,MAX_LEVEL_CHARS,'level');
+      const field=boundedText(req.query?.field,80,'field');
       const local=await sql`SELECT id,title,provider,country,level,fields,eligibility,amount_text AS "amountText",deadline,source_url AS "sourceUrl" FROM scholarships WHERE status='published' AND source_url IS NOT NULL AND source_url LIKE 'https://%' AND (${country}::text IS NULL OR country=${country}) AND (${level}::text IS NULL OR level=${level}) AND (${field}::text IS NULL OR fields ? ${field}) AND (deadline IS NULL OR deadline>=CURRENT_DATE) ORDER BY deadline NULLS LAST,title ASC LIMIT 200`;
       const provider=await fetchProvider(req);
       const seen=new Set();
@@ -144,9 +148,7 @@ export default async function handler(req,res){
     if(req.method==='POST'){
       const raw=req.body&&typeof req.body==='object'?req.body:{};
       const rawLengths=[['id',MAX_ID_CHARS],['title',MAX_TITLE_CHARS],['provider',MAX_PROVIDER_NAME_CHARS],['country',MAX_COUNTRY_CHARS],['level',MAX_LEVEL_CHARS],['sourceUrl',MAX_SOURCE_URL_CHARS]];
-      for(const [field,max] of rawLengths){
-        if(raw[field]!=null&&String(raw[field]).trim().length>max)return json(res,400,{error:{code:'VALUE_TOO_LONG',message:`${field} must be at most ${max} characters.`}});
-      }
+      for(const [field,max] of rawLengths){if(raw[field]!=null&&String(raw[field]).trim().length>max)return json(res,400,{error:{code:'VALUE_TOO_LONG',message:`${field} must be at most ${max} characters.`}});}
       const x=cleanRecord(raw);
       if(!x.title||!x.provider)return json(res,400,{error:{code:'INVALID_SCHOLARSHIP',message:'title and provider are required.'}});
       if(x.sourceUrl&&!isHttpsUrl(x.sourceUrl))return json(res,400,{error:{code:'INVALID_SOURCE_URL',message:'sourceUrl must use HTTPS.'}});
@@ -155,9 +157,8 @@ export default async function handler(req,res){
       return json(res,201,{ok:true,id:x.id,status:'draft'});
     }
     if(req.method==='PUT'){
-      const scholarshipId=String(req.query?.id||'').trim();
+      const scholarshipId=boundedText(req.query?.id,MAX_ID_CHARS,'id',{required:true,code:'INVALID_ID'});
       const status=String(req.body?.status||'');
-      if(!scholarshipId)return json(res,400,{error:{code:'INVALID_ID',message:'Scholarship id is required.'}});
       if(!['draft','published','archived'].includes(status))return json(res,400,{error:{code:'INVALID_STATUS',message:'Invalid scholarship status.'}});
       if(status==='published'){
         const source=await sql`SELECT source_url AS "sourceUrl" FROM scholarships WHERE id=${scholarshipId} LIMIT 1`;
