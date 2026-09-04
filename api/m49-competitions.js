@@ -8,6 +8,7 @@ const PROVIDER_TOKEN = String(process.env.BAA_COMPETITIONS_PROVIDER_TOKEN || '')
 const TIMEOUT_MS = 8000;
 const MAX_RESULTS = 100;
 const MAX_PROVIDER_BYTES = 1024 * 1024;
+const MAX_FILTER_CHARS = 80;
 
 function noStore(res) {
   res.setHeader('Cache-Control', 'private, no-store, max-age=0');
@@ -15,6 +16,17 @@ function noStore(res) {
 
 function cleanText(value, max = 240) {
   return String(value ?? '').trim().slice(0, max);
+}
+
+function boundedFilter(value, key) {
+  const raw = String(value ?? '').trim();
+  if (raw.length > MAX_FILTER_CHARS) {
+    const error = new Error(`${key} must be at most ${MAX_FILTER_CHARS} characters.`);
+    error.code = `${key.toUpperCase()}_TOO_LONG`;
+    error.status = 400;
+    throw error;
+  }
+  return raw;
 }
 
 function isHttpsUrl(value) {
@@ -107,7 +119,7 @@ async function fetchProvider(req) {
   }
 
   for (const key of ['country', 'level', 'category']) {
-    const value = cleanText(req.query?.[key], 80);
+    const value = boundedFilter(req.query?.[key], key);
     if (value) base.searchParams.set(key, value);
   }
 
