@@ -10,7 +10,11 @@ const clean = (v,max=240) => String(v ?? '').trim().slice(0,max);
 const strings = (v,max=120) => [...new Set((Array.isArray(v)?v:[]).filter(x=>typeof x==='string').map(x=>clean(x,max)).filter(Boolean))].slice(0,40);
 function body(req){
   if(req.body&&typeof req.body==='object') return req.body;
-  try{return JSON.parse(req.body||'{}');}catch{return {};}
+  if(typeof req.body!=='string') return {};
+  try{return JSON.parse(req.body);}catch{
+    const error=new Error('Request body must contain valid JSON.');
+    error.status=400; error.code='INVALID_JSON_BODY'; throw error;
+  }
 }
 function normalize(input){
   const x=input&&typeof input==='object'?input:{};
