@@ -5,6 +5,7 @@ import { sql, withTransaction } from './_lib/db.js';
 export const config = { runtime: 'nodejs' };
 const NO_STORE = { 'Cache-Control': 'private, no-store, max-age=0' };
 const MAX_LEARNER_ID_CHARS = 120;
+const MAX_VERSION_CHARS = 64;
 const clean = (v,max=240) => String(v ?? '').trim().slice(0,max);
 const strings = (v,max=120) => [...new Set((Array.isArray(v)?v:[]).filter(x=>typeof x==='string').map(x=>clean(x,max)).filter(Boolean))].slice(0,40);
 function body(req){
@@ -46,6 +47,7 @@ export default async function handler(req,res){
       await validateEvidenceReferences(learnerId,profile.projects);
       const expectedRaw=payload.expectedUpdatedAt;
       const expected=expectedRaw==null?'':String(expectedRaw).trim();
+      if(expected.length>MAX_VERSION_CHARS)return json(res,400,{ok:false,error:{code:'VALUE_TOO_LONG',message:`expectedUpdatedAt must be at most ${MAX_VERSION_CHARS} characters.`}},NO_STORE);
       if(expected&&Number.isNaN(Date.parse(expected))) return json(res,400,{ok:false,error:{code:'INVALID_VERSION',message:'expectedUpdatedAt must be a valid timestamp.'}},NO_STORE);
       const result=await withTransaction(async tx=>{
         const current=await tx`SELECT updated_at AS "updatedAt" FROM career_prep_profiles WHERE learner_id=${learnerId} FOR UPDATE`;
