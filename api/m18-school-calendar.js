@@ -6,9 +6,21 @@ export const config = { runtime: 'nodejs' };
 
 const ALLOWED_TYPES = new Set(['exam', 'deadline', 'holiday', 'school_event']);
 const PAGE_SIZE = 500;
+const MAX_LEARNER_ID_CHARS = 120;
+const MAX_TITLE_CHARS = 120;
+const MAX_SUBJECT_CHARS = 80;
+const MAX_DATE_CHARS = 10;
 
 function noStore(res) {
   res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+}
+
+function boundedString(value, max, code, message, required = false) {
+  if (typeof value !== 'string') return { value: '', error: required ? code : null };
+  const trimmed = value.trim();
+  if (required && !trimmed) return { value: '', error: code };
+  if (trimmed.length > max) return { value: '', error: code };
+  return { value: trimmed, error: null };
 }
 
 function isValidIsoDate(value) {
@@ -19,13 +31,16 @@ function isValidIsoDate(value) {
 }
 
 function cleanEvent(input = {}) {
-  const title = String(input.title || '').trim().slice(0, 120);
-  const date = String(input.date || '').slice(0, 10);
-  const type = String(input.type || 'school_event');
-  const subject = input.subject == null ? null : String(input.subject).trim().slice(0, 80);
-  if (!title || !isValidIsoDate(date) || !ALLOWED_TYPES.has(type)) return null;
-  if (subject && !/^[\w .&'()\/-]+$/u.test(subject)) return null;
-  return { title, date, type, subject: subject || null };
+  const title = boundedString(input.title, MAX_TITLE_CHARS, 'TITLE_TOO_LONG', `title must be at most ${MAX_TITLE_CHARS} characters.`, true);
+  const date = boundedString(input.date, MAX_DATE_CHARS, 'DATE_TOO_LONG', `date must be at most ${MAX_DATE_CHARS} characters.`, true);
+  const subject = input.subject == null
+    ? { value: '', error: null }
+    : boundedString(input.subject, MAX_SUBJECT_CHARS, 'SUBJECT_TOO_LONG', `subject must be at most ${MAX_SUBJECT_CHARS} characters.`);
+  const type = typeof input.type === 'string' ? input.type.trim() : 'school_event';
+  if (title.error || date.error || subject.error) return null;
+  if (!isValidIsoDate(date.value) || !ALLOWED_TYPES.has(type)) return null;
+  if (subject.value && !/^[\w .&'()\/-]+$/u.test(subject.value)) return null;
+  return { title: title.value, date: date.value, type, subject: subject.value || null };
 }
 
 function rowsToEvents(rows) {
@@ -105,12 +120,21 @@ async function handler(req, res) {
   noStore(res);
   try {
     const session = await requireAuth(req);
-    const learnerId = String(req.query?.learnerId || req.body?.learnerId || '');
+    const learnerParsed = boundedString(req.query?.learnerId ?? req.body?.learnerId, MAX_LEARNER_ID_CHARS, 'LEARNER_ID_TOO_LONG', `learnerId must be at most ${MAX_LEARNER_ID_CHARS} characters.`, true);
+    if (learnerParsed.error) {
+      return json(res, 400, { error: { code: learnerParsed.error, message: learnerParsed.error === 'LEARNER_ID_TOO_LONG' ? `learnerId must be at most ${MAX_LEARNER_ID_CHARS} characters.` : 'learnerId is required.' } });
+    }
+    const learnerId = learnerParsed.value;
     await requireLearnerAccess(session, learnerId);
 
     if (req.method === 'GET') {
-      const from = req.query?.from ? String(req.query.from).slice(0, 10) : null;
-      const to = req.query?.to ? String(req.query.to).slice(0, 10) : null;
+      const fromParsed = req.query?.from == null ? { value: null, error: null } : boundedString(req.query.from, MAX_DATE_CHARS, 'FROM_TOO_LONG', `from must be at most ${MAX_DATE_CHARS} characters.`);
+      const toParsed = req.query?.to == null ? { value: null, error: null } : boundedString(req.query.to, MAX_DATE_CHARS, 'TOO_LONG', `to must be at most ${MAX_DATE_CHARS} characters.`);
+      if (fromParsed.error || toParsed.error) {
+        return json(res, 400, { error: { code: fromParsed.error || toParsed.error, message: fromParsed.error ? `from must be at most ${MAX_DATE_CHARS} characters.` : `to must be at most ${MAX_DATE_CHARS} characters.` } });
+      }
+      const from = fromParsed.value;
+      const to = toParsed.value;
       if ((from && !isValidIsoDate(from)) || (to && !isValidIsoDate(to))) {
         return json(res, 400, { error: { code: 'INVALID_DATE_RANGE', message: 'from and to must be valid ISO calendar dates (YYYY-MM-DD).' } });
       }
