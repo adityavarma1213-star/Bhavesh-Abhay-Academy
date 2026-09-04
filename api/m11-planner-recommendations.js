@@ -9,6 +9,7 @@ const MIN_EVIDENCE = 3;
 const VALID_CORRECTNESS = new Set(['correct', 'partially_correct', 'incorrect']);
 const NO_STORE = { 'Cache-Control': 'private, no-store, max-age=0' };
 const EVIDENCE_PAGE_SIZE = 500;
+const MAX_LEARNER_ID_CHARS = 120;
 
 function stateForEvidence(rows) {
   const grouped = new Map();
@@ -91,7 +92,13 @@ async function handler(req, res) {
 
   try {
     const session = await requireAuth(req);
-    const learnerId = String(req.query?.learnerId || '').trim().slice(0, 100);
+    const learnerId = String(req.query?.learnerId || '').trim();
+    if (!learnerId) {
+      return json(res, 400, { error: { code: 'LEARNER_ID_REQUIRED', message: 'learnerId is required.' } }, NO_STORE);
+    }
+    if (learnerId.length > MAX_LEARNER_ID_CHARS) {
+      return json(res, 400, { error: { code: 'LEARNER_ID_TOO_LONG', message: `learnerId must be at most ${MAX_LEARNER_ID_CHARS} characters.` } }, NO_STORE);
+    }
     await requireLearnerAccess(session, learnerId);
 
     const policy = await getPolicy(learnerId);
