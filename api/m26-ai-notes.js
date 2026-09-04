@@ -12,18 +12,36 @@ const MIN_EVIDENCE = 3;
 const EVIDENCE_PAGE_SIZE = 500;
 const MAX_EVIDENCE_PER_CONCEPT = 12;
 const MAX_PROVIDER_BYTES = 1024 * 1024;
-const clean = (v, max = 160) => String(v ?? '').trim().slice(0, max);
+const MAX_LEARNER_ID_CHARS = 120;
+const MAX_SUBJECT_CHARS = 120;
+const MAX_CHAPTER_CHARS = 160;
+const MAX_CONCEPT_CHARS = 180;
+const MAX_CORRECTNESS_CHARS = 40;
+const MAX_ASSESSMENT_TITLE_CHARS = 160;
+const clean = (v) => String(v ?? '').trim();
+const display = (v, max) => clean(v).slice(0, max);
+
+function bounded(value, field, max, { required = true } = {}) {
+  if (value == null || String(value).trim() === '') {
+    if (required) return { ok: false, code: `${field.toUpperCase()}_REQUIRED`, message: `${field} is required.` };
+    return { ok: true, value: '' };
+  }
+  if (typeof value !== 'string') return { ok: false, code: `${field.toUpperCase()}_INVALID`, message: `${field} must be a string.` };
+  const valueTrimmed = value.trim();
+  if (valueTrimmed.length > max) return { ok: false, code: 'VALUE_TOO_LONG', message: `${field} must be at most ${max} characters.` };
+  return { ok: true, value: valueTrimmed };
+}
 
 function promptFor({ evidence, attempts }) {
   const evidenceLines = evidence.map((r) => ({
-    subject: clean(r.subject, 80),
-    chapter: clean(r.chapter, 100),
-    concept: clean(r.concept, 120),
-    correctness: clean(r.correctness, 40),
+    subject: display(r.subject, MAX_SUBJECT_CHARS),
+    chapter: display(r.chapter, MAX_CHAPTER_CHARS),
+    concept: display(r.concept, MAX_CONCEPT_CHARS),
+    correctness: display(r.correctness, MAX_CORRECTNESS_CHARS),
     created_at: r.created_at,
   }));
   const attemptLines = attempts.map((r) => ({
-    assessment_title: clean(r.assessment_title, 120),
+    assessment_title: display(r.assessment_title, MAX_ASSESSMENT_TITLE_CHARS),
     score: Number(r.score),
     max_score: Number(r.max_score),
     completed_at: r.completed_at,
@@ -122,8 +140,9 @@ export default async function handler(req, res) {
     const rate = await consumeAiRateLimit('m26-notes', session.user_id, { windowSeconds: 300, maxRequests: 10 });
     if (rate.limited) return json(res, 429, { error: { code: 'RATE_LIMITED', message: 'Too many note-generation requests. Please wait a moment.' } });
 
-    const learnerId = clean(req.body?.learnerId, 120);
-    if (!learnerId) return json(res, 400, { error: { code: 'INVALID_LEARNER', message: 'learnerId is required.' } });
+    const learnerCheck = bounded(req.body?.learnerId, 'learnerId', MAX_LEARNER_ID_CHARS);
+    if (!learnerCheck.ok) return json(res, 400, { error: { code: learnerCheck.code, message: learnerCheck.message } });
+    const learnerId = learnerCheck.value;
 
     const accessRows = hasRole(session, 'admin')
       ? await sql`SELECT id FROM learners WHERE id=${learnerId} LIMIT 1`
@@ -149,7 +168,7 @@ export default async function handler(req, res) {
 
     const grouped = new Map();
     for (const row of evidenceRows) {
-      const concept = clean(row.concept, 120);
+      const concept = clean(row.concept);
       if (!concept) continue;
       if (!grouped.has(concept)) grouped.set(concept, []);
       grouped.get(concept).push(row);
