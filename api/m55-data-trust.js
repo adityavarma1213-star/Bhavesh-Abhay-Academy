@@ -59,19 +59,20 @@ export default async function handler(req, res) {
 
     const learner = await resolveLearner(session, String(input.learnerId || '').trim() || null);
     const deletedAt = new Date().toISOString();
+    const operationId = id('deletion');
     const auditId = id('audit');
 
     await withTransaction(async tx => {
       await tx`INSERT INTO audit_log (id, actor_user_id, action, entity_type, entity_id, metadata, created_at)
                VALUES (${auditId}, ${session.user_id}, 'student_data_delete', 'learner', ${learner.id},
-                       ${JSON.stringify({ scope:'learner_cascade', requestedByRole:session.roles, deletedAt })}, NOW())`;
+                       ${JSON.stringify({operationId, scope:'learner_cascade', requestedByRole:session.roles, deletedAt})}, NOW())`;
       await tx`DELETE FROM learners WHERE id=${learner.id}`;
       if (learner.user_id === session.user_id) {
         await tx`DELETE FROM users WHERE id=${session.user_id}`;
       }
     });
 
-    return json(res, 200, { ok:true, deleted:true, learnerId:learner.id, accountDeleted:learner.user_id === session.user_id });
+    return json(res, 200, { ok:true, deleted:true, learnerId:learner.id, operationId, accountDeleted:learner.user_id === session.user_id });
   } catch (err) {
     const status = Number(err?.status) || (err?.code === 'DATABASE_NOT_CONFIGURED' ? 503 : 500);
     return json(res, status, { ok:false, error:{code:err?.code || 'SERVER_ERROR',message:err?.message || 'Unable to process the data-trust request.'} });
