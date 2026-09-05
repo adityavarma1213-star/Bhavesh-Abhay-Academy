@@ -7,6 +7,9 @@
 const KEY='baa_community_v1';
 const BLOCKED=['self-harm','suicide','sexual exploitation','buy drugs'];
 const MAX_SERVER_RESPONSE_BYTES=1024*1024;
+const MAX_LOCAL_POST_CHARS=4000;
+const MAX_GROUP_ID_CHARS=128;
+const MAX_LOCAL_POSTS=5000;
 let fallbackSequence=0;
 async function readServerJson(response){
  if(!response?.body?.getReader){
@@ -28,7 +31,8 @@ async function readServerJson(response){
  }finally{try{reader.releaseLock();}catch(_) {}}
 }
 function load(){try{const x=JSON.parse(localStorage.getItem(KEY)||'null');return x&&Array.isArray(x.posts)?x:{groups:[],posts:[]};}catch(_){return {groups:[],posts:[]};}}
-function moderate(text){if(typeof text!=='string'||!text.trim())return {ok:false,error:'INVALID_POST'};const low=text.toLowerCase();if(BLOCKED.some(x=>low.includes(x)))return {ok:false,error:'POST_BLOCKED_BY_SAFETY_FILTER'};return {ok:true,error:null};}
+function moderate(text){if(typeof text!=='string'||!text.trim())return {ok:false,error:'INVALID_POST'};if(text.length>MAX_LOCAL_POST_CHARS)return {ok:false,error:'POST_TOO_LONG'};const low=text.toLowerCase();if(BLOCKED.some(x=>low.includes(x)))return {ok:false,error:'POST_BLOCKED_BY_SAFETY_FILTER'};return {ok:true,error:null};}
+function normalizeGroupId(groupId){const value=String(groupId||'general').trim();return value.length&&value.length<=MAX_GROUP_ID_CHARS?value:null;}
 function createLocalId(){
  if(global.crypto&&typeof global.crypto.randomUUID==='function')return 'post_'+global.crypto.randomUUID();
  if(global.crypto&&typeof global.crypto.getRandomValues==='function'){
@@ -38,11 +42,12 @@ function createLocalId(){
  fallbackSequence=(fallbackSequence+1)%1000000000;
  return 'post_'+Date.now()+'_'+fallbackSequence;
 }
-function createPost(text,groupId){const m=moderate(text);if(!m.ok)return m;const s=load();s.posts.push({id:createLocalId(),text:text.trim(),groupId:String(groupId||'general'),createdAt:new Date().toISOString(),status:'visible'});try{localStorage.setItem(KEY,JSON.stringify(s));return {ok:true,error:null};}catch(_){return {ok:false,error:'COMMUNITY_STORAGE_FAILED'};}}
+function createPost(text,groupId){const m=moderate(text);if(!m.ok)return m;const normalizedGroup=normalizeGroupId(groupId);if(!normalizedGroup)return {ok:false,error:'INVALID_GROUP_ID'};const s=load();if(s.posts.length>=MAX_LOCAL_POSTS)return {ok:false,error:'COMMUNITY_LOCAL_LIMIT_REACHED'};s.posts.push({id:createLocalId(),text:text.trim(),groupId:normalizedGroup,createdAt:new Date().toISOString(),status:'visible'});try{localStorage.setItem(KEY,JSON.stringify(s));return {ok:true,error:null};}catch(_){return {ok:false,error:'COMMUNITY_STORAGE_FAILED'};}}
 async function createPostSecure(text,groupId){
  const local=moderate(text); if(!local.ok)return local;
+ const normalizedGroup=normalizeGroupId(groupId); if(!normalizedGroup)return {ok:false,error:'INVALID_GROUP_ID'};
  try{
-  const response=await fetch('/api/m35-community-posts',{method:'POST',credentials:'include',cache:'no-store',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({text:String(text),groupId:String(groupId||'general')})});
+  const response=await fetch('/api/m35-community-posts',{method:'POST',credentials:'include',cache:'no-store',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({text:String(text),groupId:normalizedGroup})});
   let payload={}; try{payload=await readServerJson(response);}catch(error){return {ok:false,error:error.message==='COMMUNITY_RESPONSE_TOO_LARGE'?'SERVER_RESPONSE_TOO_LARGE':'SERVER_INVALID_RESPONSE'};}
   if(!response.ok)return {ok:false,error:payload?.error?.code||'SERVER_POST_REJECTED'};
   return {ok:true,error:null,post:payload.post||null};
@@ -50,8 +55,8 @@ async function createPostSecure(text,groupId){
 }
 async function listPostsSecure(groupId){
  try{
-  const group=String(groupId||'general');
-  const response=await fetch(`/api/m35-community-posts?groupId=${encodeURIComponent(group)}`,{credentials:'include',cache:'no-store',headers:{Accept:'application/json'}});
+  const normalizedGroup=normalizeGroupId(groupId); if(!normalizedGroup)return {ok:false,error:'INVALID_GROUP_ID',posts:[]};
+  const response=await fetch(`/api/m35-community-posts?groupId=${encodeURIComponent(normalizedGroup)}`,{credentials:'include',cache:'no-store',headers:{Accept:'application/json'}});
   let payload={}; try{payload=await readServerJson(response);}catch(error){return {ok:false,error:error.message==='COMMUNITY_RESPONSE_TOO_LARGE'?'SERVER_RESPONSE_TOO_LARGE':'SERVER_INVALID_RESPONSE',posts:[]};}
   if(!response.ok)return {ok:false,error:payload?.error?.code||'SERVER_POST_LIST_FAILED',posts:[]};
   return {ok:true,error:null,posts:Array.isArray(payload.posts)?payload.posts:[]};
@@ -69,6 +74,6 @@ async function reportPost(postId,reason,reportedText){
   return {ok:true,error:null,report:payload.report||null};
  }catch(error){return {ok:false,error:error?.message==='COMMUNITY_RESPONSE_TOO_LARGE'?'SERVER_RESPONSE_TOO_LARGE':'COMMUNITY_REPORT_UNAVAILABLE'};}
 }
-function listPosts(groupId){const s=load();return {ok:true,error:null,posts:s.posts.filter(p=>!groupId||p.groupId===groupId)};}
+function listPosts(groupId){const normalizedGroup=groupId==null?'':normalizeGroupId(groupId);if(groupId!=null&&!normalizedGroup)return {ok:false,error:'INVALID_GROUP_ID',posts:[]};const s=load();return {ok:true,error:null,posts:s.posts.filter(p=>!normalizedGroup||p.groupId===normalizedGroup)};}
 global.BAACommunity={createPost,createPostSecure,listPostsSecure,reportPost,listPosts,moderate};
 })(window);
