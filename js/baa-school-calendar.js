@@ -9,6 +9,7 @@
   const STORAGE_KEY='baa_school_calendar_v1';
   const SCHEMA_VERSION=1;
   const ALLOWED_TYPES=['exam','deadline','holiday','school_event'];
+  let fallbackSequence=0;
   function load(){
     try{
       const raw=localStorage.getItem(STORAGE_KEY);
@@ -30,7 +31,8 @@
       const bytes=new Uint8Array(16);global.crypto.getRandomValues(bytes);
       return `cal_${Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('')}`;
     }
-    return `cal_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,7)}`;
+    fallbackSequence=(fallbackSequence+1)%1000000;
+    return `cal_${Date.now().toString(36)}_${fallbackSequence.toString(36).padStart(4,'0')}`;
   }
   function addEvent({title,date,type='school_event',subject=null}={}){
     if(!title||!isValidDate(date)||!ALLOWED_TYPES.includes(type))return null;
