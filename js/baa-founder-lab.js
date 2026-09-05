@@ -5,6 +5,7 @@
 'use strict';
 const STATUSES=['planned','active','paused','completed','archived'];
 const MAX_METRICS=32, MAX_PARTICIPANT_REF=160;
+let fallbackIdCounter=0;
 function clean(v,max=500){return String(v==null?'':v).trim().slice(0,max);}
 function secureId(prefix){
   const cryptoApi=global.crypto;
@@ -13,7 +14,8 @@ function secureId(prefix){
     const bytes=new Uint8Array(16);cryptoApi.getRandomValues(bytes);
     return `${prefix}-${Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('')}`;
   }
-  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,10)}`;
+  fallbackIdCounter=(fallbackIdCounter+1)>>>0;
+  return `${prefix}-${Date.now().toString(36)}-${fallbackIdCounter.toString(36)}`;
 }
 function validTimestamp(value){
   if(value==null||value==='') return true;
