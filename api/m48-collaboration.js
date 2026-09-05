@@ -11,6 +11,7 @@ const PROJECT_STATUSES=['draft','open','paused','completed','archived'];
 const PROJECT_TRANSITIONS={draft:['open','archived'],open:['paused','completed','archived'],paused:['open','archived'],completed:['archived'],archived:[]};
 function safetyCheck(text){const low=String(text||'').toLowerCase();return BLOCKED.some(term=>low.includes(term));}
 function projectModerationFor(session){return isStaff(session)?'approved':'pending';}
+function moderationStateFor(session){return isStaff(session)?'approved':'pending';}
 async function canReadPost(s,postId){
  const r=await sql`SELECT p.id,p.author_user_id,p.visibility,p.class_id,p.moderation_state AS "moderationState" FROM collaboration_posts p WHERE p.id=${postId} LIMIT 1`;
  if(!r.rows.length)return null; const p=r.rows[0];
