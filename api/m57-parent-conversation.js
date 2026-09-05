@@ -6,6 +6,7 @@ export const config = { runtime: 'nodejs' };
 const MIN_EVIDENCE = 3;
 const HISTORY_PAGE_SIZE = 20;
 const EVIDENCE_PAGE_SIZE = 500;
+const MAX_CONTEXT_EVIDENCE = 5000;
 const MAX_CURSOR_CHARS = 512;
 const MAX_CURSOR_FIELD_CHARS = 128;
 const MAX_LEARNER_ID_CHARS = 128;
@@ -57,10 +58,13 @@ async function loadLearningContext(learnerId) {
   let cursorCreatedAt = null;
   let cursorId = null;
   let evidenceCount = 0;
+  let evidenceTruncated = false;
   for (;;) {
+    const pageLimit = Math.min(EVIDENCE_PAGE_SIZE, MAX_CONTEXT_EVIDENCE - evidenceCount);
+    if (pageLimit <= 0) { evidenceTruncated = true; break; }
     const rows = cursorCreatedAt
-      ? await sql`SELECT id, concept, subject, topic, correctness, created_at AS "createdAt" FROM learning_evidence WHERE learner_id=${learnerId} AND (created_at,id)<(${cursorCreatedAt},${cursorId}) ORDER BY created_at DESC,id DESC LIMIT ${EVIDENCE_PAGE_SIZE}`
-      : await sql`SELECT id, concept, subject, topic, correctness, created_at AS "createdAt" FROM learning_evidence WHERE learner_id=${learnerId} ORDER BY created_at DESC,id DESC LIMIT ${EVIDENCE_PAGE_SIZE}`;
+      ? await sql`SELECT id, concept, subject, topic, correctness, created_at AS "createdAt" FROM learning_evidence WHERE learner_id=${learnerId} AND (created_at,id)<(${cursorCreatedAt},${cursorId}) ORDER BY created_at DESC,id DESC LIMIT ${pageLimit}`
+      : await sql`SELECT id, concept, subject, topic, correctness, created_at AS "createdAt" FROM learning_evidence WHERE learner_id=${learnerId} ORDER BY created_at DESC,id DESC LIMIT ${pageLimit}`;
     if (!rows.rows.length) break;
     for (const row of rows.rows) {
       evidenceCount += 1;
@@ -75,12 +79,13 @@ async function loadLearningContext(learnerId) {
       if (String(row.createdAt) > String(item.lastSeen)) item.lastSeen = row.createdAt;
       byConcept.set(key, item);
     }
-    if (rows.rows.length < EVIDENCE_PAGE_SIZE) break;
+    if (rows.rows.length < pageLimit) break;
+    if (evidenceCount >= MAX_CONTEXT_EVIDENCE) { evidenceTruncated = true; break; }
     const last = rows.rows[rows.rows.length - 1];
     cursorCreatedAt = last.createdAt;
     cursorId = last.id;
   }
-  if (!evidenceCount) return { evidenceCount: 0, topic: 'the recent study work', state: 'insufficient evidence', evidence: [] };
+  if (!evidenceCount) return { evidenceCount: 0, evidenceTruncated: false, topic: 'the recent study work', state: 'insufficient evidence', evidence: [] };
   const concepts = [...byConcept.values()].sort((a, b) => (b.total - a.total) || String(b.lastSeen).localeCompare(String(a.lastSeen)));
   const focus = concepts[0];
   const evidenceSufficient = focus.total >= MIN_EVIDENCE;
@@ -94,6 +99,7 @@ async function loadLearningContext(learnerId) {
   }
   return {
     evidenceCount,
+    evidenceTruncated,
     topic: clean(focus.topic || focus.concept || 'the recent study work', 160),
     state,
     evidence: concepts.slice(0, 8).map(item => ({ concept: item.concept, subject: item.subject, evidenceCount: item.total, accuracy: item.total >= MIN_EVIDENCE ? Math.round((item.correct / item.total) * 100) : null, evidenceSufficient: item.total >= MIN_EVIDENCE }))
@@ -127,8 +133,8 @@ export default async function handler(req, res) {
     const prompts = buildPrompts(topic, state);
     const conversationId = id('parentconv');
     await sql`INSERT INTO parent_conversation_prompts(id,parent_user_id,learner_id,topic,state,prompts) VALUES(${conversationId},${session.user_id},${learnerId},${topic},${state},${JSON.stringify(prompts)}::jsonb)`;
-    await writeAudit({ actorUserId: session.user_id, action: 'parent.conversation.generate', entityType: 'parent_conversation_prompts', entityId: conversationId, metadata: { learnerId, evidenceCount: context.evidenceCount, evidence: context.evidence } });
-    return json(res, 201, { ok: true, id: conversationId, learnerId, topic, state, evidenceCount: context.evidenceCount, evidence: context.evidence, prompts, evidenceGate: { minEvidence: MIN_EVIDENCE, sparseEvidenceIsNotCharacterized: true }, limitation: 'Conversation prompts are supportive guidance, not diagnosis or clinical advice. Learning state is derived from recorded academic evidence; it does not measure emotion or wellbeing.' });
+    await writeAudit({ actorUserId: session.user_id, action: 'parent.conversation.generate', entityType: 'parent_conversation_prompts', entityId: conversationId, metadata: { learnerId, evidenceCount: context.evidenceCount, evidenceTruncated: context.evidenceTruncated, evidence: context.evidence } });
+    return json(res, 201, { ok: true, id: conversationId, learnerId, topic, state, evidenceCount: context.evidenceCount, evidenceTruncated: context.evidenceTruncated, evidence: context.evidence, prompts, evidenceGate: { minEvidence: MIN_EVIDENCE, sparseEvidenceIsNotCharacterized: true }, limitation: 'Conversation prompts are supportive guidance, not diagnosis or clinical advice. Learning state is derived from recorded academic evidence; it does not measure emotion or wellbeing.' });
   } catch (e) {
     return json(res, e.status || 500, { error: { code: e.code || 'PARENT_CONVERSATION_FAILED', message: e.status ? e.message : 'Unable to create parent conversation prompts.' } });
   }
