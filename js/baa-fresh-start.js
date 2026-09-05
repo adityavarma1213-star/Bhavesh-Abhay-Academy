@@ -4,7 +4,7 @@
 (function(global){
 'use strict';
 function plan(keys){if(!Array.isArray(keys))return {ok:false,error:'INVALID_RESET_KEYS'};return {ok:true,error:null,keys:keys.filter(k=>typeof k==='string').sort(),confirmationRequired:true};}
-function apply(keys,confirm){if(confirm!==true)return {ok:false,error:'RESET_CONFIRMATION_REQUIRED'};if(!Array.isArray(keys))return {ok:false,error:'INVALID_RESET_KEYS'};try{keys.forEach(k=>{if(typeof k==='string')localStorage.removeItem(k);});return {ok:true,error:null,removedCount:keys.length};}catch(_){return {ok:false,error:'RESET_FAILED'};}}
+function apply(keys,confirm){if(confirm!==true)return {ok:false,error:'RESET_CONFIRMATION_REQUIRED'};if(!Array.isArray(keys))return {ok:false,error:'INVALID_RESET_KEYS'};try{const validKeys=[...new Set(keys.filter(k=>typeof k==='string'))];validKeys.forEach(k=>{localStorage.removeItem(k);});return {ok:true,error:null,removedCount:validKeys.length};}catch(_){return {ok:false,error:'RESET_FAILED'};}}
 const JSON_HEADERS={Accept:'application/json'};
 const MAX_SERVER_RESPONSE_BYTES=1024*1024;
 async function readServerJson(response){
