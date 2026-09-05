@@ -58,16 +58,24 @@
 
   const VALID_ROLES = ['student', 'parent', 'teacher', 'admin'];
   const VALID_PARENT_RELATIONSHIPS = ['parent', 'guardian', 'other_authorized_adult'];
+  let fallbackSequence = 0;
 
   function nowIso() {
     return new Date().toISOString();
   }
 
   function genId(prefix) {
-    // Same uid() shape convention SCHEMA.md §4 documents and G1/G2
-    // already use (see accountRepository.js genId()).
-    const rand = Math.random().toString(16).slice(2, 8);
-    return `${prefix}_${Date.now().toString(36)}_${rand}`;
+    const cryptoApi = global.crypto;
+    if (cryptoApi && typeof cryptoApi.randomUUID === 'function') {
+      return `${prefix}_${cryptoApi.randomUUID()}`;
+    }
+    if (cryptoApi && typeof cryptoApi.getRandomValues === 'function') {
+      const bytes = new Uint8Array(16);
+      cryptoApi.getRandomValues(bytes);
+      return `${prefix}_${Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')}`;
+    }
+    fallbackSequence = (fallbackSequence + 1) % 0x1000000;
+    return `${prefix}_${Date.now().toString(36)}_${fallbackSequence.toString(36).padStart(5, '0')}`;
   }
 
   function isValidRole(role) {
