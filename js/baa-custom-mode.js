@@ -4,6 +4,7 @@
   'use strict';
   const STORAGE_KEY = 'baaCustomModePath', SCHEMA_VERSION = 1, MAX_STEPS = 20, MAX_TITLE = 120, MIN_MINUTES = 5, MAX_MINUTES = 180;
   const VALID_TYPES = new Set(['learn', 'practice', 'review', 'assessment', 'tutor']);
+  let fallbackSequence = 0;
   function getStorage() { return global.localStorage; }
   function cleanText(value, max = MAX_TITLE) { return typeof value === 'string' ? value.replace(/\s+/g, ' ').trim().slice(0, max) : ''; }
   function createStepId(index = 0) {
@@ -12,7 +13,8 @@
       const bytes = new Uint8Array(12); global.crypto.getRandomValues(bytes);
       return `custom-${Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('')}`;
     }
-    return `custom-${Date.now().toString(36)}-${index}-${Math.random().toString(36).slice(2, 8)}`;
+    fallbackSequence = (fallbackSequence + 1) % 1000000;
+    return `custom-${Date.now().toString(36)}-${index}-${fallbackSequence.toString(36).padStart(4, '0')}`;
   }
   function validateStep(step) {
     if (!step || typeof step !== 'object') return { ok: false, code: 'INVALID_STEP' };
