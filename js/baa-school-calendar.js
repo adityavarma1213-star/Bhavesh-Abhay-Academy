@@ -35,10 +35,11 @@
     return `cal_${Date.now().toString(36)}_${fallbackSequence.toString(36).padStart(4,'0')}`;
   }
   function addEvent({title,date,type='school_event',subject=null}={}){
-    if(!title||!isValidDate(date)||!ALLOWED_TYPES.includes(type))return null;
+    if(typeof title!=='string'||!title.trim()||!isValidDate(date)||!ALLOWED_TYPES.includes(type))return null;
     const s=load();
-    const row={id:createId(),title:String(title).slice(0,120),date, type,subject:subject?String(subject).slice(0,80):null};
-    s.events.push(row);save(s);return row;
+    const row={id:createId(),title:title.trim().slice(0,120),date, type,subject:subject?String(subject).slice(0,80):null};
+    s.events.push(row);
+    return save(s)?row:null;
   }
   function removeEvent(id){const s=load();s.events=s.events.filter(e=>e.id!==id);return save(s);}
   function getEvents({from,to}={}){
