@@ -8,6 +8,7 @@
   'use strict';
   const STORAGE_KEY='baa_school_calendar_v1';
   const SCHEMA_VERSION=1;
+  let fallbackSequence=0;
   function load(){
     try{
       const raw=localStorage.getItem(STORAGE_KEY);
@@ -17,13 +18,26 @@
     }catch{return {meta:{schemaVersion:SCHEMA_VERSION},events:[]};}
   }
   function save(s){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(s));return true;}catch{return false;}}
+  function makeId(){
+    try{
+      if(global.crypto?.randomUUID)return `cal_${global.crypto.randomUUID()}`;
+      if(global.crypto?.getRandomValues){
+        const bytes=new Uint32Array(2);global.crypto.getRandomValues(bytes);
+        return `cal_${Date.now().toString(36)}_${bytes[0].toString(36)}${bytes[1].toString(36)}`;
+      }
+    }catch{}
+    fallbackSequence=(fallbackSequence+1)%0x1000000;
+    return `cal_${Date.now().toString(36)}_${fallbackSequence.toString(36).padStart(6,'0')}`;
+  }
   function addEvent({title,date,type='school_event',subject=null}={}){
-    if(!title||!date)return null;
+    if(typeof title!=='string'||!title.trim()||typeof date!=='string'||!date)return null;
     const allowed=['exam','deadline','holiday','school_event'];
     if(!allowed.includes(type))return null;
     const s=load();
-    const row={id:`cal_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,7)}`,title:String(title).slice(0,120),date, type,subject:subject?String(subject).slice(0,80):null};
-    s.events.push(row);save(s);return row;
+    const row={id:makeId(),title:title.trim().slice(0,120),date, type,subject:subject?String(subject).slice(0,80):null};
+    s.events.push(row);
+    if(!save(s))return null;
+    return row;
   }
   function removeEvent(id){const s=load();s.events=s.events.filter(e=>e.id!==id);return save(s);}
   function getEvents({from,to}={}){
