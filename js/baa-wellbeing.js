@@ -136,6 +136,7 @@
   const MIN_INTERVAL_MINUTES = 5;
   const MAX_INTERVAL_MINUTES = 180;
   const sessionStartedAt = Date.now();
+  let suggestionCursor = 0;
 
   function hasLocalStorage() {
     return typeof global.localStorage !== 'undefined' && global.localStorage !== null;
@@ -215,7 +216,8 @@
     const dueForNext = flags.lastReminderAt && minutesSinceLast >= prefs.intervalMinutes;
 
     if (dueForFirst || dueForNext) {
-      const pick = SUGGESTIONS[Math.floor(Math.random() * SUGGESTIONS.length)];
+      const pick = SUGGESTIONS[suggestionCursor % SUGGESTIONS.length];
+      suggestionCursor = (suggestionCursor + 1) % SUGGESTIONS.length;
       return { shouldSuggestBreak: true, minutesElapsed, suggestion: pick };
     }
     return { shouldSuggestBreak: false, minutesElapsed, suggestion: null };
