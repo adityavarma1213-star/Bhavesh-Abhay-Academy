@@ -6,6 +6,7 @@ export const config = { runtime: 'nodejs' };
 
 const ALLOWED_TYPES = new Set(['exam', 'deadline', 'holiday', 'school_event']);
 const PAGE_SIZE = 500;
+const MAX_EVENTS = 5000;
 const MAX_LEARNER_ID_CHARS = 120;
 const MAX_TITLE_CHARS = 120;
 const MAX_SUBJECT_CHARS = 80;
@@ -82,11 +83,14 @@ async function loadAllEvents(learnerId, from, to) {
           LIMIT ${PAGE_SIZE}`;
     const batch = Array.isArray(page?.rows) ? page.rows : [];
     rows.push(...batch);
+    if (rows.length >= MAX_EVENTS) {
+      return { rows: rows.slice(0, MAX_EVENTS), truncated: true };
+    }
     if (batch.length < PAGE_SIZE) break;
     const last = batch[batch.length - 1];
     cursor = { eventDate: last.event_date, createdAt: last.created_at, id: last.id };
   }
-  return rows;
+  return { rows, truncated: false };
 }
 
 function escapeIcs(value) {
@@ -148,8 +152,8 @@ async function handler(req, res) {
       if (from && to && from > to) {
         return json(res, 400, { error: { code: 'INVALID_DATE_RANGE', message: 'from must be on or before to.' } });
       }
-      const rows = await loadAllEvents(learnerId, from, to);
-      const events = rowsToEvents(rows);
+      const loaded = await loadAllEvents(learnerId, from, to);
+      const events = rowsToEvents(loaded.rows);
       if (String(req.query?.format || '').toLowerCase() === 'ics') {
         const ics = buildIcs(events);
         res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
@@ -159,11 +163,11 @@ async function handler(req, res) {
           action: 'school_calendar.export.ics',
           entityType: 'learner',
           entityId: learnerId,
-          metadata: { eventCount: events.length, from, to },
+          metadata: { eventCount: events.length, eventsTruncated: loaded.truncated, from, to },
         });
         return res.status(200).send(ics);
       }
-      return json(res, 200, { ok: true, learnerId, events, source: 'server_school_calendar', exportFormats: ['ics'] });
+      return json(res, 200, { ok: true, learnerId, events, eventsTruncated: loaded.truncated, resultLimit: MAX_EVENTS, source: 'server_school_calendar', exportFormats: ['ics'] });
     }
 
     if (req.method === 'POST') {
