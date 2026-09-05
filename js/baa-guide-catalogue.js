@@ -54,15 +54,24 @@
     {id:'user-guide',title:'User Guide',icon:'📖',roles:['student','parent','teacher','admin'],description:'Read the written guide to the major BAA OS features.',route:'user-guide.html'},
     {id:'demo',title:'BAA Demo',icon:'▶️',roles:['student','parent','teacher','admin'],description:'Open the product demonstration experience.',route:'demo.html'}
   ];
-  function clone(){return FEATURES.map(function(f){return Object.assign({},f,{roles:f.roles.slice()});});}
-  global.BAAGuideCatalogue={version:'m63.23',features:FEATURES.slice(),getFeatures:clone,getFeature:function(id){return FEATURES.find(function(f){return f.id===id;})||null;}};
+  const ROUTE_RE=/^[A-Za-z0-9][A-Za-z0-9._/-]*\.html(?:#[A-Za-z0-9._-]+)?$/;
+  const ROLE_SET=new Set(['student','parent','teacher','admin']);
+  function isValidFeature(f){
+    return !!f&&typeof f.id==='string'&&/^[a-z0-9][a-z0-9-]{1,80}$/.test(f.id)&&typeof f.title==='string'&&f.title.length<=120&&typeof f.description==='string'&&f.description.length<=500&&typeof f.route==='string'&&ROUTE_RE.test(f.route)&&Array.isArray(f.roles)&&f.roles.length>0&&f.roles.every(function(r){return typeof r==='string'&&ROLE_SET.has(r);});
+  }
+  if(FEATURES.some(function(f){return !isValidFeature(f);})||new Set(FEATURES.map(function(f){return f.id;})).size!==FEATURES.length){return;}
+  const FROZEN_FEATURES=FEATURES.map(function(f){return Object.freeze(Object.assign({},f,{roles:Object.freeze(f.roles.slice())}));});
+  Object.freeze(FROZEN_FEATURES);
+  function clone(){return FROZEN_FEATURES.map(function(f){return Object.assign({},f,{roles:f.roles.slice()});});}
+  global.BAAGuideCatalogue={version:'m63.24',features:clone(),getFeatures:clone,getFeature:function(id){return FROZEN_FEATURES.find(function(f){return f.id===id;})||null;}};
 
+  function isSafeLocalAsset(src){return typeof src==='string'&&/^(?:[A-Za-z0-9._-]+\/)*[A-Za-z0-9._-]+\.(?:js|css)(?:[?#][A-Za-z0-9._-]+)?$/.test(src)&&!src.startsWith('//');}
   function loadScript(src,attribute){
-    if(document.querySelector('script['+attribute+']')) return;
+    if(!isSafeLocalAsset(src)||document.querySelector('script['+attribute+']')) return;
     const script=document.createElement('script');script.src=src;script.async=false;script.setAttribute(attribute,'1');script.onerror=function(){};document.head.appendChild(script);
   }
   function loadStyle(href,attribute){
-    if(document.querySelector('link['+attribute+']')) return;
+    if(!isSafeLocalAsset(href)||document.querySelector('link['+attribute+']')) return;
     const link=document.createElement('link');link.rel='stylesheet';link.href=href;link.setAttribute(attribute,'1');document.head.appendChild(link);
   }
   function startBridges(){
