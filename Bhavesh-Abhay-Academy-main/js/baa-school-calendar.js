@@ -29,8 +29,13 @@
     fallbackSequence=(fallbackSequence+1)%0x1000000;
     return `cal_${Date.now().toString(36)}_${fallbackSequence.toString(36).padStart(6,'0')}`;
   }
+  function validDate(value){
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(value))return false;
+    const d=new Date(`${value}T00:00:00Z`);
+    return Number.isFinite(d.getTime())&&d.toISOString().slice(0,10)===value;
+  }
   function addEvent({title,date,type='school_event',subject=null}={}){
-    if(typeof title!=='string'||!title.trim()||typeof date!=='string'||!date)return null;
+    if(typeof title!=='string'||!title.trim()||typeof date!=='string'||!validDate(date))return null;
     const allowed=['exam','deadline','holiday','school_event'];
     if(!allowed.includes(type))return null;
     const s=load();
@@ -41,7 +46,9 @@
   }
   function removeEvent(id){const s=load();s.events=s.events.filter(e=>e.id!==id);return save(s);}
   function getEvents({from,to}={}){
-    return load().events.filter(e=>(!from||e.date>=from)&&(!to||e.date<=to)).sort((a,b)=>a.date.localeCompare(b.date));
+    const lower=from==null||validDate(from)?from:null;
+    const upper=to==null||validDate(to)?to:null;
+    return load().events.filter(e=>(!lower||e.date>=lower)&&(!upper||e.date<=upper)).sort((a,b)=>a.date.localeCompare(b.date));
   }
   function getDateContext(date){
     const events=getEvents({from:date,to:date});
