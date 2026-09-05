@@ -7,6 +7,7 @@
 const KEY='baa_community_v1';
 const BLOCKED=['self-harm','suicide','sexual exploitation','buy drugs'];
 const MAX_SERVER_RESPONSE_BYTES=1024*1024;
+let fallbackSequence=0;
 async function readServerJson(response){
  if(!response?.body?.getReader){
   const length=Number(response?.headers?.get?.('content-length')||0);
@@ -34,7 +35,8 @@ function createLocalId(){
   const bytes=new Uint8Array(16);global.crypto.getRandomValues(bytes);
   return 'post_'+Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('');
  }
- return 'post_'+Date.now()+'_'+Math.random().toString(36).slice(2,10);
+ fallbackSequence=(fallbackSequence+1)%1000000000;
+ return 'post_'+Date.now()+'_'+fallbackSequence;
 }
 function createPost(text,groupId){const m=moderate(text);if(!m.ok)return m;const s=load();s.posts.push({id:createLocalId(),text:text.trim(),groupId:String(groupId||'general'),createdAt:new Date().toISOString(),status:'visible'});try{localStorage.setItem(KEY,JSON.stringify(s));return {ok:true,error:null};}catch(_){return {ok:false,error:'COMMUNITY_STORAGE_FAILED'};}}
 async function createPostSecure(text,groupId){
