@@ -1,10 +1,10 @@
 /* BAA M61 — One-Year Private Testing & Founder Lab.
    Defines controlled private-cohort and experiment lifecycle primitives.
-   It does not claim that a real one-year longitudinal study has occurred. */
+   It does not claim a real one-year longitudinal study has occurred. */
 (function(global){
 'use strict';
 const STATUSES=['planned','active','paused','completed','archived'];
-const MAX_METRICS=32;
+const MAX_METRICS=32, MAX_PARTICIPANT_REF=160;
 function clean(v,max=500){return String(v==null?'':v).trim().slice(0,max);}
 function secureId(prefix){
   const cryptoApi=global.crypto;
@@ -25,15 +25,19 @@ function normalizedTimestamp(value){return value==null||value===''?new Date().to
 function cohort(input){
   if(!input||typeof input!=='object'||typeof input.id!=='string'||!input.id.trim())return {ok:false,error:'INVALID_COHORT'};
   if(!validTimestamp(input.createdAt))return {ok:false,error:'INVALID_CREATED_AT'};
+  const id=clean(input.id,120);
+  if(!/^[A-Za-z0-9][A-Za-z0-9._-]{0,118}$/.test(id))return {ok:false,error:'INVALID_COHORT_ID'};
   const participants=Number.isInteger(input.participantLimit)&&input.participantLimit>0?Math.min(input.participantLimit,10000):null;
-  return {ok:true,error:null,cohort:{id:clean(input.id,120),label:clean(input.label||'Private cohort',160),consentRequired:true,participantLimit:participants,status:STATUSES.includes(input.status)?input.status:'planned',createdAt:normalizedTimestamp(input.createdAt)}};
+  return {ok:true,error:null,cohort:{id,label:clean(input.label||'Private cohort',160),consentRequired:true,participantLimit:participants,status:STATUSES.includes(input.status)?input.status:'planned',createdAt:normalizedTimestamp(input.createdAt)}};
 }
 function experiment(input){
   if(!input||typeof input!=='object'||typeof input.name!=='string'||!input.name.trim())return {ok:false,error:'INVALID_EXPERIMENT'};
   if(!validTimestamp(input.createdAt))return {ok:false,error:'INVALID_CREATED_AT'};
   const metrics=Array.isArray(input.metrics)?[...new Set(input.metrics.map(v=>clean(v,120)).filter(Boolean))].slice(0,MAX_METRICS):[];
   if(!metrics.length)return {ok:false,error:'NO_EXPERIMENT_METRICS'};
-  return {ok:true,error:null,experiment:{id:clean(input.id||secureId('exp'),120),name:clean(input.name,200),hypothesis:clean(input.hypothesis,1000),status:STATUSES.includes(input.status)?input.status:'planned',metrics,owner:clean(input.owner||'',160)||null,createdAt:normalizedTimestamp(input.createdAt),updatedAt:new Date().toISOString()}};
+  const id=clean(input.id||secureId('exp'),120);
+  if(!/^[A-Za-z0-9][A-Za-z0-9._-]{0,118}$/.test(id))return {ok:false,error:'INVALID_EXPERIMENT_ID'};
+  return {ok:true,error:null,experiment:{id,name:clean(input.name,200),hypothesis:clean(input.hypothesis,1000),status:STATUSES.includes(input.status)?input.status:'planned',metrics,owner:clean(input.owner||'',160)||null,createdAt:normalizedTimestamp(input.createdAt),updatedAt:new Date().toISOString()}};
 }
 function transition(record,next){
   if(!record||typeof record!=='object'||!STATUSES.includes(record.status))return {ok:false,error:'INVALID_RECORD'};
@@ -50,7 +54,8 @@ function observation(input){
   const value=input.value;
   if(typeof value!=='number'&&typeof value!=='string'&&typeof value!=='boolean')return {ok:false,error:'INVALID_OBSERVATION_VALUE'};
   if(typeof value==='number'&&!Number.isFinite(value))return {ok:false,error:'INVALID_OBSERVATION_VALUE'};
-  return {ok:true,error:null,observation:{experimentId:clean(input.experimentId,120),metric:clean(input.metric,120),value,participantRef:clean(input.participantRef,160)||null,consentGranted:true,observedAt:normalizedTimestamp(input.observedAt)}};
+  const participantRef=clean(input.participantRef,MAX_PARTICIPANT_REF);
+  return {ok:true,error:null,observation:{experimentId:clean(input.experimentId,120),metric:clean(input.metric,120),value,participantRef:participantRef||null,consentGranted:true,observedAt:normalizedTimestamp(input.observedAt)}};
 }
 global.BAAFounderLab={cohort,experiment,transition,observation,statuses:STATUSES};
 })(window);
