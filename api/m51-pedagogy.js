@@ -7,9 +7,9 @@ const MIN_EVIDENCE = 3;
 const MAX_LEARNER_ID_CHARS = 100;
 const MAX_SUBJECT_CHARS = 120;
 const MAX_CHAPTER_CHARS = 160;
+const MAX_CONCEPTS = 200;
+const MAX_GROUP_ROWS = MAX_CONCEPTS * 3;
 const VALID_CORRECTNESS = new Set(['correct','partially_correct','incorrect']);
-// Curriculum fields are grouping identities. Never silently truncate them;
-// response/display bounding must happen only after analytical grouping.
 const clean=(v)=>String(v??'').trim();
 const display=(v,max=180)=>clean(v).slice(0,max);
 
@@ -56,7 +56,8 @@ export default async function handler(req,res){
         AND (${chapter}='' OR chapter=${chapter})
         AND correctness IN ('correct','partially_correct','incorrect')
       GROUP BY subject,chapter,correctness
-      ORDER BY MAX(created_at) DESC`;
+      ORDER BY MAX(created_at) DESC
+      LIMIT ${MAX_GROUP_ROWS}`;
 
     const grouped={};
     for(const r of rows.rows){
@@ -68,13 +69,16 @@ export default async function handler(req,res){
       else if(r.correctness==='incorrect') g.incorrect+=n;
       if(!g.lastSeen||new Date(r.last_seen)>new Date(g.lastSeen)) g.lastSeen=r.last_seen;
     }
-    const concepts=Object.values(grouped).map(g=>{
+    const allConcepts=Object.values(grouped);
+    allConcepts.sort((a,b)=>new Date(b.lastSeen)-new Date(a.lastSeen));
+    const concepts=allConcepts.slice(0,MAX_CONCEPTS).map(g=>{
       const accuracy=g.total?g.correct/g.total:0;
       const evidenceSufficient=g.total>=MIN_EVIDENCE;
       const state=!evidenceSufficient?'unknown':accuracy>=0.85?'strong':accuracy>=0.65?'learning':accuracy>=0.4?'needs_revision':'struggling';
       const action=chooseAction(state);
       return {...g,subject:display(g.subject,MAX_SUBJECT_CHARS),chapter:display(g.chapter,MAX_CHAPTER_CHARS),accuracy:evidenceSufficient?Math.round(accuracy*1000)/10:null,state,action,evidenceSufficient,reason:!evidenceSufficient?`Collect at least ${MIN_EVIDENCE} tagged evidence points before adapting instruction.`:action==='guided_reteach'?'Recent evidence indicates substantial difficulty; re-teach with a worked example before another independent attempt.':action==='retrieval_practice'?'Evidence indicates active learning; use short retrieval practice and treat the result as new evidence.':'Current evidence supports extension or continued development without claiming permanent mastery.'};
     });
-    return json(res,200,{ok:true,learnerId,filters:{subject:subject||null,chapter:chapter||null},concepts,evidenceGate:{minEvidence:MIN_EVIDENCE,sparseConceptsAreNotCharacterized:true},policy:{productiveStruggle:true,showWorkedExampleAfterAttempt:true,spacedReview:true,masteryRequiresEvidence:true,avoidShameLanguage:true},limitations:['Pedagogy recommendations are evidence-based instructional guidance, not diagnosis.','Teacher judgment remains authoritative for consequential instructional decisions.']});
+    const truncated=rows.rows.length>=MAX_GROUP_ROWS||allConcepts.length>MAX_CONCEPTS;
+    return json(res,200,{ok:true,learnerId,filters:{subject:subject||null,chapter:chapter||null},concepts,conceptsTruncated:truncated,resultLimits:{maxConcepts:MAX_CONCEPTS,maxGroupRows:MAX_GROUP_ROWS},evidenceGate:{minEvidence:MIN_EVIDENCE,sparseConceptsAreNotCharacterized:true},policy:{productiveStruggle:true,showWorkedExampleAfterAttempt:true,spacedReview:true,masteryRequiresEvidence:true,avoidShameLanguage:true},limitations:['Pedagogy recommendations are evidence-based instructional guidance, not diagnosis.','Teacher judgment remains authoritative for consequential instructional decisions.']});
   }catch(e){return json(res,e.status||500,{error:{code:e.code||'PEDAGOGY_FAILED',message:e.status?e.message:'Unable to load pedagogy guidance.'}});}
 }
