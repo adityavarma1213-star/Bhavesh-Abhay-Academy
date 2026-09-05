@@ -5,6 +5,7 @@
 'use strict';
 const MAX_TOPIC=300, MAX_REVIEWERS=12, MAX_RESPONSE=4000;
 const STATUSES=['awaiting_reviews','ready_for_decision','decided'];
+let fallbackSequence=0;
 function clean(v,max){return String(v==null?'':v).trim().slice(0,max);}
 function secureId(){
   const c=global.crypto;
@@ -13,7 +14,8 @@ function secureId(){
     const b=new Uint8Array(16);c.getRandomValues(b);
     return 'council_'+Array.from(b,x=>x.toString(16).padStart(2,'0')).join('');
   }
-  return 'council_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,10);
+  fallbackSequence=(fallbackSequence+1)%1000000;
+  return 'council_'+Date.now().toString(36)+'_'+fallbackSequence.toString(36).padStart(4,'0');
 }
 function createReview(topic,reviewers){
   if(typeof topic!=='string'||!topic.trim()||!Array.isArray(reviewers)||!reviewers.length)return {ok:false,error:'INVALID_COUNCIL_REVIEW'};
