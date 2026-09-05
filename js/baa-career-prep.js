@@ -24,7 +24,16 @@ function readiness(candidate,targetSkills){
  const projectCount=checked.profile.projects.length,skillCount=checked.profile.skills.length;
  const evidenceCount=checked.profile.projects.reduce((sum,p)=>sum+p.evidenceIds.length,0);
  const coverage=target.length?Math.max(0,(target.length-missing.length)/target.length):0;
- return {ok:true,error:null,summary:{skillCount,projectCount,evidenceCount,targetSkillCount:target.length,missingSkills:missing,skillCoverage:coverage,readinessLabel:target.length===0?'Profile baseline only':coverage===1&&projectCount>0?'Prepared to review':coverage>=0.6?'Needs targeted preparation':'Needs foundational preparation'},limitations:['Readiness is a preparation signal, not a hiring or admission prediction.','Only user-provided skills, projects and evidence IDs are counted.','Vacancies, recruiter interest, salary and employment outcomes are never inferred.']};
+ const readinessLabel=target.length===0?'Profile baseline only':coverage===1&&projectCount>0?'Prepared to review':coverage>=0.6?'Needs targeted preparation':'Needs foundational preparation';
+ const factors=[
+  `${skillCount} documented skill${skillCount===1?'':'s'}`,
+  `${projectCount} documented project${projectCount===1?'':'s'}`,
+  `${evidenceCount} linked evidence reference${evidenceCount===1?'':'s'}`,
+  target.length?`${Math.round(coverage*100)}% of target skills covered`:'No target skills supplied'
+ ];
+ if(missing.length) factors.push(`${missing.length} target skill${missing.length===1?'':'s'} missing: ${missing.slice(0,8).join(', ')}`);
+ if(projectCount===0) factors.push('No projects are documented yet');
+ return {ok:true,error:null,summary:{skillCount,projectCount,evidenceCount,targetSkillCount:target.length,missingSkills:missing,skillCoverage:coverage,readinessLabel,explanation:{factors,method:'Preparation signal based only on documented skills, projects and linked evidence references.'}},limitations:['Readiness is a preparation signal, not a hiring or admission prediction.','Only user-provided skills, projects and evidence IDs are counted.','Vacancies, recruiter interest, salary and employment outcomes are never inferred.']};
 }
 function portfolioSummary(candidate){
  const checked=profile(candidate);if(!checked.ok)return checked;
