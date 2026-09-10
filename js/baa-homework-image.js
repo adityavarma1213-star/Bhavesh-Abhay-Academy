@@ -43,6 +43,16 @@
   const MAX_DIMENSION = 1600;                        // longest side after compression, in px
   const JPEG_QUALITY_START = 0.82;
   const TARGET_MAX_BASE64_BYTES = 4 * 1024 * 1024;   // keep well under typical body/storage limits
+  // M41 — Smart Low-Bandwidth Learning. When the student's Data Saver
+  // preference (js/baa-low-bandwidth.js) is on, compress noticeably
+  // harder — smaller max dimension, lower starting JPEG quality — a
+  // real, measurable byte-size reduction, not just a settings flag
+  // that changes nothing.
+  const LOW_BANDWIDTH_MAX_DIMENSION = 900;
+  const LOW_BANDWIDTH_JPEG_QUALITY_START = 0.55;
+  function isLowBandwidthEnabled(){
+    try{ return !!(window.BAALowBandwidth && window.BAALowBandwidth.get().enabled); }catch(_){ return false; }
+  }
 
   let pendingImage = null; // {mimeType, dataUrl, originalSizeBytes, compressedSizeBytes, width, height, fileName}
 
@@ -81,10 +91,13 @@
   // small). Steps JPEG quality down further if the result is still too
   // large. Same approach as js/image.js's compressImage().
   async function compressImage(file) {
+    const lowBandwidth = isLowBandwidthEnabled();
+    const maxDimension = lowBandwidth ? LOW_BANDWIDTH_MAX_DIMENSION : MAX_DIMENSION;
+    const startQuality = lowBandwidth ? LOW_BANDWIDTH_JPEG_QUALITY_START : JPEG_QUALITY_START;
     const img = await loadImageEl(file);
     let { width, height } = img;
-    if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
-      const scale = MAX_DIMENSION / Math.max(width, height);
+    if (width > maxDimension || height > maxDimension) {
+      const scale = maxDimension / Math.max(width, height);
       width = Math.round(width * scale);
       height = Math.round(height * scale);
     }
@@ -96,7 +109,7 @@
     URL.revokeObjectURL(img.src);
 
     const outType = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
-    let quality = JPEG_QUALITY_START;
+    let quality = startQuality;
     let dataUrl = canvas.toDataURL(outType, quality);
 
     while (dataUrl.length > TARGET_MAX_BASE64_BYTES && quality > 0.4 && outType === 'image/jpeg') {

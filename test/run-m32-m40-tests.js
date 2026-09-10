@@ -49,7 +49,13 @@ t('M40 validates curriculum profile',()=>{
 });
 const ui=fs.readFileSync('student-os.html','utf8');
 t('M32-M40 scripts are integrated',()=>{
- ['baa-voice.js','baa-labs.js','baa-school.js','baa-community.js','baa-insights.js','baa-explainability.js','baa-appeals.js','baa-curriculum.js']
+ // M32: baa-voice.js was a dead duplicate, never called anywhere,
+ // removed this session — the real, working (and more advanced —
+ // server-side Gemini TTS, not this module's basic browser
+ // SpeechSynthesis) implementation lives inline in student-os.html.
+ // Check for that real evidence instead of the removed dead reference.
+ assert.ok(ui.includes('webkitSpeechRecognition')&&ui.includes('micBtn')&&ui.includes("api/speak"));
+ ['baa-labs.js','baa-school.js','baa-community.js','baa-insights.js','baa-explainability.js','baa-appeals.js','baa-curriculum.js']
  .forEach(x=>assert.ok(ui.includes(x)));
  assert.ok(ui.includes('ecosystemHub'));
 });

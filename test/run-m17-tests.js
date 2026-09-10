@@ -14,4 +14,28 @@ test('Teacher OS uses the server class analytics endpoint',()=>{assert.ok(teache
 test('Teacher OS no longer labels local data as class analytics',()=>{assert.ok(!teacher.includes('Current scope: single-student private testing'))});
 test('No student ranking is introduced',()=>assert.ok(!analytics.includes('leaderboard')));
 test('Analytics remains read-only',()=>assert.ok(!analytics.includes('localStorage.setItem')));
-console.log(`\nM17: ${passed}/9 PASS`);if(process.exitCode)process.exit(process.exitCode);
+
+// --- New: per-student heatmap + common-mistakes additions ---
+test('Dead client-side analytics module is no longer loaded on the page (M55-style cleanup — the real feature is server-backed, not this unused duplicate)',()=>{
+  assert.ok(!teacher.includes('src="js/baa-teacher-analytics.js"'));
+});
+test('Server class-analytics endpoint now returns a real per-student breakdown, not just a class-wide rollup',()=>{
+  assert.ok(endpoint.includes('studentConcepts'));
+  assert.ok(endpoint.includes('GROUP BY learner_id,concept,subject'));
+});
+test('Server class-analytics endpoint returns a real common-mistakes rollup sourced from mistake_patterns (M22), not fabricated',()=>{
+  assert.ok(endpoint.includes('commonMistakes'));
+  assert.ok(endpoint.includes("FROM mistake_patterns WHERE learner_id=ANY"));
+  assert.ok(endpoint.includes("status='possible_misconception'"));
+});
+test('Teacher OS actually renders the per-student heatmap and common-mistakes sections, not just the class-wide summary',()=>{
+  assert.ok(teacher.includes('a.studentConcepts'));
+  assert.ok(teacher.includes('a.commonMistakes'));
+  assert.ok(teacher.includes('By student'));
+  assert.ok(teacher.includes('Common mistakes across the class'));
+});
+test('Heatmap color-coding is derived from real per-concept accuracy, not a static/random value',()=>{
+  assert.ok(teacher.includes('acc>=80') && teacher.includes('acc>=50'));
+});
+
+console.log(`\nM17: ${passed}/14 PASS`);if(process.exitCode)process.exit(process.exitCode);

@@ -7,26 +7,6 @@ Sources used:
 
 The PDF preserves source-defined terminology and labels the added examples as illustrative examples. It does not silently convert open blueprint items into official acceptance criteria.
 
-## 2026-08-30 — Current roadmap reconciliation through M63
-
-The current repository evidence confirms continued implementation and remediation through **M63**. The latest observed repository commit is:
-
-`19c467506f71c36bd88e5fc94de8d43ffdbaf659` — `feat(m63): add parent conversation to verified Guide Robot catalogue`.
-
-The preceding M63 boundary commit wires M57 and M60 through the shared bootstrap. Recent hardening also includes M58 canonical-evidence gating, M36 evidence-gated insight metrics, M35 server-authoritative reporting, M31 authenticated language-preference synchronization, M30 server-authoritative rewards, M41 offline-sync conflict handling, M08 signed-verdict controls, and teacher class-membership authorization.
-
-These are implementation/repository facts only. They do **not** constitute deployed-browser, live-database, external-provider, or 100% statutory acceptance evidence.
-
-### Scope boundary
-
-- **M01–M63:** implemented statutory scope under continuing evidence-based audit/remediation.
-- **M64–M78:** future/next roadmap scope unless and until separately implemented and evidenced.
-- No M64–M78 implementation is implied by the current M01–M63 repository status.
-
-### Release-gate rule
-
-A module is not considered fully certified solely because source code or tests exist. Applicable UI reachability, authenticated behavior, authorization/security, persistence/integration, regression, and deployed-browser evidence must be available where required.
-
 ## 2026-08-11 — Cross-Cutting Feature Addition: Mastery Gate + Parent Bypass + Exam Forecast
 
 The BAA learning loop now includes a formal **Mastery Gate** control spanning assessment, learning evidence, AI Mode/Custom Mode assessment entry, Planner exam forecasting, Student OS and Parent OS.
@@ -46,35 +26,3 @@ Upcoming assessments linked to the BAA assessment catalog receive an evidence-ba
 ### Completion evidence
 
 The feature is considered implemented only when the UI, authenticated API, learner ownership, database persistence, parent re-authentication, red/green transition, progression block, bypass audit trail, forecast calculation and tests all pass.
-
-## 2026-08-28 — Post-M63 Innovation Addendum: BAA Littles
-
-A dedicated early-childhood experience has been added to the future BAA roadmap for **Nursery / Jr. KG / Sr. KG learners (approximately ages 2.5–5)**.
-
-### Direction
-
-**BAA Littles — Learn • Play • Explore • Grow** is planned as an additional age-appropriate experience within the BAA OS ecosystem. It does **not** replace or remove the existing Galaxy Student OS.
-
-### Theme and companion
-
-The initial environment is **Wonder Garden**, using a warm, bright, familiar-world design rather than the older-learner cosmic interface. The primary companion is **Glowby the Firefly**, supported by Ellie the Elephant, Poppy the Puppy, Ollie the Owl, Bhavesh & Abhay explorer characters, and expressive Shape Friends.
-
-### Planned learning model
-
-BAA Littles will use audio-first guidance, large touch targets, simple picture-led navigation, short 2–4 minute activities, zero-penalty retry feedback, and positive celebrations. Learning Adventures can combine early numeracy, language, observation, motor skills, creativity and music in one child-friendly activity.
-
-### Parent Co-Pilot
-
-The parent is an expected co-pilot for this age band. Planned controls include session summaries, what the child practiced, time spent, suggested parent-child activities, age-appropriate preferences, and safety/privacy controls.
-
-### Growth path
-
-The long-term identity is designed to grow with the learner:
-
-**Little Glowby → Bright Glowby → Star Explorer → Knowledge Companion**
-
-This provides a narrative bridge from early childhood into the existing primary/secondary/professional BAA learning universe.
-
-### Source document
-
-The detailed specification is maintained in **BAA-LITTLES-ROADMAP-ADDENDUM.md**. It is a **future roadmap/blueprint item**, not a claim that BAA Littles is already implemented or production-ready.

@@ -1,84 +1,162 @@
-/* BAA M63 — Guide Robot.
- * Deterministic contextual explainer. No LLM call, no fabricated actions,
- * no backend persistence. Content comes only from BAAGuideCatalogue.
- * Role visibility is server-authoritative; browser storage is never trusted
- * for access control.
- */
-(function(global){
+/* ============================================================
+   js/baa-guide-robot.js — BAA OS Module 63: Guide Robot widget.
+
+   This is a real, curated feature explainer, not a live AI assistant —
+   deliberately. Calling an LLM for "what does this button do" risks
+   describing features that don't exist (the one thing this whole
+   module exists to avoid — see the honesty rule in
+   js/baa-guide-topics.js). The catalogue is real, hand-authored
+   content; this file is purely the interaction/accessibility layer
+   around it.
+
+   No network call is required anywhere in the core open -> filter ->
+   select -> read path. The one optional exception (usage logging) is
+   isolated in logTopicOpen() and is fire-and-forget, non-blocking, and
+   never gates the panel's functionality.
+   ============================================================ */
+(function (global) {
   'use strict';
-  if(global.BAAGuideRobot) return;
-  const C=global.BAAGuideCatalogue;
-  if(!C) return;
-  const MAX_RESPONSE_BYTES=1024*1024;
-  let mounted=false, features=[], roles=[], role=null, roleResolved=false;
-  function esc(value){return String(value==null?'':value).replace(/[&<>\"']/g,function(ch){return {'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[ch];});}
-  async function readJsonResponse(response){
-    const declared=Number(response?.headers?.get?.('content-length')||0);
-    if(Number.isFinite(declared)&&declared>MAX_RESPONSE_BYTES){try{await response.body?.cancel?.();}catch(_){}throw new Error('M63_RESPONSE_TOO_LARGE');}
-    if(!response?.body||typeof response.body.getReader!=='function'){
-      try{const text=await response.text();if(new TextEncoder().encode(text).byteLength>MAX_RESPONSE_BYTES)throw new Error('M63_RESPONSE_TOO_LARGE');return JSON.parse(text);}
-      catch(e){if(e?.message==='M63_RESPONSE_TOO_LARGE')throw e;throw new Error('M63_INVALID_RESPONSE');}
+
+  let panelEl = null, btnEl = null, listEl = null, detailEl = null, liveRegionEl = null;
+  let lastFocused = null;
+  let currentRole = 'student';
+  let currentPage = '';
+  let currentTopics = [];
+
+  function currentPageFile() {
+    const path = global.location ? global.location.pathname : '';
+    const file = path.split('/').pop();
+    return file || 'index.html';
+  }
+
+  async function resolveRole() {
+    try {
+      const res = await fetch('/api/auth/me', { credentials: 'include' });
+      if (!res.ok) return null;
+      const j = await res.json();
+      const roles = Array.isArray(j?.user?.roles) ? j.user.roles : [j?.user?.roles || j?.user?.role].filter(Boolean);
+      if (roles.includes('admin')) return 'admin';
+      if (roles.includes('teacher')) return 'teacher';
+      if (roles.includes('parent')) return 'parent';
+      if (roles.includes('student')) return 'student';
+      return null;
+    } catch (_) {
+      return null;
     }
-    const reader=response.body.getReader(),decoder=new TextDecoder();let bytes=0,text='';
-    try{while(true){const chunk=await reader.read();if(chunk.done)break;bytes+=chunk.value?.byteLength||0;if(bytes>MAX_RESPONSE_BYTES){try{await reader.cancel();}catch(_){}throw new Error('M63_RESPONSE_TOO_LARGE');}text+=decoder.decode(chunk.value,{stream:true});}text+=decoder.decode();return JSON.parse(text);}
-    catch(e){if(e?.message==='M63_RESPONSE_TOO_LARGE')throw e;throw new Error('M63_INVALID_RESPONSE');}
-    finally{try{reader.releaseLock();}catch(_) {}}
   }
-  async function detectRole(){
-    role=null; roles=[]; roleResolved=false;
-    return fetch('/api/auth/me',{credentials:'include',cache:'no-store',headers:{Accept:'application/json'}}).then(function(r){
-      if(!r.ok) return null;
-      return readJsonResponse(r);
-    }).then(function(s){
-      const rs=s&&s.user&&(s.user.roles||s.user.role);
-      if(Array.isArray(rs)) roles=rs.map(function(v){return String(v||'').trim().toLowerCase();}).filter(Boolean);
-      else if(rs) roles=[String(rs).trim().toLowerCase()];
-      role=roles[0]||null;
-      roleResolved=true;
-      return role;
-    }).catch(function(){roleResolved=true;return null;});
+
+  function esc(v) {
+    const d = document.createElement('div');
+    d.textContent = String(v ?? '');
+    return d.innerHTML;
   }
-  function allowed(f){
-    if(!roleResolved) return false;
-    if(!Array.isArray(f.roles)||f.roles.length===0) return true;
-    const allowedRoles=f.roles.map(function(v){return String(v||'').trim().toLowerCase();});
-    return roles.some(function(r){return allowedRoles.includes(r);});
+
+  function renderTopicList(topics) {
+    if (!topics.length) {
+      listEl.innerHTML = '<div class="baa-guide-empty">No guide available for this yet.</div>';
+      return;
+    }
+    listEl.innerHTML = topics.map((t, i) =>
+      `<button type="button" class="baa-guide-topic" data-topic-id="${esc(t.id)}" id="baa-guide-topic-${i}">${esc(t.title)}</button>`
+    ).join('');
+    listEl.querySelectorAll('[data-topic-id]').forEach(btn => {
+      btn.addEventListener('click', () => selectTopic(btn.dataset.topicId));
+    });
   }
-  function currentPath(){return (global.location.pathname||'').split('/').pop()||'index.html';}
-  function render(){
-    const root=document.getElementById('baaGuideRobotRoot');
-    if(!root) return;
-    const options=root.querySelector('#baaGuideRobotOptions'),answer=root.querySelector('#baaGuideRobotAnswer'),status=root.querySelector('#baaGuideRobotStatus');
-    if(!roleResolved){options.innerHTML='';status.textContent='Checking your workspace access…';return;}
-    features=C.getFeatures().filter(allowed);
-    const here=C.getFeatures().find(function(f){return f.route===currentPath() && allowed(f);});
-    options.innerHTML=features.map(function(f){return '<button class="baa-guide-option" type="button" data-guide-id="'+esc(f.id)+'" role="listitem"><span class="baa-guide-option-icon" aria-hidden="true">'+esc(f.icon)+'</span><span><strong>'+esc(f.title)+'</strong><small>'+esc(f.description)+'</small></span><span class="baa-guide-arrow" aria-hidden="true">›</span></button>';}).join('');
-    if(!features.length) options.innerHTML='<p class="baa-guide-empty">No features are available for this workspace yet.</p>';
-    const roleLabel=roles.length?roles.join(', '):'public';
-    status.textContent=here?'You are on '+here.title+'. Choose it for a contextual explanation, or explore another feature.':(roles.length?'Showing features available to your '+roleLabel+' workspace.':'Showing public BAA feature guidance. Sign in for role-specific guidance.');
-    options.querySelectorAll('[data-guide-id]').forEach(function(el){el.addEventListener('click',function(){explain(el.dataset.guideId);});});
-    if(here && answer.hidden) explain(here.id);
+
+  function selectTopic(topicId) {
+    const topic = currentTopics.find(t => t.id === topicId);
+    detailEl.innerHTML = '';
+    listEl.setAttribute('hidden', '');
+    detailEl.removeAttribute('hidden');
+    if (!topic) {
+      detailEl.innerHTML = '<div class="baa-guide-empty">No guide available for this yet.</div>';
+      announce('No guide available for this yet.');
+      return;
+    }
+    detailEl.innerHTML = `
+      <button type="button" class="baa-guide-back" id="baa-guide-back-btn">← Back to topics</button>
+      <h3>${esc(topic.title)}</h3>
+      <p>${esc(topic.shortExplainer)}</p>
+      <p class="baa-guide-where"><b>Where to find it:</b> ${esc(topic.whereToFind)}</p>
+    `;
+    document.getElementById('baa-guide-back-btn').addEventListener('click', showTopicList);
+    document.getElementById('baa-guide-back-btn').focus();
+    announce(`${topic.title}. ${topic.shortExplainer}`);
+    logTopicOpen(topic.id);
   }
-  function explain(id){
-    const f=C.getFeature(id);if(!f||!allowed(f)) return;
-    const answer=document.getElementById('baaGuideRobotAnswer');
-    answer.hidden=false;answer.innerHTML='<div class="baa-guide-answer-title">'+esc(f.icon)+' '+esc(f.title)+'</div><p>'+esc(f.description)+'</p><a class="baa-guide-go" href="'+esc(f.route)+'">Open '+esc(f.title)+' <span aria-hidden="true">→</span></a>';answer.focus();
+
+  function showTopicList() {
+    detailEl.setAttribute('hidden', '');
+    listEl.removeAttribute('hidden');
+    const first = listEl.querySelector('[data-topic-id]');
+    if (first) first.focus();
   }
-  function mount(){
-    if(mounted||!document.body) return; mounted=true;
-    const root=document.createElement('div');root.id='baaGuideRobotRoot';root.className='baa-guide-root';
-    root.innerHTML='<button id="baaGuideRobotButton" class="baa-guide-launcher" type="button" aria-label="Open BAA Guide Robot" aria-haspopup="dialog" aria-expanded="false" aria-controls="baaGuideRobotPanel"><span class="baa-guide-robot-face" aria-hidden="true">🤖</span><span class="baa-guide-launcher-text">Guide</span></button><section id="baaGuideRobotPanel" class="baa-guide-panel" role="dialog" aria-modal="false" aria-labelledby="baaGuideRobotTitle" hidden><header class="baa-guide-header"><div><div id="baaGuideRobotTitle" class="baa-guide-title">BAA Guide Robot</div><div class="baa-guide-subtitle">Ask me what you want explained.</div></div><button id="baaGuideRobotClose" class="baa-guide-close" type="button" aria-label="Close Guide Robot">×</button></header><div id="baaGuideRobotStatus" class="baa-guide-status" role="status" aria-live="polite">Checking your workspace access…</div><div id="baaGuideRobotOptions" class="baa-guide-options" role="list"></div><div id="baaGuideRobotAnswer" class="baa-guide-answer" tabindex="-1" aria-live="polite" hidden></div></section>';
-    document.body.appendChild(root);
-    const button=root.querySelector('#baaGuideRobotButton'),panel=root.querySelector('#baaGuideRobotPanel'),close=root.querySelector('#baaGuideRobotClose'),options=root.querySelector('#baaGuideRobotOptions');
-    function open(){panel.hidden=false;button.setAttribute('aria-expanded','true');root.classList.add('is-open');render();if(!roleResolved){detectRole().then(render);}else{const first=options.querySelector('[data-guide-id]');if(first)first.focus();}}
-    function shut(){panel.hidden=true;button.setAttribute('aria-expanded','false');root.classList.remove('is-open');button.focus();}
-    button.addEventListener('click',function(){panel.hidden?open():shut();});close.addEventListener('click',shut);
-    root.addEventListener('keydown',function(e){if(e.key==='Escape'&&!panel.hidden)shut();});
-    document.addEventListener('click',function(e){if(!root.contains(e.target)&&!panel.hidden)shut();});
-    detectRole().then(function(){if(!panel.hidden)render();});
-    const here=C.getFeatures().find(function(f){return f.route===currentPath();});if(here)button.title='Guide for '+here.title;
+
+  function announce(text) {
+    if (liveRegionEl) liveRegionEl.textContent = text;
   }
-  function init(){if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});else mount();}
-  global.BAAGuideRobot={init:init,open:function(){const b=document.getElementById('baaGuideRobotButton');if(b)b.click();},getCurrentRole:function(){return roleResolved?role:null;},getCurrentRoles:function(){return roleResolved?roles.slice():null;},getFeatures:function(){return C.getFeatures();}};
-  init();
+
+  // Optional, isolated, fire-and-forget usage logging. Never awaited by
+  // the interaction path above, never blocks or gates the real feature.
+  function logTopicOpen(topicId) {
+    if (typeof fetch === 'undefined') return;
+    fetch('/api/v1/guide-robot-sessions', {
+      method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ topicId, page: currentPage, role: currentRole }),
+    }).catch(() => { /* silent — this is optional insight, never required */ });
+  }
+
+  function trapFocus(e) {
+    if (e.key !== 'Tab') return;
+    const focusable = panelEl.querySelectorAll('button:not([hidden] button), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+    const visible = Array.from(focusable).filter(el => el.offsetParent !== null);
+    if (!visible.length) return;
+    const first = visible[0], last = visible[visible.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  }
+
+  function onKeydown(e) {
+    if (e.key === 'Escape') { close(); return; }
+    trapFocus(e);
+  }
+
+  async function open() {
+    lastFocused = document.activeElement;
+    panelEl.hidden = false;
+    btnEl.setAttribute('aria-expanded', 'true');
+    document.addEventListener('keydown', onKeydown);
+    currentTopics = (global.BAAGuideTopics ? global.BAAGuideTopics.getTopicsFor(currentPage, currentRole) : []);
+    showTopicList();
+    renderTopicList(currentTopics);
+    const closeBtn = panelEl.querySelector('.baa-guide-close');
+    if (closeBtn) closeBtn.focus();
+  }
+
+  function close() {
+    panelEl.hidden = true;
+    btnEl.setAttribute('aria-expanded', 'false');
+    document.removeEventListener('keydown', onKeydown);
+    if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
+    else btnEl.focus();
+  }
+
+  async function init(opts) {
+    opts = opts || {};
+    currentPage = opts.page || currentPageFile();
+    btnEl = document.getElementById('baaGuideRobotBtn');
+    panelEl = document.getElementById('baaGuideRobotPanel');
+    listEl = document.getElementById('baaGuideTopicList');
+    detailEl = document.getElementById('baaGuideTopicDetail');
+    liveRegionEl = document.getElementById('baaGuideLiveRegion');
+    if (!btnEl || !panelEl) return; // page didn't include the markup — fail silently, not loudly
+    btnEl.addEventListener('click', () => { panelEl.hidden ? open() : close(); });
+    const closeBtn = panelEl.querySelector('.baa-guide-close');
+    if (closeBtn) closeBtn.addEventListener('click', close);
+    panelEl.addEventListener('click', (e) => { if (e.target === panelEl) close(); });
+    currentRole = opts.role || (await resolveRole()) || 'student';
+  }
+
+  global.BAAGuideRobot = { init, open, close };
 })(window);

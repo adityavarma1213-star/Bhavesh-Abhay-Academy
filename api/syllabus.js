@@ -13,6 +13,11 @@ const ALLOWED_TYPES = new Set([
 ]);
 
 function send(res, status, payload) {
+  // This file bypasses the shared api/_lib/security.js json() helper (it
+  // uses Vercel's Node res object directly, not a Response), so it never
+  // got the app-wide Cache-Control: no-store guarantee. Syllabus content is
+  // teacher-authenticated and per-institution, so it must not be cached.
+  res.setHeader('Cache-Control', 'no-store');
   res.status(status).json(payload);
 }
 

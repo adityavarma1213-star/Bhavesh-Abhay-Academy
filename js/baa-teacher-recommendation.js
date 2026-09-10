@@ -7,30 +7,6 @@
    ============================================================ */
 (function(global){
   'use strict';
-  const MAX_RESPONSE_BYTES=1024*1024;
-  async function readBoundedJson(response){
-    const declared=Number(response?.headers?.get?.('content-length'));
-    if(Number.isFinite(declared)&&declared>MAX_RESPONSE_BYTES){try{response.body?.cancel?.();}catch(_){}throw new Error('RECOMMENDATIONS_RESPONSE_TOO_LARGE');}
-    if(!response?.body||typeof response.body.getReader!=='function'){
-      try{
-        const text=await response.text();
-        const bytes=typeof TextEncoder==='function'?new TextEncoder().encode(text).byteLength:(typeof Buffer!=='undefined'&&typeof Buffer.byteLength==='function'?Buffer.byteLength(text,'utf8'):text.length);
-        if(bytes>MAX_RESPONSE_BYTES)throw new Error('RECOMMENDATIONS_RESPONSE_TOO_LARGE');
-        try{return JSON.parse(text);}catch(_){throw new Error('RECOMMENDATIONS_INVALID_RESPONSE');}
-      }catch(error){
-        if(error?.message==='RECOMMENDATIONS_RESPONSE_TOO_LARGE')throw error;
-        throw new Error('RECOMMENDATIONS_INVALID_RESPONSE');
-      }
-    }
-    const reader=response.body.getReader();let total=0;const chunks=[];
-    try{
-      for(;;){const part=await reader.read();if(part.done)break;total+=part.value?.byteLength||0;if(total>MAX_RESPONSE_BYTES){try{await reader.cancel();}catch(_){}throw new Error('RECOMMENDATIONS_RESPONSE_TOO_LARGE');}chunks.push(part.value);}
-    }catch(error){try{await reader.cancel();}catch(_){}throw error;}
-    try{
-      const bytes=new Uint8Array(total);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.byteLength;}
-      return JSON.parse(new TextDecoder().decode(bytes));
-    }catch(_){throw new Error('RECOMMENDATIONS_INVALID_RESPONSE');}
-  }
   function getLearningSummary(){
     return typeof global.BAAIntelligence!=='undefined' ? global.BAAIntelligence.getLearningSummary() : null;
   }
@@ -65,43 +41,5 @@
     const recommendations=getRecommendations();
     return {recommendations,count:recommendations.length,source:'real_learning_evidence'};
   }
-
-  async function loadServerRecommendations(learnerId){
-    const id=String(learnerId||global.BAA_LEARNER_ID||'').trim();
-    if(!id)return {ok:false,error:{code:'LEARNER_REQUIRED',message:'A learner context is required.'}};
-    try{
-      const response=await fetch(`/api/m16-teacher-recommendations?learnerId=${encodeURIComponent(id)}`,{credentials:'include',cache:'no-store',headers:{Accept:'application/json'}});
-      let data;
-      try{data=await readBoundedJson(response);}catch(error){return {ok:false,error:{code:error?.message==='RECOMMENDATIONS_RESPONSE_TOO_LARGE'?'RECOMMENDATIONS_RESPONSE_TOO_LARGE':'RECOMMENDATIONS_INVALID_RESPONSE',message:error?.message==='RECOMMENDATIONS_RESPONSE_TOO_LARGE'?'Server recommendations response is too large.':'Server recommendations returned an invalid response.'}};}
-      if(!response.ok)return {ok:false,error:data?.error||{code:'RECOMMENDATIONS_LOAD_FAILED',message:'Server recommendations could not be loaded.'}};
-      return {ok:true,recommendations:Array.isArray(data?.recommendations)?data.recommendations:[],source:data?.source||'server_learning_evidence',limitation:data?.limitation||''};
-    }catch(error){
-      if(error?.message==='RECOMMENDATIONS_RESPONSE_TOO_LARGE')return {ok:false,error:{code:'RECOMMENDATIONS_RESPONSE_TOO_LARGE',message:'Server recommendations response is too large.'}};
-      if(error?.message==='RECOMMENDATIONS_INVALID_RESPONSE')return {ok:false,error:{code:'RECOMMENDATIONS_INVALID_RESPONSE',message:'Server recommendations returned an invalid response.'}};
-      return {ok:false,error:{code:'NETWORK_ERROR',message:'Server recommendations could not reach the teacher view.'}};
-    }
-  }
-
-  function esc(s){const d=document.createElement('div');d.textContent=String(s??'');return d.innerHTML;}
-  function renderServerPanel(result){
-    if(!document.body||document.getElementById('baa-m16-server-panel'))return;
-    const host=document.getElementById('serverLearnerView')||document.getElementById('content');
-    if(!host)return;
-    const panel=document.createElement('section');
-    panel.id='baa-m16-server-panel';
-    panel.className='card';
-    const recs=result.ok?result.recommendations:[];
-    panel.innerHTML=`<h2 class="section-h" style="margin-top:0">🧭 Server evidence recommendations</h2>`+
-      `<p style="color:var(--dim);font-size:.78rem;line-height:1.5;margin-bottom:12px">These suggestions use authenticated server-side learning evidence. They are not diagnoses and never assign work automatically.</p>`+
-      (result.ok?(recs.length?recs.map(r=>`<div class="attempt-row"><span><b>${esc(String(r.assignmentType||'targeted practice').replace(/_/g,' '))}</b> · ${esc(r.concept)}<br><small>${esc(r.reason)}</small></span><span class="a-pct">${esc(r.priority)}</span></div>`).join(''):`<div class="empty-note" style="padding:18px">No server evidence currently supports a recommendation.</div>`):`<div class="empty-note" style="padding:18px">${esc(result.error?.message||'Server recommendations unavailable.')}</div>`)+
-      `<div class="empty-note" style="padding:12px">Teacher reviews and decides whether to assign.</div>`;
-    host.insertBefore(panel,host.firstChild);
-  }
-
-  global.BAATeacherRecommendation={getRecommendations,getSummary,loadServerRecommendations,renderServerPanel};
-  if(typeof document!=='undefined'){
-    const boot=()=>setTimeout(()=>loadServerRecommendations().then(renderServerPanel),0);
-    if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});
-    else boot();
-  }
+  global.BAATeacherRecommendation={getRecommendations,getSummary};
 })(window);

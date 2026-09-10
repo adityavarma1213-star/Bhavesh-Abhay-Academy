@@ -98,8 +98,13 @@ h1{font-family:var(--display);font-weight:500;font-size:clamp(1.5rem,4vw,2.1rem)
 
   <div class="scope-banner">
     <div>⚠️</div>
-    <div><b>This is not the full Teacher OS.</b> It is the minimum Section B component: review AI evaluations for assessment answers. It reads/writes the same local, private-testing browser storage as <code>assessment.html</code> — there is no server-side teacher account system yet (that's a later section).</div>
+    <div><b>This is not the full Teacher OS.</b> It is the minimum Section B component: review AI evaluations for assessment answers. It reads/writes the same local, private-testing browser storage as <code>assessment.html</code>. Below that, a separate section handles student-requested reviews (Modules 39/59) — that part is real and server-backed, not local-only.</div>
   </div>
+
+  <section class="scope-banner" id="appealsSection" style="flex-direction:column;align-items:stretch;gap:10px;display:none;">
+    <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:1.2rem;">🧑‍⚖️</span><b>Student-requested reviews (server-backed)</b></div>
+    <div id="appealsList" style="display:flex;flex-direction:column;gap:10px;"></div>
+  </section>
 
   <div class="reviewer-row">
     <label for="reviewerName">Reviewing as:</label>
@@ -113,6 +118,53 @@ h1{font-family:var(--display);font-weight:500;font-size:clamp(1.5rem,4vw,2.1rem)
 <script src="js/question-bank.js"></script>
 <script src="js/baa-assessment.js"></script>
 <script src="js/baa-homework.js"></script>
+<script>
+// M39/M59 — real, server-backed student-appeal queue. Independent of the
+// rest of this page's local-only data. Requires a real teacher/admin
+// session — this section is hidden entirely if that check fails, rather
+// than silently showing empty or fabricated data.
+function escApp(v){ const d=document.createElement('div'); d.textContent=String(v??''); return d.innerHTML; }
+async function loadAppeals(){
+  try{
+    const me=await fetch('/api/auth/me',{credentials:'include'});
+    if(!me.ok) return;
+    const meJson=await me.json();
+    const roles=Array.isArray(meJson?.user?.roles)?meJson.user.roles:[meJson?.user?.roles||meJson?.user?.role].filter(Boolean);
+    if(!roles.includes('teacher')&&!roles.includes('admin')) return;
+
+    const r=await fetch('/api/v1/appeals',{credentials:'include'});
+    const j=await r.json();
+    if(!r.ok) return;
+    document.getElementById('appealsSection').style.display='flex';
+    const list=document.getElementById('appealsList');
+    if(!j.reviews?.length){ list.innerHTML='<div style="color:var(--faint);">No pending student-requested reviews.</div>'; return; }
+    list.innerHTML=j.reviews.map(rv=>`
+      <div style="background:rgba(253,249,240,.04);border:1px solid rgba(253,249,240,.1);border-radius:12px;padding:12px 14px;">
+        <div style="font-size:.85rem;"><b>${escApp(rv.display_name||rv.learner_id)}</b> · question ${escApp(rv.question_id)}</div>
+        <div style="font-size:.82rem;color:var(--dim);margin:6px 0;">"${escApp(rv.appeal_reason)}"</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+          <button class="tab" onclick="resolveAppeal('${rv.id}','accepted')">Accept as-is</button>
+          <button class="tab" onclick="resolveAppealEdit('${rv.id}')">Edit score</button>
+          <button class="tab" onclick="resolveAppeal('${rv.id}','rejected')">Reject</button>
+        </div>
+      </div>`).join('');
+  }catch(e){ /* section stays hidden — no server-backed queue shown on failure */ }
+}
+async function resolveAppeal(reviewId,status,teacherMarks){
+  const teacherComment=prompt('Optional note for the student (or leave blank):')||'';
+  const res=await fetch(`/api/v1/appeals?reviewId=${encodeURIComponent(reviewId)}`,{
+    method:'PUT',credentials:'include',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({status,teacherMarks,teacherComment}),
+  });
+  if(res.ok) loadAppeals(); else alert((await res.json())?.error?.message||'Could not resolve this review.');
+}
+function resolveAppealEdit(reviewId){
+  const marks=Number(prompt('New score for this question:'));
+  if(!Number.isFinite(marks)) return;
+  resolveAppeal(reviewId,'edited',marks);
+}
+loadAppeals();
+</script>
 <script>
 let currentFilter = 'pending';
 
@@ -352,5 +404,22 @@ function doHomeworkReview(reviewId, action){
 document.addEventListener('DOMContentLoaded', renderAll);
 </script>
 <script src="js/baa-themes.js"></script>
+<link rel="stylesheet" href="css/baa-guide-robot.css">
+<button type="button" id="baaGuideRobotBtn" aria-label="Open BAA Guide" aria-haspopup="dialog" aria-expanded="false">🤖</button>
+<div id="baaGuideRobotPanel" role="dialog" aria-modal="true" aria-labelledby="baaGuideTitle" hidden>
+  <div class="baa-guide-header">
+    <h2 id="baaGuideTitle">🤖 BAA Guide</h2>
+    <button type="button" class="baa-guide-close" aria-label="Close guide">✕</button>
+  </div>
+  <div class="baa-guide-body">
+    <p class="baa-guide-intro">What would you like explained?</p>
+    <div id="baaGuideTopicList"></div>
+    <div id="baaGuideTopicDetail" hidden></div>
+  </div>
+  <div id="baaGuideLiveRegion" class="baa-guide-sr-only" aria-live="polite" aria-atomic="true"></div>
+</div>
+<script src="js/baa-guide-topics.js"></script>
+<script src="js/baa-guide-robot.js"></script>
+<script>if(window.BAAGuideRobot)BAAGuideRobot.init();</script>
 </body>
 </html>

@@ -73,13 +73,13 @@ h2.section-h{font-family:var(--display);font-weight:500;font-size:1.2rem;margin:
 <link rel="stylesheet" href="css/baa-themes.css">
 </head>
 <body>
-
-<div class="topbar">
+<a class="baa-skip-link" href="#main-content">Skip to main content</a>
+<div class="topbar" role="banner">
   <div class="tb-logo">BAA OS <span style="color:var(--gold);">·</span> Parent View</div>
   <a class="tb-back" href="student-os.html">← Student OS</a>
 </div>
 
-<div class="wrap">
+<div class="wrap" role="main" id="main-content">
   <div class="eyebrow">Section D — Parent OS</div>
   <div class="single-student-tag">🧪 Single-Student Private Testing</div>
   <h1>How <span id="studentNameHeading">your child</span> is doing</h1>
@@ -269,11 +269,29 @@ function render(){
 render();
 if(typeof BAAServerLearnerView!=='undefined') BAAServerLearnerView.init({mountId:'serverLearnerView'});
 
+// 'Save parent controls' (Parent Approval Mode, Module 15) previously had
+// no click handler anywhere in this file — the button rendered but did
+// nothing. Delegated on #content (not bound directly to #paSave) because
+// render() replaces #content's innerHTML on every call, which would
+// otherwise destroy a directly-bound listener on each re-render.
+document.getElementById('content').addEventListener('click', (e) => {
+  if (e.target?.id !== 'paSave') return;
+  if (typeof BAAParentApproval === 'undefined') return;
+  const status = document.getElementById('paStatus');
+  const result = BAAParentApproval.updatePolicy({
+    aiTutorEnabled: document.getElementById('paTutor')?.checked,
+    aiMentorEnabled: document.getElementById('paMentor')?.checked,
+    plannerEnabled: document.getElementById('paPlanner')?.checked,
+    maxDailyStudyMinutes: document.getElementById('paMinutes')?.value,
+  });
+  if (status) status.textContent = result ? '✅ Saved.' : 'Could not save — try again.';
+});
+
 // Mastery Gate + Parent-authorized bypass + exam forecast. This is server-backed
 // for authenticated parent accounts and never substitutes local data.
 (async function initMasteryGateParent(){
   const mount=document.getElementById('content'); if(!mount)return;
-  const section=document.createElement('section'); section.className='card'; section.innerHTML=`<h2 class="section-h" style="margin-top:0;">🛡️ Mastery Gate & Parent Bypass</h2><p class="subline">If a chapter is locked by unresolved red findings, a parent may authorize a specific chapter bypass by re-entering the parent password and recording the reason. The bypass is audited and the next assessment re-checks the chapter.</p><div class="bypass-form"><select id="gateLearnerSelect"><option value="">Select learner</option></select><select id="gateChapterSelect"><option value="">Select chapter</option></select><input id="gatePassword" type="password" autocomplete="current-password" placeholder="Parent account password"><textarea id="gateReason" maxlength="500" placeholder="Reason for bypass (minimum 10 characters)"></textarea><button id="gateBypassBtn" class="btn btn-gold" type="button">Authorize chapter bypass</button><div id="gateBypassStatus" class="bypass-status" aria-live="polite"></div></div><div id="parentForecastPanel" class="forecast-card"><div class="gate-empty">Loading exam forecast…</div></div>`;
+  const section=document.createElement('section'); section.className='card'; section.innerHTML=`<h2 class="section-h" style="margin-top:0;">🛡️ Mastery Gate & Parent Bypass</h2><p class="subline">If a chapter is locked by unresolved red findings, a parent may authorize a specific chapter bypass by re-entering the parent password and recording the reason. The bypass is audited and the next assessment re-checks the chapter.</p><div class="bypass-form"><select id="gateLearnerSelect"><option value="">Select learner</option></select><select id="gateChapterSelect"><option value="">Select chapter</option></select><input id="gatePassword" type="password" autocomplete="current-password" placeholder="Parent account password"><textarea id="gateReason" maxlength="500" placeholder="Reason for bypass (minimum 10 characters)"></textarea><button id="gateBypassBtn" class="btn btn-gold" type="button">Authorize chapter bypass</button><div id="gateBypassStatus" class="bypass-status" aria-live="polite"></div></div><div id="parentForecastPanel" class="forecast-card"><div class="gate-empty">Loading exam forecast…</div></div><div class="subline" style="margin-top:16px;font-weight:700;">💬 Conversation starter</div><div id="parentConversationPanel" class="forecast-card"><div class="gate-empty">Select a learner above.</div></div>`;
   mount.appendChild(section);
   try{
     const learners=await BAAServerLearnerView.getLearners(); const ls=document.getElementById('gateLearnerSelect');
@@ -286,7 +304,36 @@ if(typeof BAAServerLearnerView!=='undefined') BAAServerLearnerView.init({mountId
       if(!r.ok){document.getElementById('parentForecastPanel').innerHTML='<div class="gate-empty">Forecast unavailable.</div>';return;}
       document.getElementById('parentForecastPanel').innerHTML=`<div class="forecast-head"><div><div class="gate-kicker">ACADEMIC FORECAST</div><h3>🔮 Exam warnings</h3></div><b>${p.overallPercentage==null?'—':p.overallPercentage+'%'}</b></div>${p.exams?.length?p.exams.map(e=>{const f=e.forecast;const cls=f.warningLevel==='urgent'?'urgent':f.warningLevel?.includes('caution')?'caution':'good';return `<div class="forecast-row"><div><b>${esc(e.title)}</b><small>${esc(e.subject||'')} ${e.chapter?'· '+esc(e.chapter):''} · ${e.daysUntil} day${e.daysUntil===1?'':'s'} away</small></div><span class="forecast-pill ${cls}">${f.status==='forecast'?`${f.predictedPercentage}% (${f.range.low}–${f.range.high}%)`:'Need more evidence'}</span></div>`}).join(''):'<div class="gate-empty">No linked upcoming exams yet.</div>'}`;
     }
-    ls.addEventListener('change',()=>refreshForecast(ls.value));
+    // M57 — Parent Learning Conversation Assistant. Real, server-derived
+    // prompts grounded in the learner's actual weakest recorded concept.
+    async function refreshParentConversation(id){
+      const box=document.getElementById('parentConversationPanel');
+      if(!id){box.innerHTML='<div class="gate-empty">Select a learner above.</div>';return;}
+      box.innerHTML='<div class="gate-empty">Loading…</div>';
+      try{
+        const r=await fetch(`/api/v1/parent-conversation?learnerId=${encodeURIComponent(id)}`,{credentials:'include'});
+        const j=await r.json();
+        if(!r.ok){box.innerHTML=`<div class="gate-empty">${esc(j?.error?.message||'Unavailable right now.')}</div>`;return;}
+        if(j.status==='insufficient_evidence'){box.innerHTML=`<div class="gate-empty">${esc(j.message)}</div>`;return;}
+        box.innerHTML=`<div class="gate-empty" style="margin-bottom:8px;">Based on: ${esc(j.topic)} (${esc(j.state)})</div>`+j.prompts.map(p=>`<div class="forecast-row"><span>${esc(p)}</span></div>`).join('')+`<div class="gate-empty" style="margin-top:8px;">${esc(j.limitation)}</div>`;
+      }catch(e){box.innerHTML='<div class="gate-empty">Could not reach the server.</div>';}
+    }
+    // Previously localStorage-only modules — now synced through the
+    // generic /api/v1/client-state endpoint (see audit notes / M15, M18
+    // fixes). This reuses the same authenticated parent->learner
+    // selector already built for the Mastery Gate section above, since
+    // that's the only real per-learner identity this page has.
+    async function refreshLocalOnlyModules(id){
+      if(!id)return;
+      if(typeof BAAParentApproval!=='undefined'&&BAAParentApproval.hydrateFromServer){
+        await BAAParentApproval.hydrateFromServer(id);
+      }
+      if(typeof BAASchoolCalendar!=='undefined'&&BAASchoolCalendar.hydrateFromServer){
+        await BAASchoolCalendar.hydrateFromServer(id);
+      }
+      if(typeof render==='function')render();
+    }
+    ls.addEventListener('change',()=>{refreshForecast(ls.value);refreshLocalOnlyModules(ls.value);refreshParentConversation(ls.value);});
     document.getElementById('gateBypassBtn').addEventListener('click',async()=>{
       const [subject,chapter]=(document.getElementById('gateChapterSelect').value||'').split('||'); const learnerId=ls.value; const password=document.getElementById('gatePassword').value; const reason=document.getElementById('gateReason').value.trim(); const status=document.getElementById('gateBypassStatus');
       if(!learnerId||!subject||!chapter){status.textContent='Select a learner and chapter first.';return;}
@@ -295,15 +342,12 @@ if(typeof BAAServerLearnerView!=='undefined') BAAServerLearnerView.init({mountId
       const p=await r.json().catch(()=>({})); status.textContent=r.ok?'✅ Bypass authorized and recorded. The next chapter assessment will re-check the gate.':(p.error?.message||'Bypass could not be authorized.');
       if(r.ok){document.getElementById('gatePassword').value='';document.getElementById('gateReason').value='';}
     });
-    if(learners[0]){ls.value=learners[0].id;await refreshForecast(learners[0].id);}
+    if(learners[0]){ls.value=learners[0].id;await refreshForecast(learners[0].id);await refreshLocalOnlyModules(learners[0].id);await refreshParentConversation(learners[0].id);}
   }catch(e){document.getElementById('parentForecastPanel').innerHTML='<div class="gate-empty">Sign in with an authenticated parent account to use this control.</div>';}
 })();
 </script>
-<script src="js/baa-language.js"></script>
-<script src="js/baa-voice.js"></script>
 <script src="js/baa-school.js"></script>
 <script src="js/baa-community.js"></script>
-<script src="js/baa-insights.js"></script>
 <script src="js/baa-explainability.js"></script>
 <script src="js/baa-appeals.js"></script>
 <script src="js/baa-curriculum.js"></script>
@@ -311,8 +355,6 @@ if(typeof BAAServerLearnerView!=='undefined') BAAServerLearnerView.init({mountId
 <script src="js/baa-mistakes.js"></script>
 <script src="js/baa-outcomes.js"></script>
 <script src="js/baa-cognitive-safety.js"></script>
-<script src="js/baa-fresh-start.js"></script>
-<script src="js/baa-adaptive-pacing.js"></script>
 <script src="js/baa-parent-conversation.js"></script>
 <script src="js/baa-teacher-diagnostic.js"></script>
 <script src="js/baa-governance.js"></script>
@@ -324,12 +366,28 @@ if(typeof BAAServerLearnerView!=='undefined') BAAServerLearnerView.init({mountId
 <script src="js/baa-scholarships.js"></script>
 <script src="js/baa-career-prep.js"></script>
 <script src="js/baa-mentors.js"></script>
-<script src="js/baa-erp.js"></script>
 <script src="js/baa-institution.js"></script>
 <script src="js/baa-global-collab.js"></script>
 <script src="js/baa-olympiad.js"></script>
 <script src="js/baa-plugins.js"></script>
 <script src="js/baa-ui-wiring-final.js"></script>
 <script src="js/baa-themes.js"></script>
+<link rel="stylesheet" href="css/baa-guide-robot.css">
+<button type="button" id="baaGuideRobotBtn" aria-label="Open BAA Guide" aria-haspopup="dialog" aria-expanded="false">🤖</button>
+<div id="baaGuideRobotPanel" role="dialog" aria-modal="true" aria-labelledby="baaGuideTitle" hidden>
+  <div class="baa-guide-header">
+    <h2 id="baaGuideTitle">🤖 BAA Guide</h2>
+    <button type="button" class="baa-guide-close" aria-label="Close guide">✕</button>
+  </div>
+  <div class="baa-guide-body">
+    <p class="baa-guide-intro">What would you like explained?</p>
+    <div id="baaGuideTopicList"></div>
+    <div id="baaGuideTopicDetail" hidden></div>
+  </div>
+  <div id="baaGuideLiveRegion" class="baa-guide-sr-only" aria-live="polite" aria-atomic="true"></div>
+</div>
+<script src="js/baa-guide-topics.js"></script>
+<script src="js/baa-guide-robot.js"></script>
+<script>if(window.BAAGuideRobot)BAAGuideRobot.init();</script>
 </body>
 </html>

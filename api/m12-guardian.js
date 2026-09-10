@@ -1,5 +1,5 @@
 import { sql } from './_lib/db.js';
-import { json } from './_lib/security.js';
+import { json, id } from './_lib/security.js';
 import { requireAuth, requireLearnerAccess } from './_lib/auth.js';
 
 export const config = { runtime: 'nodejs' };
@@ -9,204 +9,59 @@ function normalizeAlertId(value) {
   return v && v.length <= 180 ? v : null;
 }
 
-function buildAcademicAlerts(memoryRows, assessmentRows) {
-  const alerts = [];
-  const grouped = new Map();
-  for (const row of memoryRows) {
-    const concept = String(row.concept || '').trim();
-    const subject = String(row.subject || '').trim();
-    if (!concept) continue;
-    const identity = `${subject}\u001f${concept}`;
-    if (!grouped.has(identity)) grouped.set(identity, []);
-    grouped.get(identity).push(row);
-  }
-
-  for (const [identity, rows] of grouped.entries()) {
-    const latest = rows[0];
-    const concept = String(latest?.concept || '').trim();
-    const subject = String(latest?.subject || '').trim();
-    const evidenceCount = Number(latest?.evidence_count || 0);
-    const correctCount = Number(latest?.correct_count || 0);
-    if (latest?.status === 'needs_revision' && evidenceCount >= 3) {
-      alerts.push({
-        id: `low_performance:${identity}`,
-        severity: evidenceCount >= 4 && correctCount <= 1 ? 'high' : 'medium',
-        type: 'repeated_low_performance',
-        concept,
-        subject: subject || null,
-        title: `Extra support may help with ${concept.replace(/-/g, ' ')}`,
-        reason: `Server learning evidence currently marks this concept for revision after ${evidenceCount} evidence point${evidenceCount === 1 ? '' : 's'}.`,
-        action: { kind: 'practice', concept, subject: subject || null },
-        requiresHumanReview: false,
-      });
-    }
-  }
-
-  const percentages = assessmentRows
-    .map(row => Number(row.score) / Number(row.max_score) * 100)
-    .filter(Number.isFinite);
-  if (percentages.length >= 3) {
-    const current = percentages[0];
-    const previous = percentages.slice(1, 4);
-    const previousAverage = previous.reduce((sum, value) => sum + value, 0) / previous.length;
-    if (current <= previousAverage - 12) {
-      alerts.push({
-        id: 'assessment_decline',
-        severity: 'medium',
-        type: 'assessment_decline',
-        concept: null,
-        subject: null,
-        title: 'Recent assessment performance dipped',
-        reason: `The latest completed assessment is ${Math.round(previousAverage - current)} percentage points below the recent average.`,
-        action: { kind: 'review', href: 'assessment.html' },
-        requiresHumanReview: false,
-      });
-    }
-  }
-
-  return alerts.sort((a, b) => ({ high: 0, medium: 1, low: 2 }[a.severity] ?? 9) - ({ high: 0, medium: 1, low: 2 }[b.severity] ?? 9));
-}
-
-async function loadAllAcknowledgements(learnerId) {
-  const rows = [];
-  const batchSize = 500;
-  let cursorAt = null;
-  let cursorId = null;
-
-  while (true) {
-    const batch = cursorAt === null
-      ? await sql`
-          SELECT alert_id, acknowledged_at
-          FROM guardian_alert_acknowledgements
-          WHERE learner_id=${learnerId}
-          ORDER BY acknowledged_at DESC, alert_id DESC
-          LIMIT ${batchSize}
-        `
-      : await sql`
-          SELECT alert_id, acknowledged_at
-          FROM guardian_alert_acknowledgements
-          WHERE learner_id=${learnerId}
-            AND (acknowledged_at, alert_id) < (${cursorAt}::timestamptz, ${cursorId})
-          ORDER BY acknowledged_at DESC, alert_id DESC
-          LIMIT ${batchSize}
-        `;
-
-    rows.push(...batch.rows);
-    if (batch.rows.length < batchSize) break;
-
-    const last = batch.rows[batch.rows.length - 1];
-    cursorAt = last.acknowledged_at;
-    cursorId = last.alert_id;
-  }
-
-  return rows;
-}
-
-async function loadAllLearningMemory(learnerId) {
-  const rows = [];
-  const batchSize = 500;
-  let cursorAt = null;
-  let cursorSubject = null;
-  let cursorConcept = null;
-
-  while (true) {
-    const batch = cursorAt === null
-      ? await sql`
-          SELECT concept, subject, status, evidence_count, correct_count, last_updated
-          FROM learning_memory
-          WHERE learner_id=${learnerId}
-            AND status IN ('mastered','learning','needs_revision')
-          ORDER BY last_updated DESC, subject DESC NULLS LAST, concept DESC
-          LIMIT ${batchSize}
-        `
-      : await sql`
-          SELECT concept, subject, status, evidence_count, correct_count, last_updated
-          FROM learning_memory
-          WHERE learner_id=${learnerId}
-            AND status IN ('mastered','learning','needs_revision')
-            AND (last_updated, subject, concept) < (${cursorAt}::timestamptz, ${cursorSubject}, ${cursorConcept})
-          ORDER BY last_updated DESC, subject DESC NULLS LAST, concept DESC
-          LIMIT ${batchSize}
-        `;
-
-    rows.push(...batch.rows);
-    if (batch.rows.length < batchSize) break;
-
-    const last = batch.rows[batch.rows.length - 1];
-    cursorAt = last.last_updated;
-    cursorSubject = last.subject;
-    cursorConcept = last.concept;
-  }
-
-  return rows;
-}
-
 export default async function handler(req, res) {
   try {
     const session = await requireAuth(req);
     const learnerId = String(req.query?.learnerId || '').trim();
     await requireLearnerAccess(session, learnerId);
-    res.setHeader('Cache-Control', 'private, no-store, max-age=0');
-
-    if (!['GET', 'POST', 'DELETE'].includes(req.method)) {
-      return json(res, 405, { error: { code: 'METHOD_NOT_ALLOWED', message: 'GET, POST or DELETE required.' } }, { Allow: 'GET, POST, DELETE', 'Cache-Control': 'private, no-store, max-age=0' });
-    }
 
     if (req.method === 'GET') {
-      const [acknowledgements, memoryRows, assessments] = await Promise.all([
-        loadAllAcknowledgements(learnerId),
-        loadAllLearningMemory(learnerId),
-        sql`
-          SELECT score, max_score, COALESCE(end_time, start_time) AS completed_at
-          FROM assessment_attempts
-          WHERE learner_id=${learnerId}
-            AND status IN ('submitted','evaluated','completed')
-            AND score IS NOT NULL
-            AND max_score > 0
-          ORDER BY COALESCE(end_time, start_time) DESC
-          LIMIT 8
-        `,
-      ]);
-      const alerts = buildAcademicAlerts(memoryRows, assessments.rows);
+      const result = await sql`
+        SELECT alert_id, acknowledged_at
+        FROM guardian_alert_acknowledgements
+        WHERE learner_id=${learnerId}
+        ORDER BY acknowledged_at DESC
+        LIMIT 500
+      `;
       return json(res, 200, {
         ok: true,
         learnerId,
-        alerts,
-        alertCount: alerts.length,
-        highestSeverity: alerts[0]?.severity || 'none',
-        acknowledgements: acknowledgements.map(row => ({ alertId: row.alert_id, acknowledgedAt: row.acknowledged_at })),
-        evidence: { trackedConcepts: memoryRows.length, assessments: assessments.rows.length },
-        evaluatedAt: new Date().toISOString(),
+        acknowledgements: result.rows.map(row => ({
+          alertId: row.alert_id,
+          acknowledgedAt: row.acknowledged_at,
+        })),
         scope: 'academic_support_only',
-        limitation: 'Guardian uses academic learning evidence only. It does not diagnose mental health, personality, family conditions, or intent.',
       });
     }
 
     if (req.method === 'POST') {
       const body = req.body || {};
       const alertId = normalizeAlertId(body.alertId);
-      if (!alertId) return json(res, 400, { error: { code: 'INVALID_ALERT_ID', message: 'A valid alertId is required.' } }, { 'Cache-Control': 'private, no-store, max-age=0' });
+      if (!alertId) return json(res, 400, { error: { code: 'INVALID_ALERT_ID', message: 'A valid alertId is required.' } });
       await sql`
         INSERT INTO guardian_alert_acknowledgements(learner_id, alert_id)
         VALUES(${learnerId}, ${alertId})
         ON CONFLICT(learner_id, alert_id)
         DO UPDATE SET acknowledged_at=NOW()
       `;
-      return json(res, 200, { ok: true, alertId, acknowledgedAt: new Date().toISOString() }, { 'Cache-Control': 'private, no-store, max-age=0' });
+      return json(res, 200, { ok: true, alertId, acknowledgedAt: new Date().toISOString() });
     }
 
-    const body = req.body || {};
-    const alertId = normalizeAlertId(body.alertId);
-    if (alertId) {
-      await sql`DELETE FROM guardian_alert_acknowledgements WHERE learner_id=${learnerId} AND alert_id=${alertId}`;
-    } else {
-      await sql`DELETE FROM guardian_alert_acknowledgements WHERE learner_id=${learnerId}`;
+    if (req.method === 'DELETE') {
+      const body = req.body || {};
+      const alertId = normalizeAlertId(body.alertId);
+      if (alertId) {
+        await sql`DELETE FROM guardian_alert_acknowledgements WHERE learner_id=${learnerId} AND alert_id=${alertId}`;
+      } else {
+        await sql`DELETE FROM guardian_alert_acknowledgements WHERE learner_id=${learnerId}`;
+      }
+      return json(res, 200, { ok: true, deleted: alertId ? 1 : 'all' });
     }
-    return json(res, 200, { ok: true, deleted: alertId ? 1 : 'all' }, { 'Cache-Control': 'private, no-store, max-age=0' });
+
+    return json(res, 405, { error: { code: 'METHOD_NOT_ALLOWED', message: 'GET, POST or DELETE required.' } }, { Allow: 'GET, POST, DELETE' });
   } catch (e) {
-    res.setHeader('Cache-Control', 'private, no-store, max-age=0');
     return json(res, e.status || 500, {
       error: { code: e.code || 'GUARDIAN_API_FAILED', message: e.status ? e.message : 'Guardian service unavailable.' }
-    }, { 'Cache-Control': 'private, no-store, max-age=0' });
+    });
   }
 }

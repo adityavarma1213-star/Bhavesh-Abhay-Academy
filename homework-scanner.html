@@ -207,6 +207,7 @@ label.field-label{display:block;font-size:.78rem;text-transform:uppercase;letter
 <script src="js/baa-assessment.js"></script>
 <script src="js/baa-homework.js"></script>
 <script src="js/baa-homework-attachment-base.js"></script>
+<script src="js/baa-low-bandwidth.js"></script>
 <script src="js/baa-homework-image.js"></script>
 <script src="js/baa-homework-pdf.js"></script>
 <script>
@@ -498,5 +499,22 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 </script>
 <script src="js/baa-themes.js"></script>
+<link rel="stylesheet" href="css/baa-guide-robot.css">
+<button type="button" id="baaGuideRobotBtn" aria-label="Open BAA Guide" aria-haspopup="dialog" aria-expanded="false">🤖</button>
+<div id="baaGuideRobotPanel" role="dialog" aria-modal="true" aria-labelledby="baaGuideTitle" hidden>
+  <div class="baa-guide-header">
+    <h2 id="baaGuideTitle">🤖 BAA Guide</h2>
+    <button type="button" class="baa-guide-close" aria-label="Close guide">✕</button>
+  </div>
+  <div class="baa-guide-body">
+    <p class="baa-guide-intro">What would you like explained?</p>
+    <div id="baaGuideTopicList"></div>
+    <div id="baaGuideTopicDetail" hidden></div>
+  </div>
+  <div id="baaGuideLiveRegion" class="baa-guide-sr-only" aria-live="polite" aria-atomic="true"></div>
+</div>
+<script src="js/baa-guide-topics.js"></script>
+<script src="js/baa-guide-robot.js"></script>
+<script>if(window.BAAGuideRobot)BAAGuideRobot.init();</script>
 </body>
 </html>

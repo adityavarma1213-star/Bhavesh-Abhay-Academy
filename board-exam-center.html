@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>BAA OS — Board & Exam Center</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --void:#0B0F2E; --cosmos:#141B4D; --cosmos-2:#1B2460;
+  --violet:#7C5CFC; --cyan:#4CD9E8; --gold:#F5B942;
+  --warmwhite:#FDF9F0; --dim:rgba(253,249,240,0.62); --faint:rgba(253,249,240,0.34);
+  --rose:#E8608F; --emerald:#34D399;
+  --display:'Fraunces',serif; --body:'Inter',sans-serif; --mono:'JetBrains Mono',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--void);color:var(--warmwhite);font-family:var(--body);min-height:100vh;}
+a{color:inherit;text-decoration:none;}
+button{font-family:inherit;cursor:pointer;}
+.topbar{position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:16px 5vw;background:rgba(11,15,46,.9);backdrop-filter:blur(16px);border-bottom:1px solid rgba(253,249,240,0.08);}
+.tb-logo{font-family:var(--display);font-weight:600;font-size:1.05rem;}
+.tb-back{font-size:.82rem;color:var(--dim);border:1px solid rgba(253,249,240,0.14);padding:7px 14px;border-radius:100px;}
+.tb-back:hover{color:var(--warmwhite);border-color:rgba(253,249,240,0.3);}
+.wrap{max-width:980px;margin:0 auto;padding:30px 5vw 90px;}
+.eyebrow{font-size:.7rem;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);margin-bottom:10px;}
+h1{font-family:var(--display);font-weight:500;font-size:clamp(1.5rem,4vw,2.1rem);margin-bottom:10px;}
+.sub{color:var(--dim);font-size:.9rem;line-height:1.6;max-width:70ch;margin-bottom:6px;}
+.scope-banner{display:flex;gap:12px;background:rgba(245,185,66,0.07);border:1px solid rgba(245,185,66,0.25);border-radius:14px;padding:13px 16px;margin:18px 0 26px;font-size:.8rem;color:var(--dim);line-height:1.55;}
+.scope-banner b{color:var(--warmwhite);}
+h2.section-h{font-family:var(--display);font-weight:500;font-size:1.15rem;margin:30px 0 12px;display:flex;align-items:center;gap:8px;}
+h2.section-h small{font-size:.62rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);background:rgba(253,249,240,.06);padding:3px 9px;border-radius:999px;}
+.baa-eco-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;}
+</style>
+<link rel="stylesheet" href="css/baa-themes.css">
+</head>
+<body>
+<a class="baa-skip-link" href="#main-content">Skip to main content</a>
+<div class="topbar" role="banner">
+  <div class="tb-logo">BAA OS <span style="color:var(--gold);">·</span> Board &amp; Exam Center</div>
+  <a class="tb-back" href="student-os.html">← Student OS</a>
+</div>
+
+<div class="wrap" role="main" id="main-content">
+  <div class="eyebrow">Modules 64–76 · India Board / Exam intelligence</div>
+  <h1>Board &amp; Exam Center</h1>
+  <p class="sub">Everything on this page calls the real <code>/api/v1/…</code> backend for these modules — no invented boards, questions, or scores. If your account isn't signed in, or the database this page talks to has no data loaded yet, each section says so honestly instead of showing something fake.</p>
+
+  <div class="scope-banner">
+    <span>ℹ️</span>
+    <div><b>Honest scope note:</b> this page is new — before it existed, these fifteen modules (M64–M78) had real, tested backend handlers but no website UI at all. This page is the first client for them. It requires your BAA account to be signed in and linked to a learner record (the same <code>window.BAA_LEARNER_ID</code> resolution the rest of Student OS already uses), and it requires the live API + PostgreSQL database this page's <code>fetch()</code> calls target — which is not running in the environment this code was written in, so nothing on this page has been clicked through in a real browser against a live server. The code is real; live behavior is unverified until that's done.</div>
+  </div>
+
+  <div id="baaBoardCenterAuthGate" class="scope-banner" style="display:none;background:rgba(232,96,143,.07);border-color:rgba(232,96,143,.3);">
+    <span>🔒</span>
+    <div>You're not signed in (or your account has no linked learner record), so these tools can't call the API on your behalf. <a href="index.html" style="text-decoration:underline;">Sign in from the homepage</a>, then come back to this page.</div>
+  </div>
+
+  <div id="baaBoardCenterRoot"></div>
+</div>
+
+<script src="js/baa-themes.js"></script>
+<script src="js/baa-ecosystem-tools.js"></script>
+<script src="js/baa-board-exam-tools.js"></script>
+<script>
+(async function(){
+  try{
+    const meRes = await fetch('/api/auth/me', { credentials: 'include' });
+    if (!meRes.ok) { document.getElementById('baaBoardCenterAuthGate').style.display = 'flex'; return; }
+    const me = await meRes.json();
+    if (!me.ok) { document.getElementById('baaBoardCenterAuthGate').style.display = 'flex'; return; }
+
+    const learnersRes = await fetch('/api/v1/my-learners', { credentials: 'include' });
+    const learnersData = learnersRes.ok ? await learnersRes.json() : { learners: [] };
+    const mine = (learnersData.learners || []).find(l => l.relationship === 'self');
+    if (!mine) { document.getElementById('baaBoardCenterAuthGate').style.display = 'flex'; return; }
+
+    window.BAA_LEARNER_ID = mine.id;
+    if (window.BAABoardExamTools) window.BAABoardExamTools.mount('baaBoardCenterRoot');
+  }catch(e){
+    document.getElementById('baaBoardCenterAuthGate').style.display = 'flex';
+  }
+})();
+</script>
+</body>
+</html>

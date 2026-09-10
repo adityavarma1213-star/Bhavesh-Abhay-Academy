@@ -1,68 +1,14 @@
 // js/baa-ai-mode.js
 // BAA OS — Module 1, M1-A1 client orchestration.
-// It asks the server-backed AI Mode adapter to build an evidence-bound plan.
-// Learner evidence is never trusted from the browser; the server derives it
-// from authenticated PostgreSQL state.
+// It gathers only bounded evidence from the existing intelligence/planner
+// stores, calls the real AI Mode endpoint, and renders textContent-based UI.
+// It does NOT implement Custom or Hybrid Mode and never fabricates a plan
+// when the server is unavailable.
+
 (function (global) {
   'use strict';
 
   const MAX_CONCEPTS = 20;
-  const MAX_RESPONSE_BYTES = 1024 * 1024;
-
-  async function readJsonBounded(response) {
-    const declared = Number(response?.headers?.get?.('content-length'));
-    if (Number.isFinite(declared) && declared > MAX_RESPONSE_BYTES) {
-      try { response.body?.cancel?.(); } catch (_) {}
-      return { ok: false, error: { code: 'AI_MODE_RESPONSE_TOO_LARGE', message: 'AI Mode returned too much data.' } };
-    }
-
-    if (!response?.body || typeof response.body.getReader !== 'function') {
-      try {
-        const text = await response.text();
-        const bytes = typeof TextEncoder !== 'undefined' ? new TextEncoder().encode(text) : null;
-        const size = bytes ? bytes.byteLength : typeof Buffer !== 'undefined' ? Buffer.byteLength(text, 'utf8') : text.length;
-        if (size > MAX_RESPONSE_BYTES) {
-          return { ok: false, error: { code: 'AI_MODE_RESPONSE_TOO_LARGE', message: 'AI Mode returned too much data.' } };
-        }
-        return { ok: true, data: JSON.parse(text) };
-      } catch (error) {
-        if (error?.message === 'AI_MODE_RESPONSE_TOO_LARGE') return { ok: false, error: { code: 'AI_MODE_RESPONSE_TOO_LARGE', message: 'AI Mode returned too much data.' } };
-        return { ok: false, error: { code: 'AI_MODE_INVALID_RESPONSE', message: 'AI Mode returned an invalid response.' } };
-      }
-    }
-
-    const reader = response.body.getReader();
-    const chunks = [];
-    let total = 0;
-    try {
-      while (true) {
-        const part = await reader.read();
-        if (part.done) break;
-        total += part.value?.byteLength || 0;
-        if (total > MAX_RESPONSE_BYTES) {
-          try { await reader.cancel(); } catch (_) {}
-          return { ok: false, error: { code: 'AI_MODE_RESPONSE_TOO_LARGE', message: 'AI Mode returned too much data.' } };
-        }
-        chunks.push(part.value);
-      }
-    } catch (_) {
-      try { await reader.cancel(); } catch (_) {}
-      return { ok: false, error: { code: 'AI_MODE_INVALID_RESPONSE', message: 'AI Mode returned an unreadable response.' } };
-    }
-
-    try {
-      const bytes = new Uint8Array(total);
-      let offset = 0;
-      for (const chunk of chunks) {
-        bytes.set(chunk, offset);
-        offset += chunk.byteLength;
-      }
-      const text = new TextDecoder().decode(bytes);
-      return { ok: true, data: JSON.parse(text) };
-    } catch (_) {
-      return { ok: false, error: { code: 'AI_MODE_INVALID_RESPONSE', message: 'AI Mode returned an invalid response.' } };
-    }
-  }
 
   function getInput() {
     const intel = global.BAAIntelligence;
@@ -74,7 +20,6 @@
       : [];
 
     return {
-      learnerId: String(global.BAA_LEARNER_ID || '').trim(),
       goal: (planner.getGoals?.()[0]?.text || '').trim(),
       concepts: states.map((c) => ({
         concept: c.concept,
@@ -97,29 +42,22 @@
     if (!finalGoal) {
       return { ok: false, error: { code: 'GOAL_REQUIRED', message: 'Add a learning goal before asking AI Mode to build a path.' } };
     }
-    if (!input.learnerId) {
-      return { ok: false, error: { code: 'AUTH_REQUIRED', message: 'Sign in as a learner before using AI Mode.' } };
-    }
+    input.goal = finalGoal;
+    if (previousPlan) input.previousPlan = previousPlan;
 
     let response;
     try {
-      response = await fetch(`/api/m01-ai-mode?learnerId=${encodeURIComponent(input.learnerId)}`, {
+      response = await fetch('/api/ai-mode', {
         method: 'POST',
-        credentials: 'include',
-        cache: 'no-store',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify({ goal: finalGoal, previousPlan }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input),
       });
     } catch {
       return { ok: false, error: { code: 'NETWORK_ERROR', message: 'AI Mode could not reach the server.' } };
     }
 
-    const parsed = await readJsonBounded(response);
-    if (!parsed.ok) return { ok: false, error: parsed.error };
-    const data = parsed.data;
+    let data = null;
+    try { data = await response.json(); } catch {}
     if (!response.ok) {
       return { ok: false, error: data?.error || { code: 'AI_MODE_ERROR', message: 'AI Mode could not build a plan.' } };
     }

@@ -88,13 +88,13 @@ h2.section-h a.mini-link{font-size:.75rem;font-weight:400;color:var(--cyan);}
 <link rel="stylesheet" href="css/baa-themes.css">
 </head>
 <body>
-
-<div class="topbar">
+<a class="baa-skip-link" href="#main-content">Skip to main content</a>
+<div class="topbar" role="banner">
   <div class="tb-logo">BAA OS <span style="color:var(--gold);">·</span> Teacher View</div>
   <a class="tb-back" href="student-os.html">← Student OS</a>
 </div>
 
-<div class="wrap">
+<div class="wrap" role="main" id="main-content">
   <div class="eyebrow">Section D — Teacher OS</div>
   <div class="single-student-tag">🧪 Single-Student Private Testing</div>
   <h1>Current learner: <span id="studentNameHeading">—</span></h1>
@@ -108,12 +108,15 @@ h2.section-h a.mini-link{font-size:.75rem;font-weight:400;color:var(--cyan);}
   <div id="serverLearnerView" aria-live="polite"></div>
 
   <div id="content">Loading…</div>
+
+  <div id="baaBoardIntelligenceSection" style="margin-top:24px;"></div>
+  <div id="baaPaperIngestionSection" style="margin-top:16px;"></div>
+  <div id="baaTranslationAuthoringSection" style="margin-top:16px;"></div>
 </div>
 
 <script src="js/question-bank.js"></script>
 <script src="js/baa-assessment.js"></script>
 <script src="js/baa-teacher-recommendation.js"></script>
-<script src="js/baa-teacher-analytics.js"></script>
 <script src="js/baa-notes-generator.js"></script>
 <script src="js/baa-intelligence.js"></script>
 <script src="js/baa-offline-sync.js"></script>
@@ -301,11 +304,8 @@ if(generateBtn) generateBtn.addEventListener('click',generateNoteDraft);
   </div>
 </div>
 
-<script src="js/baa-language.js"></script>
-<script src="js/baa-voice.js"></script>
 <script src="js/baa-school.js"></script>
 <script src="js/baa-community.js"></script>
-<script src="js/baa-insights.js"></script>
 <script src="js/baa-explainability.js"></script>
 <script src="js/baa-appeals.js"></script>
 <script src="js/baa-curriculum.js"></script>
@@ -313,9 +313,6 @@ if(generateBtn) generateBtn.addEventListener('click',generateNoteDraft);
 <script src="js/baa-mistakes.js"></script>
 <script src="js/baa-outcomes.js"></script>
 <script src="js/baa-cognitive-safety.js"></script>
-<script src="js/baa-fresh-start.js"></script>
-<script src="js/baa-adaptive-pacing.js"></script>
-<script src="js/baa-parent-conversation.js"></script>
 <script src="js/baa-teacher-diagnostic.js"></script>
 <script src="js/baa-governance.js"></script>
 <script src="js/baa-purpose-design.js"></script>
@@ -323,10 +320,7 @@ if(generateBtn) generateBtn.addEventListener('click',generateNoteDraft);
 <script src="js/baa-ai-council.js"></script>
 <script src="js/baa-low-bandwidth.js"></script>
 <script src="js/baa-anti-cheating.js"></script>
-<script src="js/baa-scholarships.js"></script>
 <script src="js/baa-career-prep.js"></script>
-<script src="js/baa-mentors.js"></script>
-<script src="js/baa-erp.js"></script>
 <script src="js/baa-institution.js"></script>
 <script src="js/baa-global-collab.js"></script>
 <script src="js/baa-olympiad.js"></script>
@@ -346,11 +340,90 @@ if(generateBtn) generateBtn.addEventListener('click',generateNoteDraft);
     const select=document.createElement('select'); select.id='baaClassAnalyticsSelect'; select.style.cssText='margin:0 0 12px;padding:8px 10px;border-radius:10px;background:rgba(253,249,240,.06);color:inherit;border:1px solid rgba(253,249,240,.16);';
     select.innerHTML=classes.map(c=>`<option value="${String(c.id).replace(/"/g,'&quot;')}">${String(c.name).replace(/</g,'&lt;')}</option>`).join('');
     mount.querySelector('.card').replaceChildren(select,document.createElement('div')); const panel=mount.querySelector('.card').lastElementChild;
-    async function loadClass(id){panel.innerHTML='<div class="empty-note">Loading class evidence…</div>';const rr=await fetch('/api/v1/class-analytics?classId='+encodeURIComponent(id),{credentials:'include'});const x=await rr.json();if(!rr.ok)throw new Error(x.error?.message||'Class analytics unavailable');const a=x.snapshot||{};const sum=a.summary||{};panel.innerHTML=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:14px;"><div class="pstat"><b>${sum.learners||0}</b><span>Learners</span></div><div class="pstat"><b>${sum.evidence||0}</b><span>Evidence rows</span></div><div class="pstat"><b>${sum.accuracy==null?'—':sum.accuracy+'%'}</b><span>Class accuracy</span></div></div>`+(a.concepts?.length?a.concepts.map(c=>`<div class="attempt-row"><span><b>${String(c.concept||'Unknown').replace(/</g,'&lt;')}</b><br><small>${String(c.subject||'')} · ${c.correct}/${c.total} correct · ${c.learners} learner(s)</small></span><span class="a-pct">${c.accuracy==null?'—':c.accuracy+'%'}</span></div>`).join(''):'<div class="empty-note">No server-backed assessment evidence exists for this class yet.</div>');}
+    async function loadClass(id){panel.innerHTML='<div class="empty-note">Loading class evidence…</div>';const rr=await fetch('/api/v1/class-analytics?classId='+encodeURIComponent(id),{credentials:'include'});const x=await rr.json();if(!rr.ok)throw new Error(x.error?.message||'Class analytics unavailable');const a=x.snapshot||{};const sum=a.summary||{};
+      const esc=(v)=>String(v??'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+      const memberNames=Object.fromEntries((a.members||[]).map(m=>[m.id,m.displayName||m.display_name||m.id]));
+      const summaryHtml=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:14px;"><div class="pstat"><b>${sum.learners||0}</b><span>Learners</span></div><div class="pstat"><b>${sum.evidence||0}</b><span>Evidence rows</span></div><div class="pstat"><b>${sum.accuracy==null?'—':sum.accuracy+'%'}</b><span>Class accuracy</span></div></div>`;
+      const conceptsHtml=a.concepts?.length?a.concepts.map(c=>`<div class="attempt-row"><span><b>${esc(c.concept||'Unknown')}</b><br><small>${esc(c.subject||'')} · ${c.correct}/${c.total} correct · ${c.learners} learner(s)</small></span><span class="a-pct">${c.accuracy==null?'—':c.accuracy+'%'}</span></div>`).join(''):'<div class="empty-note">No server-backed assessment evidence exists for this class yet.</div>';
+      // Real per-student x concept heatmap — grouped from studentConcepts,
+      // which the class-analytics endpoint now returns alongside the
+      // class-wide rollup above.
+      let heatmapHtml='<div class="empty-note">No per-student evidence yet.</div>';
+      if(a.studentConcepts?.length){
+        const byStudent={};
+        a.studentConcepts.forEach(sc=>{ (byStudent[sc.learner_id||sc.learnerId] ||= []).push(sc); });
+        heatmapHtml=Object.entries(byStudent).map(([learnerId,rows])=>`<div class="attempt-row" style="flex-direction:column;align-items:flex-start;"><b>${esc(memberNames[learnerId]||learnerId)}</b><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">${rows.map(r=>{const acc=r.accuracy;const color=acc==null?'rgba(253,249,240,.5)':acc>=80?'#34d399':acc>=50?'#f5b942':'#e8608f';return `<span title="${esc(r.subject||'')}" style="padding:3px 8px;border-radius:999px;font-size:.72rem;background:${color}22;color:${color};">${esc(r.concept||'')} ${acc==null?'—':acc+'%'}</span>`;}).join('')}</div></div>`).join('');
+      }
+      // Real common-mistakes rollup from mistake_patterns (populated by
+      // M22 Weakness Detection) — not fabricated for this panel.
+      const mistakesHtml=a.commonMistakes?.length?a.commonMistakes.map(m=>`<div class="attempt-row"><span><b>${esc(m.concept)}</b><br><small>${esc(m.subject||'')} · ${esc(m.error_type||m.errorType||'')}</small></span><span class="a-pct">${m.learnercount||m.learnerCount||0} learner(s)</span></div>`).join(''):'<div class="empty-note">No recurring mistake patterns flagged across this class yet.</div>';
+      panel.innerHTML=summaryHtml
+        +'<h3 class="section-h" style="font-size:1rem;margin:16px 0 8px;">By concept (class-wide)</h3>'+conceptsHtml
+        +'<h3 class="section-h" style="font-size:1rem;margin:16px 0 8px;">By student</h3>'+heatmapHtml
+        +'<h3 class="section-h" style="font-size:1rem;margin:16px 0 8px;">Common mistakes across the class</h3>'+mistakesHtml
+        +'<h3 class="section-h" style="font-size:1rem;margin:16px 0 8px;">🎯 Group & assign (Module 58)</h3>'
+        +'<div class="empty-note" style="margin-bottom:8px;">Groups the class by real per-student evidence for one concept, then can push a real, differentiated task to each group\'s planner.</div>'
+        +(a.concepts?.length?`<select id="diagConceptSelect" style="margin:0 0 10px;padding:8px 10px;border-radius:10px;background:rgba(253,249,240,.06);color:inherit;border:1px solid rgba(253,249,240,.16);">${a.concepts.map(c=>`<option value="${esc(c.concept)}">${esc(c.concept)}</option>`).join('')}</select><div id="diagGroupsPanel"></div>`:'');
+      if(a.concepts?.length){
+        const diagSelect=document.getElementById('diagConceptSelect');
+        const diagPanel=document.getElementById('diagGroupsPanel');
+        async function loadDiagnostic(){
+          diagPanel.innerHTML='<div class="empty-note">Loading real per-student status…</div>';
+          const dr=await fetch(`/api/v1/teacher-diagnostic?classId=${encodeURIComponent(id)}&concept=${encodeURIComponent(diagSelect.value)}`,{credentials:'include'});
+          const dj=await dr.json();
+          if(!dr.ok){ diagPanel.innerHTML=`<div class="empty-note">${esc(dj?.error?.message||'Could not load diagnostic grouping.')}</div>`; return; }
+          const g=dj.groups;
+          const row=(label,key,btnLabel)=>`<div class="attempt-row"><span><b>${label}</b> (${g[key].length})<br><small>${g[key].map(s=>esc(s.displayName)).join(', ')||'none'}</small></span>${g[key].length?`<button class="btn-add" data-assign-group="${key}">${btnLabel}</button>`:''}</div>`;
+          diagPanel.innerHTML=row('🔴 Needs reteach','reteach','Assign guided retry')+row('🟡 Practice','practice','Assign retrieval practice')+row('🟢 Ready to extend','extend','Assign extension')
+            +(g.insufficient_evidence?.length?`<div class="empty-note" style="margin-top:8px;">${g.insufficient_evidence.length} learner(s) have no recorded evidence for this concept yet — not grouped.</div>`:'');
+          diagPanel.querySelectorAll('[data-assign-group]').forEach(btn=>{
+            btn.onclick=async()=>{
+              btn.disabled=true; btn.textContent='Assigning…';
+              const ar=await fetch('/api/v1/teacher-diagnostic',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({classId:id,concept:diagSelect.value,group:btn.dataset.assignGroup})});
+              const aj=await ar.json();
+              btn.textContent=ar.ok?`Assigned to ${aj.assigned} student(s)`:'Failed — try again';
+            };
+          });
+        }
+        diagSelect.addEventListener('change',loadDiagnostic);
+        loadDiagnostic();
+      }
+    }
     select.addEventListener('change',()=>loadClass(select.value)); await loadClass(select.value);
   }catch(e){mount.querySelector('.card').innerHTML='<div class="empty-note">Sign in as a teacher and configure a server-backed class to use M17 class-wide analytics. The page will not substitute browser-local data as class data.</div>';}
 })();
 </script>
 <script src="js/baa-themes.js"></script>
+<script src="js/baa-ecosystem-tools.js"></script>
+<script src="js/baa-board-exam-tools.js"></script>
+<script>
+(function(){
+  const host = document.getElementById('baaBoardIntelligenceSection');
+  if (host && window.BAABoardExamTools) host.appendChild(window.BAABoardExamTools.boardIntelligenceForTeacher());
+  const piHost = document.getElementById('baaPaperIngestionSection');
+  if (piHost && window.BAABoardExamTools) piHost.appendChild(window.BAABoardExamTools.paperIngestion());
+  const trHost = document.getElementById('baaTranslationAuthoringSection');
+  if (trHost && window.BAABoardExamTools) trHost.appendChild(window.BAABoardExamTools.translationAuthoring());
+})();
+</script>
+<link rel="stylesheet" href="css/baa-guide-robot.css">
+<button type="button" id="baaGuideRobotBtn" aria-label="Open BAA Guide" aria-haspopup="dialog" aria-expanded="false">🤖</button>
+<div id="baaGuideRobotPanel" role="dialog" aria-modal="true" aria-labelledby="baaGuideTitle" hidden>
+  <div class="baa-guide-header">
+    <h2 id="baaGuideTitle">🤖 BAA Guide</h2>
+    <button type="button" class="baa-guide-close" aria-label="Close guide">✕</button>
+  </div>
+  <div class="baa-guide-body">
+    <p class="baa-guide-intro">What would you like explained?</p>
+    <div id="baaGuideTopicList"></div>
+    <div id="baaGuideTopicDetail" hidden></div>
+  </div>
+  <div id="baaGuideLiveRegion" class="baa-guide-sr-only" aria-live="polite" aria-atomic="true"></div>
+</div>
+<script src="js/baa-erp.js"></script>
+<script src="js/baa-insights.js"></script>
+<script src="js/baa-guide-topics.js"></script>
+<script src="js/baa-guide-robot.js"></script>
+<script>if(window.BAAGuideRobot)BAAGuideRobot.init();</script>
 </body>
 </html>
