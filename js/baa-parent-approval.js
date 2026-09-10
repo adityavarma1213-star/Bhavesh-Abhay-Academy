@@ -1,34 +1,90 @@
 /* ============================================================
    js/baa-parent-approval.js
    BAA OS — Module 15: Parent Approval Mode.
+   Local/private testing governance layer. Defaults preserve existing
+   behavior until a parent explicitly changes a policy.
    ============================================================ */
 (function(global){
   'use strict';
   const STORAGE_KEY='baa_parent_approval_v1';
   const SCHEMA_VERSION=1;
-  const MAX_RESPONSE_BYTES=1024*1024;
-  const DEFAULT_POLICY={schemaVersion:SCHEMA_VERSION,aiTutorEnabled:true,aiMentorEnabled:true,plannerEnabled:true,maxDailyStudyMinutes:180,requireHumanReviewForLowConfidence:true,updatedAt:null};
-  async function readJson(response){
-    const declared=Number(response?.headers?.get?.('content-length'));
-    if(Number.isFinite(declared)&&declared>MAX_RESPONSE_BYTES){try{response.body?.cancel?.();}catch(_){}throw {code:'POLICY_RESPONSE_TOO_LARGE',status:413};}
+  const DEFAULT_POLICY={
+    schemaVersion:SCHEMA_VERSION,
+    aiTutorEnabled:true,
+    aiMentorEnabled:true,
+    plannerEnabled:true,
+    maxDailyStudyMinutes:180,
+    requireHumanReviewForLowConfidence:true,
+    updatedAt:null
+  };
+  function load(){
     try{
-      if(response?.body&&typeof response.body.getReader==='function'){
-        const reader=response.body.getReader();const chunks=[];let total=0;
-        while(true){const part=await reader.read();if(part.done)break;const size=part.value?.byteLength||0;total+=size;if(total>MAX_RESPONSE_BYTES){try{await reader.cancel();}catch(_){}throw {code:'POLICY_RESPONSE_TOO_LARGE',status:413};}chunks.push(part.value);}
-        const bytes=new Uint8Array(total);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.byteLength;}return JSON.parse(new TextDecoder().decode(bytes));
-      }
-      const text=await response.text();if(new TextEncoder().encode(text).byteLength>MAX_RESPONSE_BYTES)throw {code:'POLICY_RESPONSE_TOO_LARGE',status:413};return JSON.parse(text);
-    }catch(error){if(error?.code==='POLICY_RESPONSE_TOO_LARGE')throw error;throw {code:'POLICY_INVALID_RESPONSE',status:502};}
+      const raw=localStorage.getItem(STORAGE_KEY);
+      if(!raw)return {...DEFAULT_POLICY};
+      const parsed=JSON.parse(raw);
+      if(!parsed||parsed.schemaVersion!==SCHEMA_VERSION)return {...DEFAULT_POLICY};
+      return {...DEFAULT_POLICY,...parsed};
+    }catch{return {...DEFAULT_POLICY};}
   }
-  function load(){try{const raw=localStorage.getItem(STORAGE_KEY);if(!raw)return {...DEFAULT_POLICY};const parsed=JSON.parse(raw);if(!parsed||parsed.schemaVersion!==SCHEMA_VERSION)return {...DEFAULT_POLICY};return {...DEFAULT_POLICY,...parsed};}catch{return {...DEFAULT_POLICY};}}
-  function save(policy){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(policy));return true;}catch{return false;}}
+  function save(policy){
+    try{localStorage.setItem(STORAGE_KEY,JSON.stringify(policy));pushSync(policy);return true;}catch{return false;}
+  }
+
+  // ------------------------------------------------------------
+  // Server sync — was previously localStorage-only (see audit notes).
+  // A parent typically sets this policy from their own device; without
+  // server sync it never reached the student's device. localStorage
+  // remains the synchronous, offline-first source of truth that
+  // canUse()/getDailyMinutesLimit() read from directly.
+  // ------------------------------------------------------------
+  let syncLearnerId=null;
+  const STATE_KEY='parent_approval_v1';
+  function setSyncTarget(learnerId){syncLearnerId=learnerId||null;}
+  function pushSync(policy){
+    if(!syncLearnerId||typeof fetch==='undefined')return;
+    const url=`/api/v1/client-state?learnerId=${encodeURIComponent(syncLearnerId)}&stateKey=${STATE_KEY}`;
+    const opts={method:'PUT',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(policy)};
+    fetch(url,opts).catch((e)=>{
+      if(global.BAAOfflineSync)global.BAAOfflineSync.enqueue(url,opts);
+      console.warn('[BAA Module 15] Parent Approval sync queued offline',e);
+    });
+  }
+  async function hydrateFromServer(learnerId){
+    if(!learnerId||typeof fetch==='undefined')return false;
+    try{
+      const res=await fetch(`/api/v1/client-state?learnerId=${encodeURIComponent(learnerId)}&stateKey=${STATE_KEY}`,{credentials:'include'});
+      if(!res.ok)throw new Error(`server returned ${res.status}`);
+      const {state}=await res.json();
+      if(state&&state.schemaVersion===SCHEMA_VERSION){
+        localStorage.setItem(STORAGE_KEY,JSON.stringify({...DEFAULT_POLICY,...state}));
+      }
+      setSyncTarget(learnerId);
+      return true;
+    }catch(e){
+      console.warn('[BAA Module 15] Could not hydrate Parent Approval from server — continuing with local data only.',e);
+      return false;
+    }
+  }
   function getPolicy(){return load();}
-  function updatePolicy(patch={}){const current=load();if(typeof patch.aiTutorEnabled==='boolean')current.aiTutorEnabled=patch.aiTutorEnabled;if(typeof patch.aiMentorEnabled==='boolean')current.aiMentorEnabled=patch.aiMentorEnabled;if(typeof patch.plannerEnabled==='boolean')current.plannerEnabled=patch.plannerEnabled;if(Number.isFinite(Number(patch.maxDailyStudyMinutes)))current.maxDailyStudyMinutes=Math.max(15,Math.min(180,Math.round(Number(patch.maxDailyStudyMinutes))));if(typeof patch.requireHumanReviewForLowConfidence==='boolean')current.requireHumanReviewForLowConfidence=patch.requireHumanReviewForLowConfidence;current.updatedAt=new Date().toISOString();return save(current)?current:null;}
-  function canUse(feature){const p=load();if(feature==='ai_tutor')return p.aiTutorEnabled;if(feature==='ai_mentor')return p.aiMentorEnabled;if(feature==='planner')return p.plannerEnabled;return true;}
+  function updatePolicy(patch={}){
+    const current=load();
+    if(typeof patch.aiTutorEnabled==='boolean')current.aiTutorEnabled=patch.aiTutorEnabled;
+    if(typeof patch.aiMentorEnabled==='boolean')current.aiMentorEnabled=patch.aiMentorEnabled;
+    if(typeof patch.plannerEnabled==='boolean')current.plannerEnabled=patch.plannerEnabled;
+    if(Number.isFinite(Number(patch.maxDailyStudyMinutes)))
+      current.maxDailyStudyMinutes=Math.max(15,Math.min(180,Math.round(Number(patch.maxDailyStudyMinutes))));
+    if(typeof patch.requireHumanReviewForLowConfidence==='boolean')
+      current.requireHumanReviewForLowConfidence=patch.requireHumanReviewForLowConfidence;
+    current.updatedAt=new Date().toISOString();
+    return save(current)?current:null;
+  }
+  function canUse(feature){
+    const p=load();
+    if(feature==='ai_tutor')return p.aiTutorEnabled;
+    if(feature==='ai_mentor')return p.aiMentorEnabled;
+    if(feature==='planner')return p.plannerEnabled;
+    return true;
+  }
   function getDailyMinutesLimit(){return load().maxDailyStudyMinutes;}
-  async function loadServer(id){const learnerId=String(id||global.BAA_LEARNER_ID||'').trim();if(!learnerId)return {ok:false,error:{code:'LEARNER_REQUIRED',message:'A learner context is required.'}};try{const response=await fetch(`/api/m15-parent-policy?learnerId=${encodeURIComponent(learnerId)}`,{credentials:'include',cache:'no-store',headers:{Accept:'application/json'}});let data;try{data=await readJson(response);}catch(error){return {ok:false,error:{code:error?.code||'POLICY_INVALID_RESPONSE',message:error?.code==='POLICY_RESPONSE_TOO_LARGE'?'Parent policy response is too large.':'Parent policy returned an invalid response.'}};}if(!response.ok)return {ok:false,error:data?.error||{code:'POLICY_LOAD_FAILED',message:'Parent policy could not be loaded.'}};return {ok:true,learnerId,policy:data.policy};}catch{return {ok:false,error:{code:'NETWORK_ERROR',message:'Parent policy could not reach the server.'}};}}
-  async function saveServer(policy,id){const learnerId=String(id||global.BAA_LEARNER_ID||'').trim();if(!learnerId)return {ok:false,error:{code:'LEARNER_REQUIRED',message:'A learner context is required.'}};try{const response=await fetch('/api/m15-parent-policy',{method:'POST',credentials:'include',cache:'no-store',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({learnerId,...(policy||{})})});let data;try{data=await readJson(response);}catch(error){return {ok:false,error:{code:error?.code||'POLICY_INVALID_RESPONSE',message:error?.code==='POLICY_RESPONSE_TOO_LARGE'?'Parent policy response is too large.':'Parent policy returned an invalid response.'}};}if(!response.ok)return {ok:false,error:data?.error||{code:'POLICY_SAVE_FAILED',message:'Parent policy could not be saved.'}};return {ok:true,learnerId,policy:data.policy};}catch{return {ok:false,error:{code:'NETWORK_ERROR',message:'Parent policy could not reach the server.'}};}}
-  function renderServerPolicyPanel(){if(!document.body||document.getElementById('baa-m15-policy-panel'))return;const host=document.getElementById('serverLearnerView')||document.getElementById('content');if(!host)return;const panel=document.createElement('section');panel.id='baa-m15-policy-panel';panel.className='card';panel.setAttribute('aria-labelledby','baa-m15-policy-title');panel.innerHTML=`<h2 id="baa-m15-policy-title" class="section-h" style="margin-top:0">🛡️ Parent approval controls</h2><p style="color:var(--dim);font-size:.8rem;line-height:1.55;margin-bottom:14px">These controls are stored against this learner on the BAA server. They apply to Tutor, Mentor and Planner access; they do not diagnose or replace parent/teacher judgment.</p><div class="baa-gap-grid"><label class="baa-ui-inline-field">AI Tutor <select id="m15-tutor"><option value="true">Allowed</option><option value="false">Not allowed</option></select></label><label class="baa-ui-inline-field">AI Mentor <select id="m15-mentor"><option value="true">Allowed</option><option value="false">Not allowed</option></select></label><label class="baa-ui-inline-field">Planner <select id="m15-planner"><option value="true">Allowed</option><option value="false">Not allowed</option></select></label><label class="baa-ui-inline-field">Daily planner minutes <input id="m15-minutes" type="number" min="0" max="480" step="5"></label></div><div style="display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap"><button id="m15-save" class="baa-mini">Save approval policy</button><span id="m15-status" class="bypass-status" aria-live="polite">Loading server policy…</span></div>`;host.insertBefore(panel,host.firstChild);const status=panel.querySelector('#m15-status');const setValue=(p)=>{panel.querySelector('#m15-tutor').value=String(p?.tutor_enabled!==false);panel.querySelector('#m15-mentor').value=String(p?.mentor_enabled!==false);panel.querySelector('#m15-planner').value=String(p?.planner_enabled!==false);panel.querySelector('#m15-minutes').value=String(Number.isFinite(Number(p?.planner_daily_minutes))?Number(p.planner_daily_minutes):180);};panel.querySelector('#m15-save').addEventListener('click',async()=>{status.textContent='Saving…';const result=await saveServer({tutorEnabled:panel.querySelector('#m15-tutor').value==='true',mentorEnabled:panel.querySelector('#m15-mentor').value==='true',plannerEnabled:panel.querySelector('#m15-planner').value==='true',plannerDailyMinutes:Number(panel.querySelector('#m15-minutes').value)});if(result.ok){status.textContent='Saved to the BAA server.';localStorage.removeItem(STORAGE_KEY);setValue({tutor_enabled:result.policy.tutorEnabled,mentor_enabled:result.policy.mentorEnabled,planner_enabled:result.policy.plannerEnabled,planner_daily_minutes:result.policy.plannerDailyMinutes});}else status.textContent=result.error?.message||'Could not save server policy.';});loadServer().then(result=>{if(result.ok){setValue(result.policy);status.textContent='Loaded from the BAA server.';}else status.textContent=result.error?.message||'Server policy unavailable; local defaults remain unchanged.';});}
-  global.BAAParentApproval={getPolicy,updatePolicy,canUse,getDailyMinutesLimit,loadServer,saveServer,_load:load};
-  if(typeof document!=='undefined'){if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',renderServerPolicyPanel,{once:true});else setTimeout(renderServerPolicyPanel,0);}
+  global.BAAParentApproval={getPolicy,updatePolicy,canUse,getDailyMinutesLimit,_load:load,setSyncTarget,hydrateFromServer};
 })(window);

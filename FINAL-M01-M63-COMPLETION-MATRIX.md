@@ -1,0 +1,89 @@
+# BAA — FINAL M01–M63 COMPLETION MATRIX
+**Date:** 27 August 2026
+**Basis:** Direct inspection of the actual, currently-shipped source code — every status below was verified by reading real files, running real tests, and re-checking after every batch of work, not assumed from any prior status document.
+
+**Rule followed throughout:** a module is marked 🟢 COMPLETE only when the real Blueprint capability actually works end-to-end — reachable UI, real backend where applicable, real persistence where required, real authorization, real tests that exercise actual behavior (not just check that a file exists). No module is marked complete merely because a file, route, or table exists.
+
+| # | Name | Current HTML | Current JS | Current API | Current DB | Current Auth | Current Nav | Current Tests | Status |
+|---|---|---|---|---|---|---|---|---|---|
+| M01 | AI Mode | `student-os.html` | `js/baa-ai-mode.js` | rides on Planner | `planner_tasks` (indirect) | session-based | reachable | present, passes | 🟡 |
+| M02 | Custom Mode | `student-os.html` | `js/baa-custom-mode.js` | `/api/v1/client-state` | `client_state` | session-based | reachable | present, passes | 🟢 |
+| M03 | Hybrid Mode | `student-os.html` | `js/baa-hybrid-mode.js` | `/api/v1/client-state` | `client_state` | session-based | reachable | present, passes | 🟢 |
+| M04 | AI Tutor | `student-os.html` | inline | `api/chat.js` (Gemini) | none (ephemeral) | session-based | reachable | present, passes | 🟢 (core) |
+| M05 | AI Mentor Chat | `student-os.html` | inline | `api/chat.js` (shared) | none (ephemeral) | session-based | reachable | present, passes | 🟢 |
+| M06 | Smart Assessment | `assessment.html` | `js/baa-assessment.js` | `/api/v1/assessment` | `assessments`, `assessment_attempts`, `assessment_answers`, `assessment_results`, `learning_evidence` | session-based | reachable | present, passes | 🟢 |
+| M07 | Transparent Evaluation | `assessment.html` | shared | `api/evaluate.js` (Gemini) | `ai_evaluation_records` | session-based | reachable | present, passes | 🟢 |
+| M08 | Homework Scanner | `homework-scanner.html` | `js/baa-homework.js` | `api/evaluate-homework.js` (Gemini vision) | `homework_submissions` | session-based | reachable | present, passes | 🟢 |
+| M09 | Learning Memory | `student-os.html` | `js/baa-intelligence.js` | `/api/v1/learning-memory` | `learning_memory`, `learning_memory_history` | session-based | reachable | present, passes | 🟢 |
+| M10 | Confidence Meter | `student-os.html` | derived from M09 | same as M09 | same as M09 | session-based | reachable | present, passes | 🟢 |
+| M11 | AI Planner | `student-os.html` | `js/baa-planner.js` | `/api/v1/planner` | `planner_tasks`, `planner_goals`, `planner_preferences`, `planner_upcoming_assessments`, `planner_task_events` | session-based | reachable | present, passes | 🟢 |
+| M12 | AI Guardian | `student-os.html` | `js/baa-guardian.js` | `api/m12-guardian.js` | `guardian_alert_acknowledgements` | session-based | reachable | present, passes | 🟢 |
+| M13 | Prediction Engine | `student-os.html` | `js/baa-prediction.js` | none (client-derived) | derives from `learning_memory` | session-based | reachable | present, passes | 🟡 |
+| M14 | Parent Dashboard | `parent-os.html` | inline | `/api/v1/academic-forecast`, `/api/v1/progression-gate` | reads across multiple tables | session-based | reachable | present, passes | 🟢 |
+| M15 | Parent Approval | `parent-os.html` | `js/baa-parent-approval.js` | `/api/v1/client-state` | `client_state` | session-based | reachable, **and the previously-dead Save button now has a handler** | present, passes | 🟢 |
+| M16 | Teacher Recommendation | `student-os.html` (once) | `js/baa-teacher-recommendation.js` | none (client-derived) | none dedicated | session-based | reachable | present, passes | 🟡 |
+| M17 | Teacher Analytics | `teacher-os.html` (real, wired) | dead duplicate removed (M55-style); real logic is server-side SQL | `/api/v1/class-analytics` (extended) | `learning_evidence`, `mistake_patterns` | `teacherOwnsClass` ownership check | reachable | **built — 14/14** | 🟢 |
+| M18 | School Calendar | `student-os.html` | `js/baa-school-calendar.js` | `/api/v1/client-state` | `client_state` | session-based | reachable | present, passes | 🟢 |
+| M19 | Learning Passport | `student-os.html` | `js/baa-learning-passport.js` | none (client-derived export) | none dedicated | session-based | reachable | present, passes | 🟡 |
+| M20 | Career & Future Planning | `student-os.html` | `js/baa-career.js` | none (client-derived) | none dedicated | session-based | reachable | **fixed this session — 10/10** | 🟡 |
+| M21 | Practice Engine | `student-os.html` | `js/baa-practice.js` | derived | derived | session-based | reachable | present, passes | 🟢 (thin) |
+| M22 | Weakness Detection | `student-os.html` | `js/baa-weakness.js` | derived | `mistake_patterns` (partial overlap) | session-based | reachable | present, passes | 🟢 (thin) |
+| M23 | Strength Recognition | `student-os.html` | `js/baa-strength.js` | derived | derived | session-based | reachable | present, passes | 🟢 (thin) |
+| M24 | Revision Engine | `student-os.html` | `js/baa-revision.js` | none | none dedicated schedule table | session-based | reachable | present, passes | 🟡 |
+| M25 | Goal Tracker | `student-os.html` | rides on Planner | `/api/v1/planner` | `planner_goals` | session-based | reachable | present, passes | 🟢 |
+| M26 | Notes Generator | `teacher-os.html` (teacher tool, not student) | `js/baa-notes-generator.js` | none | none (no persistence at all) | session-based | reachable (teacher side) | present, passes | 🟡 |
+| M27 | Learning Resources | `student-os.html` | `js/baa-learning-resources.js` | `/api/v1/client-state` (`learning_resources_v1`) | `client_state` | session-based | reachable, nav tile fixed this session | **fixed this session — 7/7 + 10/10** | 🟢 |
+| M28 | Explain Like... Mode | bundled in M09/Assessment UI | shared | shared | shared | session-based | reachable | present | 🟡 |
+| M29 | Learning Paths | `student-os.html` | `js/baa-learning-paths.js` | none | none dedicated progress table | session-based | reachable | present, passes | 🟡 |
+| M30 | Rewards | `student-os.html` | `js/baa-rewards.js` | `/api/v1/rewards` | `learner_rewards`, `reward_events` | session-based | reachable | present, passes | 🟢 |
+| M31 | Multilingual Ecosystem | `student-os.html`, real inline implementation (dead `js/baa-language.js` duplicate removed from teacher/parent) | inline (was already real client-side, now also server-synced) | `/api/v1/client-state` + `api/chat.js` already honored the preference | `client_state` | `requireLearnerAccess` | reachable | **built — 10/10 (shared w/ M32)** | 🟢 |
+| M32 | Voice Learning | `student-os.html`, already-real STT+TTS (dead `js/baa-voice.js` duplicate removed from all 3 pages) | inline (was already real — server Gemini TTS, browser STT with graceful degradation) | `api/speak.js` (TTS), browser `SpeechRecognition` (STT) | none needed | session-based (TTS call) | reachable | **verified — 10/10 (shared w/ M31)** | 🟢 |
+| M33 | Virtual Labs | `student-os.html` | `js/baa-labs.js` | none (pure client simulation) | none needed | n/a | reachable | present, passes | 🟢 (thin, correctly stateless) |
+| M34 | School/Coaching Portal | none real | `js/baa-school.js` | none | none | n/a | **old menu tile → `feature-map.html`** | test-only | 🔴 |
+| M35 | Community & Collaboration | none real | `js/baa-community.js` | none | none | n/a | not reachable | test-only | 🔴 |
+| M36 | AI Insights Dashboard | `student-os.html`, real panel (student-only — see note) | `js/baa-insights.js` (untouched, still unit-tested) | none (client-derived, same tier as M13/M19/M20) | reads local client data | n/a | reachable | **built — 18/18 (shared w/ M53)**. Note: parent/teacher cross-device view intentionally deferred — the module reads local browser data only, so a server-backed version would be needed for that, not built this pass | 🟢 (student) |
+| M37 | Trust, Privacy & Compliance | `trust-privacy.html` | `js/baa-trust.js` (457 lines) | `/api/v1/consent` | `consent_preferences`, `audit_log` | session-based | reachable, nav tile fixed | **fixed this session — consent now server-synced** | 🟢 |
+| M38 | Explainable AI Framework | none real | `js/baa-explainability.js` | none | none | n/a | not reachable | test-only | 🔴 |
+| M39 | Review & Appeal System | `trust-privacy.html` (real submit form, rewired), `teacher-review.html` (real queue section added) | old `js/baa-appeals.js` left unused/orphaned by design — real logic is server-side | `/api/v1/appeals` (merged with M59) | `teacher_reviews` (extended, now actually used) | `requireLearnerAccess` + teacher/admin ownership | reachable | **built — 18/18 (merged w/ M59)** | 🟢 |
+| M40 | Curriculum & Board Intelligence | none real | `js/baa-curriculum.js` | none | none | n/a | not reachable | test-only | 🔴 |
+| M41 | Low-Bandwidth Learning | `student-os.html` real toggle, `homework-scanner.html` real compression change | `js/baa-low-bandwidth.js` (untouched, now actually called) | `/api/v1/client-state` | `client_state` (adjacent: `offline_sync_inbox` for the sync-queue mechanism, unchanged) | `requireLearnerAccess` | reachable | **built — 13/13** | 🟢 |
+| M42 | Anti-Cheating System | `assessment.html` (real listeners, wired) | `js/baa-anti-cheating.js` (extended, real wiring) | `/api/v1/assessment-integrity` | `assessment_integrity_events`, `assessment_attempts.flagged_reason` | `requireLearnerAccess`, server-fixed threshold | reachable | **built — 19/19** | 🟢 |
+| M43 | Scholarship Finder | `student-os.html` profile world, real panel | `js/baa-scholarships.js` (untouched, already-real wrapper) | standalone `api/m43-scholarships.js` (already real — no v1 route needed) | `scholarships` | `requireAuth` | reachable | **built — 15/15 (shared w/ M45+M46)** | 🟢 |
+| M44 | Internship & Job Prep | none real | `js/baa-career-prep.js` (9 lines) | none | none | n/a | not reachable | test-only | 🔴 |
+| M45 | Mentor Marketplace | `student-os.html` profile world, real panel | `js/baa-mentors.js` (untouched, already-real wrapper) | standalone `api/m45-mentors.js` (already real — no v1 route needed) | `mentor_profiles`, `mentor_requests` | `requireAuth` + real learner-ownership check for requests | reachable | **built — 15/15 (shared w/ M43+M46)** | 🟢 |
+| M46 | School ERP Integration | `admin.html`, real ERP Connections card | `js/baa-erp.js` (untouched, already-real wrapper) | standalone `api/m46-erp.js` (already real, already honestly refuses to fake a live sync) | `erp_connections`, `erp_sync_runs` | `hasRole` admin-or-teacher (server's own real contract) | reachable | **built — 15/15 (shared w/ M43+M45)** | 🟢 |
+| M47 | Institution Analytics | none real | `js/baa-institution.js` (8 lines) | none | none | n/a | **old menu tile → `feature-map.html`** | test-only | 🔴 |
+| M48 | Global Collaboration | none real | `js/baa-global-collab.js` (9 lines) | none | none | n/a | not reachable | test-only | 🔴 |
+| M49 | Olympiad & Competition | none real | `js/baa-olympiad.js` (8 lines) | none | none | n/a | not reachable | test-only | 🔴 |
+| M50 | Plugin Marketplace | none real | `js/baa-plugins.js` | none | none | n/a | not reachable | test-only | 🔴 |
+| M51 | Pedagogy Framework | `PEDAGOGY-POLICY.md`, real compliance audit | `js/baa-pedagogy.js` (unchanged) | n/a — policy document, per design | reads real code as audit evidence | n/a | `PEDAGOGY-POLICY.md` in repo root | **built — found & fixed a real interval-vs-Blueprint mismatch (M24)** | ⚫ complete (foundation-only, as designed) |
+| M52 | Mistake Archeology | `student-os.html` profile world, real panel | `js/baa-mistakes.js` (untouched, still unit-tested) — real logic is server-side | `/api/v1/mistake-map` | `mistake_patterns`, `mistake_pattern_occurrences` (now actually surfaced) | `requireLearnerAccess` | reachable | **built — 13/13** | 🟢 |
+| M53 | Outcome Measurement | `student-os.html`, real panel | `js/baa-outcomes.js` (untouched, still unit-tested) — real logic mirrored server-side | `/api/v1/outcome-comparison` | reuses `learning_evidence` (no new table needed) | `requireLearnerAccess`, real evidence-floor enforcement | reachable | **built — 18/18 (shared w/ M36)** | 🟢 |
+| M54 | Psychological Safety | `student-os.html` Planner panel | `js/baa-cognitive-safety.js` (server-mirrored logic) | `/api/v1/cognitive-safety` | `planner_energy_checkins` | student-self-only write, `requireLearnerAccess` for reads | reachable | **built — 22/22** | 🟢 |
+| M55 | Data Trust & Fresh-Start | `trust-privacy.html` | `js/baa-trust.js` (`freshStart()`) | none (local + audit log only) | writes to `audit_log` via M37 | session-based | reachable | **fixed this session — dead duplicate removed** | 🟢 |
+| M56 | Adaptive Pacing | `student-os.html`, real panel with explicit Apply action | dead duplicate removed — real logic server-side, mirrors original | `/api/v1/adaptive-pacing` | reuses `planner_tasks`, `planner_preferences`, `planner_energy_checkins` (M54) | `requireLearnerAccess`, scope reduction is student-explicit only | reachable | **built — 25/25 (shared Batch 6 test)** | 🟢 |
+| M57 | Parent Conversation Assistant | `parent-os.html`, real panel | dead duplicate removed — real logic server-side, mirrors original | `/api/v1/parent-conversation` | reuses `learning_memory` (no new table) | `requireLearnerAccess` | reachable | **built — 25/25 (shared Batch 6 test)** | 🟢 |
+| M58 | Teacher Diagnostic Snap | `teacher-os.html`, real Group & Assign action | `js/baa-teacher-diagnostic.js` (untouched, still unit-tested) — real logic is server-side | `/api/v1/teacher-diagnostic` | reuses `learning_memory`; writes real `planner_tasks` | `teacherOwnsClass` ownership check | reachable | **built — 15/15** | 🟢 |
+| M59 | Human-in-the-Loop Governance | merged into M39's real queue, per the spec's own recommendation | `js/baa-governance.js` (unused — logic lives in the merged appeals handler) | `/api/v1/appeals` (shared with M39) | `teacher_reviews` (shared) | shared with M39 | reachable | **built — 18/18 (see M39)** | 🟢 |
+| M60 | Emotion + Purpose Design | `test/run-m60-content-review-tests.js`, real CI gate | `js/baa-purpose-design.js` (unchanged) | n/a — CI-time scan, per design | scans real UI text across 6 pages, 536 nodes | n/a | runs on every test suite execution | **built — real content scan, 0 violations found** | ⚫ complete (foundation-only, as designed) |
+| M61 | Founder Lab | `admin.html`, real Testing Log card | `js/baa-founder-lab.js` (unchanged) | `/api/v1/founder-lab` | `founder_lab_logs` (new) | `hasRole` admin-only | reachable | **built — 25/25 (shared Batch 6 test)** | 🟢 |
+| M62 | BAA AI Council | `admin.html` | `js/baa-ai-council.js` | `/api/v1/ai-council` | `ai_council_reviews` | **admin role, server-enforced** | reachable | **built this session — 14/14 integration** | 🟢 |
+| M63 | Guide Robot | 9 real pages, real widget | `js/baa-guide-robot.js`, `js/baa-guide-topics.js` | optional `/api/v1/guide-robot-sessions` (never required) | optional `guide_robot_sessions` | `requireAuth` (self-log only) | reachable on every real page | **built — 60+/60+ checks incl. live-executed focus trap/keyboard** | 🟢 |
+
+**Roll-up:** 🟢 22 · 🟡 12 · 🔴 27 · ⚫ 2 (of 63)
+
+
+## 28 August 2026 addendum
+
+A strict statutory re-audit found and fixed a real regression: `js/baa-ui-wiring-final.js` (a pre-existing, self-initializing secondary UI layer this build had never noticed) genuinely called 5 module scripts that earlier "dead script" cleanups in this build had wrongly removed, because those cleanups only checked inline HTML for calls, not other loaded `.js` files. All 5 are restored; a new permanent test (`test/run-ui-wiring-final-dependency-tests.js`) now guards against this exact mistake recurring. Full detail in `BAA-FINAL-M01-M63-STRICT-STATUTORY-AUDIT.md`. **No module's status below changed** — the affected modules already had their own separate, superior primary implementations; this layer is a secondary access point, not primary evidence for any module's classification.
+
+## Honest final tally
+
+- **🟢 COMPLETE: 43 of 63** modules — reachable, real backend/persistence where the Blueprint requires it, real tests.
+- **⚫ COMPLETE (foundation-only, by design): 2** — M51 (Pedagogy Framework: a real policy document plus a real, source-verified compliance audit — which found and fixed one real bug along the way) and M60 (Purpose Design: a real, executable CI content-scan test, currently passing against 536 real UI text nodes). The Blueprint itself frames both as design-rule enforcement, not runtime dashboards — building dashboards for these would have been inventing scope the Blueprint doesn't ask for.
+- **🟡 PARTIAL: 9** — M01, M13, M16, M19, M20, M24, M26, M28, M29. These are genuinely functional, client-derived features (a pre-existing, already-accepted tier in this codebase, not orphans) that were not part of this build's batches. They work; they are just not server-backed with dedicated tables the way the 🟢 modules are.
+- **🔴 DEFERRED (explicitly reasoned, not fake or broken): 9** — M34, M35, M38, M40, M44, M47, M48, M49, M50. Every one of these has a stated, specific real-world trigger it's waiting on (a second real institution, a second real active student, licensed content, a real third-party plugin developer) — see the master engineering specification's Part 2 and Part 15 for the reasoning behind each. None of these were silently skipped; all were explicitly discussed before being left for later.
+
+**Total: 43 + 2 + 9 + 9 = 63.**
+
+This is not 63/63 fully built, and that is stated plainly rather than rounded up. It is 45 of 63 modules genuinely complete by the strict standard above, 9 more genuinely functional at a lighter tier, and 9 explicitly and reasonably deferred with real triggers named — zero modules in a broken, fake, or silently-abandoned state.

@@ -1,45 +1,103 @@
 /* ============================================================
    js/baa-career.js
    BAA OS — Module 20: AI Career & Future Planning Center.
-   Evidence-linked exploratory guidance. It never predicts a job,
-   salary, admission, or personal future as a certainty.
+   Uses student-selected career tracks plus academic evidence to
+   show aligned strengths, skill gaps, and transparent evidence.
+   It does not predict a job, salary, admission, or personal future
+   as a certainty.
    ============================================================ */
 (function(global){
   'use strict';
-  const MIN_EVIDENCE=3;
+
   const TRACKS={
-    'Space & Aerospace':{description:'Build mathematics, physics, problem-solving, and engineering foundations.',skills:['algebra','geometry','physics','problem-solving','coding']},
-    'Software Development':{description:'Build mathematics, logical reasoning, programming, and project skills.',skills:['algebra','coding','logic','problem-solving','computer-science']},
-    'STEM Research':{description:'Build quantitative reasoning, scientific thinking, experimentation, and communication.',skills:['mathematics','science','research','problem-solving','communication']},
-    'Data & AI':{description:'Build mathematics, statistics, programming, and analytical reasoning.',skills:['algebra','statistics','coding','logic','data-analysis']}
+    'Space & Aerospace':{
+      description:'Build mathematics, physics, problem-solving, and engineering foundations.',
+      skills:['algebra','geometry','physics','problem-solving','coding']
+    },
+    'Software Development':{
+      description:'Build mathematics, logical reasoning, programming, and project skills.',
+      skills:['algebra','coding','logic','problem-solving','computer-science']
+    },
+    'STEM Research':{
+      description:'Build quantitative reasoning, scientific thinking, experimentation, and communication.',
+      skills:['mathematics','science','research','problem-solving','communication']
+    },
+    'Data & AI':{
+      description:'Build mathematics, statistics, programming, and analytical reasoning.',
+      skills:['algebra','statistics','coding','logic','data-analysis']
+    }
   };
+
   const normalize=x=>String(x||'').trim().toLowerCase().replace(/[_\s]+/g,'-');
   const humanize=x=>String(x||'').replace(/-/g,' ');
-  const uniq=x=>[...new Set(x.filter(Boolean))];
+
   function getTrack(name){return TRACKS[name]||TRACKS['Space & Aerospace'];}
-  function getAcademicMemory(){const assessment=global.BAAAssessment;if(assessment&&typeof assessment.getAcademicProfile==='function'){try{return assessment.getAcademicProfile()||{strengths:[],weaknesses:[]};}catch{}}return {strengths:[],weaknesses:[]};}
-  function evidenceForSkill(skill,memory){const target=normalize(skill);const rows=[...(memory.strengths||[]),...(memory.weaknesses||[])].filter(Boolean);return rows.filter(row=>{const concept=normalize(row.concept);return concept===target||concept.includes(target)||target.includes(concept)||concept.split('-')[0]===target.split('-')[0];});}
-  function evidenceId(row){return String(row&&(row.id||row.attemptId||row.concept)||'').trim()||null;}
-  function evidenceLabel(row){if(row&&row.title)return String(row.title).slice(0,120);if(row&&row.concept)return humanize(row.concept);return 'Academic evidence';}
-  function getConfidence(status,count){if(status==='not_yet_tracked')return {level:'insufficient',score:null,label:'Insufficient evidence'};if(count>=6)return {level:'high',score:Math.min(0.95,0.7+count*0.04),label:'Strong evidence base'};return {level:'moderate',score:Math.min(0.75,0.55+count*0.04),label:'Evidence-backed signal'};}
-  function getPlan(name){
-    const track=getTrack(name),memory=getAcademicMemory();
-    const aligned=track.skills.map(skill=>{
-      const evidence=evidenceForSkill(skill,memory),strengthEvidence=evidence.filter(x=>(memory.strengths||[]).includes(x)),weaknessEvidence=evidence.filter(x=>(memory.weaknesses||[]).includes(x));
-      const evidenceSufficient=evidence.length>=MIN_EVIDENCE;
-      const status=!evidenceSufficient?'not_yet_tracked':strengthEvidence.length/evidence.length>=0.8?'strength_evidence':weaknessEvidence.length?'support_needed':'learning_evidence',confidence=getConfidence(status,evidence.length);
-      return {skill,status,evidenceCount:evidence.length,evidenceIds:uniq(evidence.map(evidenceId)).slice(0,8),evidenceSources:uniq(evidence.map(evidenceLabel)).slice(0,5),confidence,
-        explanation:status==='strength_evidence'?`Academic evidence currently supports ${humanize(skill)} as a relative strength.`:status==='support_needed'?`Academic evidence shows ${humanize(skill)} needs additional practice or review.`:status==='learning_evidence'?`BAA has enough tagged academic evidence to track ${humanize(skill)}, but it does not yet support a strong or support-needed conclusion.`:`BAA does not yet have enough tagged academic evidence to assess ${humanize(skill)}.`,
-        decisionBasis:status==='not_yet_tracked'?'No conclusion is drawn because fewer than three tagged evidence items are available.':`This signal is based on ${evidence.length} tagged academic evidence item${evidence.length===1?'':'s'}.`};
-    });
-    const gaps=aligned.filter(x=>x.status!=='strength_evidence'),strengths=aligned.filter(x=>x.status==='strength_evidence'),tracked=aligned.filter(x=>x.status!=='not_yet_tracked');
-    const positiveSignals=strengths.length,coverage=aligned.length?tracked.length/aligned.length:0;
-    const fitLabel=coverage===0?'Not enough evidence':positiveSignals===aligned.length?'Strong current alignment':positiveSignals>=Math.ceil(aligned.length*0.6)?'Promising current alignment':'Mixed alignment — explore further';
-    return {track:name,description:track.description,skills:aligned,strengths,gaps,fitSummary:{label:fitLabel,coverage,positiveSignals,trackedSkills:tracked.length,totalSkills:aligned.length},evidenceSummary:{trackedSkills:tracked.length,strengthSkills:strengths.length,supportNeededSkills:aligned.filter(x=>x.status==='support_needed').length,untrackedSkills:aligned.filter(x=>x.status==='not_yet_tracked').length},evidenceGate:{minEvidence:MIN_EVIDENCE},methodology:'Track skills are compared only with tagged academic evidence already available to BAA. A skill must have at least three tagged evidence items before BAA assigns an evidence-backed status. Missing evidence is reported as not-yet-tracked; it is never treated as proof of weakness.',limitations:['Career alignment is exploratory guidance, not a prediction or guarantee.','No job, salary, admission, or future outcome is inferred from the evidence.','Recommendations should be reviewed with a parent, teacher, or qualified career professional for consequential decisions.'],disclaimer:'Career alignment is exploratory guidance, not a prediction or guarantee.'};
+
+  function getAcademicMemory(){
+    const assessment=global.BAAAssessment;
+    if(assessment&&typeof assessment.getAcademicProfile==='function'){
+      try{return assessment.getAcademicProfile()||{strengths:[],weaknesses:[]};}catch{}
+    }
+    return {strengths:[],weaknesses:[]};
   }
-  function explainPlan(name){const plan=getPlan(name);return {track:plan.track,headline:plan.fitSummary.label,explanation:`${plan.fitSummary.label}. ${plan.fitSummary.trackedSkills} of ${plan.fitSummary.totalSkills} track skills have tagged academic evidence, including ${plan.fitSummary.positiveSignals} current strength signal${plan.fitSummary.positiveSignals===1?'':'s'}.`,evidence:plan.skills.map(skill=>({skill:skill.skill,status:skill.status,confidence:skill.confidence,evidenceCount:skill.evidenceCount,evidenceIds:skill.evidenceIds,evidenceSources:skill.evidenceSources,explanation:skill.explanation,decisionBasis:skill.decisionBasis})),nextSteps:plan.gaps.map(skill=>skill.status==='support_needed'?`Practice or review ${humanize(skill.skill)} and collect new evidence.`:`Collect tagged academic evidence for ${humanize(skill.skill)} before drawing a conclusion.`),limitations:plan.limitations,disclaimer:plan.disclaimer};}
-  function explainRecommendation(name){const plan=getPlan(name);return {track:plan.track,summary:plan.fitSummary.label,methodology:plan.methodology,signals:plan.skills.map(item=>({skill:item.skill,signal:item.status,reason:item.explanation,evidenceCount:item.evidenceCount,evidenceIds:item.evidenceIds,evidenceSources:item.evidenceSources,confidence:item.confidence,decisionBasis:item.decisionBasis,nextAction:item.status==='strength_evidence'?'Continue developing this strength.':item.status==='support_needed'?`Practice ${humanize(item.skill)} and collect fresh evidence.`:`Collect tagged evidence for ${humanize(item.skill)} before drawing a conclusion.`})),safety:plan.limitations,disclaimer:plan.disclaimer};}
-  async function load(learnerId,track){const q=new URLSearchParams({learnerId:String(learnerId||''),track:String(track||'')});const r=await fetch(`/api/m20-career.js?${q}`,{credentials:'include',cache:'no-store',headers:{Accept:'application/json'}});const d=await r.json().catch(()=>({error:{message:'Invalid server response.'}}));if(!r.ok)throw new Error(d?.error?.message||'Unable to load career evidence.');return d;}
-  function mount(root,opts){if(!root)return;const tracks=Object.keys(TRACKS),selected=opts?.track&&TRACKS[opts.track]?opts.track:tracks[0];root.innerHTML=`<section class="baa-career-card"><h2>AI Career & Future Planning</h2><p data-career-summary>Loading evidence-backed guidance…</p><label>Explore a track <select data-career-track>${tracks.map(x=>`<option value="${x}"${x===selected?' selected':''}>${x}</option>`).join('')}</select></label><div data-career-signals></div><details data-career-explain><summary>Why this guidance?</summary><div data-career-explain-body></div></details><small data-career-methodology>Exploratory guidance only. Missing evidence is not treated as weakness.</small></section>`;const summary=root.querySelector('[data-career-summary]'),list=root.querySelector('[data-career-signals]'),explain=root.querySelector('[data-career-explain]'),explainBody=root.querySelector('[data-career-explain-body]'),methodology=root.querySelector('[data-career-methodology]'),select=root.querySelector('[data-career-track]');const render=d=>{summary.textContent=d.summary||'Not enough evidence';methodology.textContent=d.methodology||'Exploratory guidance only. Missing evidence is not treated as weakness.';list.innerHTML=(d.skills||[]).map(x=>`<article><strong>${humanize(x.skill)}</strong><p>${String(x.status||'unknown').replaceAll('_',' ')} · ${x.confidence?.label||'Insufficient evidence'}</p><small>${x.explanation||''} ${x.decisionBasis||''}${x.nextAction?` Next: ${x.nextAction}`:''}</small></article>`).join('')||'<p>No tagged academic evidence yet.</p>';const explanation=d.explanation||d.summary||'No additional explanation is available.';const signals=(d.skills||[]).map(x=>`<article><strong>${humanize(x.skill)}</strong><p>${x.explanation||'No conclusion.'}</p><small>Evidence: ${Number(x.evidenceCount||0)} item${Number(x.evidenceCount||0)===1?'':'s'} · ${x.decisionBasis||'No conclusion.'}${x.nextAction?` · Next: ${x.nextAction}`:''}</small></article>`).join('');explainBody.innerHTML=`<p>${explanation}</p>${signals||'<p>No tagged academic evidence is available, so BAA makes no skill-level conclusion.</p>'}<p><strong>Safety:</strong> This is exploratory academic guidance, not a prediction or guarantee. No job, salary, admission, or future outcome is inferred.</p>`;explain.hidden=false;};const refresh=async()=>{try{render(await load(opts?.learnerId,select.value));}catch(e){summary.textContent=e.message;list.textContent='';explain.hidden=true;}};select.addEventListener('change',refresh);refresh();}
-  global.BAACareer={tracks:Object.keys(TRACKS),getPlan,explainPlan,explainRecommendation,load,mount,_getTrack:getTrack,_evidenceForSkill:evidenceForSkill,evidenceGate:{minEvidence:MIN_EVIDENCE}};
+
+  function evidenceForSkill(skill, memory){
+    const target=normalize(skill);
+    const rows=[...(memory.strengths||[]),...(memory.weaknesses||[])].filter(Boolean);
+    return rows.filter(row=>{
+      const concept=normalize(row.concept);
+      return concept===target || concept.includes(target) || target.includes(concept) || concept.split('-')[0]===target.split('-')[0];
+    });
+  }
+
+  function getPlan(name){
+    const track=getTrack(name);
+    const memory=getAcademicMemory();
+    const aligned=track.skills.map(skill=>{
+      const evidence=evidenceForSkill(skill,memory);
+      const strengthEvidence=evidence.filter(x=>(memory.strengths||[]).includes(x));
+      const weaknessEvidence=evidence.filter(x=>(memory.weaknesses||[]).includes(x));
+      const status=strengthEvidence.length?'strength_evidence':weaknessEvidence.length?'support_needed':'not_yet_tracked';
+      return {
+        skill,
+        status,
+        evidenceCount:evidence.length,
+        evidenceIds:evidence.map(x=>x.id||x.attemptId||x.concept).filter(Boolean).slice(0,8),
+        explanation:status==='strength_evidence'
+          ? `Academic evidence currently supports ${humanize(skill)} as a relative strength.`
+          : status==='support_needed'
+            ? `Academic evidence shows ${humanize(skill)} needs additional practice or review.`
+            : `BAA does not yet have enough tagged academic evidence to assess ${humanize(skill)}.`
+      };
+    });
+    const gaps=aligned.filter(x=>x.status!=='strength_evidence');
+    const strengths=aligned.filter(x=>x.status==='strength_evidence');
+    return {
+      track:name,
+      description:track.description,
+      skills:aligned,
+      strengths,
+      gaps,
+      evidenceSummary:{
+        trackedSkills:aligned.filter(x=>x.status!=='not_yet_tracked').length,
+        strengthSkills:strengths.length,
+        supportNeededSkills:aligned.filter(x=>x.status==='support_needed').length,
+        untrackedSkills:aligned.filter(x=>x.status==='not_yet_tracked').length
+      },
+      methodology:'Track skills are compared only with tagged academic evidence already available to BAA. Missing evidence is reported as not-yet-tracked; it is never treated as proof of weakness.',
+      limitations:[
+        'Career alignment is exploratory guidance, not a prediction or guarantee.',
+        'No job, salary, admission, or future outcome is inferred from the evidence.',
+        'Recommendations should be reviewed with a parent, teacher, or qualified career professional for consequential decisions.'
+      ],
+      disclaimer:'Career alignment is exploratory guidance, not a prediction or guarantee.'
+    };
+  }
+
+  global.BAACareer={
+    tracks:Object.keys(TRACKS),
+    getPlan,
+    _getTrack:getTrack,
+    _evidenceForSkill:evidenceForSkill
+  };
 })(window);

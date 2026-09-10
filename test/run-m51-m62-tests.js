@@ -21,5 +21,25 @@ t('M60 detects configured harmful UI copy',()=>{const c={window:{}};vm.createCon
 t('M61 does not claim real study results',()=>{const c={window:{}};vm.createContext(c);vm.runInContext(fs.readFileSync(specs[61][0],'utf8'),c);assert.equal(c.window.BAAFounderLab.cohort({id:'c1'}).cohort.status,'planned');});
 t('M62 requires actual reviewer responses',()=>{const c={window:{}};vm.createContext(c);vm.runInContext(fs.readFileSync(specs[62][0],'utf8'),c);let x=c.window.BAAAICouncil.createReview('safety',['A','B']).review;assert.equal(c.window.BAAAICouncil.consensus(x).status,'awaiting_reviews');});
 const ui=fs.readFileSync('student-os.html','utf8');
-t('M51-M62 scripts integrated',()=>Object.values(specs).forEach(([f])=>assert.ok(ui.includes(f.replace('js/','')))));
+const parentUi=fs.readFileSync('parent-os.html','utf8');
+t('M51-M62 scripts integrated',()=>Object.entries(specs).forEach(([m,[f]])=>{
+  // M55's real, working implementation is BAATrust.freshStart() in
+  // js/baa-trust.js (wired to the Start Fresh button in trust-privacy.html).
+  // The standalone js/baa-fresh-start.js used to be loaded on this page but
+  // its apply()/plan() were never called from anywhere — dead code that
+  // looked wired but wasn't. It was removed from student-os.html for that
+  // reason; js/baa-fresh-start.js itself is unchanged and still passes the
+  // per-module check above.
+  //
+  // M56 and M57 followed the same pattern in a later batch: their
+  // standalone files (js/baa-adaptive-pacing.js, js/baa-parent-
+  // conversation.js) were loaded but never called from any page — the
+  // real logic now runs server-side (mirrored, unchanged) via
+  // /api/v1/adaptive-pacing and /api/v1/parent-conversation. Their dead
+  // script tags were removed; the real UI evidence is checked instead.
+  if(m==='56'){ assert.ok(ui.includes('renderAdaptivePacing')&&ui.includes('/api/v1/adaptive-pacing')); return; }
+  if(m==='57'){ assert.ok(parentUi.includes('refreshParentConversation')&&parentUi.includes('/api/v1/parent-conversation')); return; }
+  const expected = m==='55' ? 'baa-trust.js' : f.replace('js/','');
+  assert.ok(ui.includes(expected));
+}));
 console.log(`\nM51–M62 focused: ${n}/25 PASS`);if(process.exitCode)process.exit(process.exitCode);

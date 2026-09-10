@@ -213,3 +213,147 @@ html[data-baa-theme="academic"] .baa-feature:hover{border-color:rgba(37,99,235,.
 html[data-baa-theme="neoglass"] .baa-card,html[data-baa-theme="neoglass"] .baa-stat,html[data-baa-theme="neoglass"] .baa-feature{backdrop-filter:blur(18px);}
 html[data-baa-theme="calm"] .baa-card,html[data-baa-theme="calm"] .baa-stat{border-radius:20px;}
 html[data-baa-theme="duology"] .baa-feature,html[data-baa-theme="duology"] .baa-stat{border-radius:18px;}
+
+/* ============================================================
+   THEME SELECTOR V2 — reference-image selector panel
+   Full "Choose Your Theme" panel with real preview cards, plus
+   the "Six Themes. One BAA." comparison strip. Additive only —
+   does not remove or rewrite the M01-M63 quick-mode dropdown
+   above; it upgrades it to the two-tier flow from the approved
+   design: quick pill -> mode+"Change Theme" -> full card panel.
+   ============================================================ */
+
+/* ---- Quick mode dropdown (Light/Dark/System + Change Theme) ---- */
+.baa-quickmode-panel{position:absolute;right:0;top:calc(100% + 10px);width:220px;padding:8px;border:1px solid rgba(253,249,240,.14);border-radius:16px;background:rgba(11,15,46,.97);backdrop-filter:blur(24px);box-shadow:0 20px 60px rgba(0,0,0,.4);opacity:0;transform:translateY(-6px);pointer-events:none;transition:.18s ease;z-index:120;}
+.baa-quickmode-panel.open{opacity:1;transform:none;pointer-events:auto}
+.baa-quickmode-item{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;text-align:left;padding:9px 11px;border-radius:10px;border:0;background:transparent;color:var(--warmwhite);font:600 .82rem var(--body);cursor:pointer}
+.baa-quickmode-item:hover{background:rgba(253,249,240,.08)}
+.baa-quickmode-item[aria-checked="true"]::after{content:"✓";color:var(--theme-accent,#7c5cfc);font-weight:800}
+.baa-quickmode-sep{height:1px;background:rgba(253,249,240,.1);margin:6px 4px}
+.baa-quickmode-change{display:flex;align-items:center;gap:6px;width:100%;text-align:left;padding:10px 11px;border-radius:10px;border:0;background:rgba(124,92,252,.14);color:var(--warmwhite);font:700 .82rem var(--body);cursor:pointer}
+.baa-quickmode-change:hover{background:rgba(124,92,252,.24)}
+
+/* ---- Full theme-card panel ("Choose Your Theme") ---- */
+.baa-theme-overlay{position:fixed;inset:0;background:rgba(5,7,20,.45);opacity:0;pointer-events:none;transition:.2s ease;z-index:9990;}
+.baa-theme-overlay.open{opacity:1;pointer-events:auto}
+.baa-theme-cardpanel{position:fixed;top:0;right:0;height:100%;width:min(400px,100vw);background:rgba(15,19,46,.98);backdrop-filter:blur(28px);border-left:1px solid rgba(253,249,240,.12);box-shadow:-24px 0 70px rgba(0,0,0,.45);transform:translateX(100%);transition:.28s cubic-bezier(.4,0,.2,1);z-index:9991;overflow-y:auto;padding:22px;color:var(--warmwhite);}
+.baa-theme-cardpanel.open{transform:translateX(0)}
+.baa-tcp-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px}
+.baa-tcp-head h2{font:700 1.25rem var(--display,Inter,sans-serif);margin:0}
+.baa-tcp-head p{margin:4px 0 18px;font-size:.82rem;color:var(--dim)}
+.baa-tcp-close{border:0;background:rgba(253,249,240,.08);color:var(--warmwhite);width:32px;height:32px;border-radius:50%;font-size:1.1rem;cursor:pointer;line-height:1}
+.baa-tcp-close:hover{background:rgba(253,249,240,.16)}
+.baa-tcp-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.baa-theme-preview-card{position:relative;border-radius:16px;border:2px solid rgba(253,249,240,.12);background:rgba(253,249,240,.03);padding:0 0 10px;cursor:pointer;overflow:hidden;text-align:left;transition:.15s ease;}
+.baa-theme-preview-card:hover{transform:translateY(-2px);border-color:rgba(253,249,240,.28)}
+.baa-theme-preview-card.selected{border-color:var(--theme-accent,#7c5cfc);box-shadow:0 0 0 3px color-mix(in srgb,var(--theme-accent,#7c5cfc) 30%,transparent)}
+.baa-theme-preview-card:focus-visible{outline:2px solid #F5B942;outline-offset:2px}
+.baa-tpc-check{position:absolute;top:8px;right:8px;width:22px;height:22px;border-radius:50%;background:var(--theme-accent,#7c5cfc);color:#fff;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:800;opacity:0;transform:scale(.6);transition:.15s ease;z-index:2}
+.baa-theme-preview-card.selected .baa-tpc-check{opacity:1;transform:scale(1)}
+.baa-tpc-mock{height:78px;position:relative;display:flex;overflow:hidden}
+.baa-tpc-mock .m-side{width:22%;height:100%}
+.baa-tpc-mock .m-main{flex:1;display:flex;flex-direction:column;gap:4px;padding:7px}
+.baa-tpc-mock .m-top{height:8px;border-radius:4px;width:60%}
+.baa-tpc-mock .m-hero{flex:1;border-radius:6px}
+.baa-tpc-mock .m-stats{display:flex;gap:3px}
+.baa-tpc-mock .m-stats span{flex:1;height:12px;border-radius:3px}
+.baa-tpc-label{padding:9px 12px 0}
+.baa-tpc-label b{display:block;font-size:.85rem}
+.baa-tpc-label small{display:block;color:var(--dim);font-size:.68rem;margin-top:2px}
+
+/* Fixed reference palettes for preview mockups — intentionally NOT theme
+   variables, so each card always shows its own theme regardless of which
+   theme is currently active on the page. */
+.prev-aurora .m-side{background:linear-gradient(180deg,#efe9ff,#e3f0ff)}.prev-aurora .m-top{background:#c9b8ff}.prev-aurora .m-hero{background:linear-gradient(135deg,#7c5cfc,#4cd9e8 55%,#f5b942)}.prev-aurora .m-stats span{background:#d8cfff}
+.prev-galaxy .m-side{background:#0a0e2a}.prev-galaxy .m-top{background:#1c2454}.prev-galaxy .m-hero{background:radial-gradient(circle at 30% 30%,#2a3a8f,#0a0e2a 70%)}.prev-galaxy .m-stats span{background:#151b46}
+.prev-academic .m-side{background:#eef2e6}.prev-academic .m-top{background:#c7d2b0}.prev-academic .m-hero{background:linear-gradient(135deg,#4a6b3d,#7c9a5f)}.prev-academic .m-stats span{background:#dbe4cc}
+.prev-neoglass .m-side{background:#141a2e}.prev-neoglass .m-top{background:#2c3a5c}.prev-neoglass .m-hero{background:radial-gradient(circle at 60% 40%,rgba(167,139,250,.55),rgba(20,26,46,.9))}.prev-neoglass .m-stats span{background:#232c47}
+.prev-calm .m-side{background:#e9efe6}.prev-calm .m-top{background:#c7d4bf}.prev-calm .m-hero{background:linear-gradient(135deg,#a9c6a0,#dce6d6)}.prev-calm .m-stats span{background:#d7e2d0}
+.prev-duology .m-side{background:#dff2ff}.prev-duology .m-top{background:#ffd166}.prev-duology .m-hero{background:linear-gradient(135deg,#ff8fab,#ffd166 50%,#8ecae6)}.prev-duology .m-stats span{background:#ffe3ec}
+
+.baa-tcp-appearance{margin-bottom:16px}
+.baa-tcp-appearance-title{font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin-bottom:8px}
+.baa-tcp-toggle-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px;border:1px solid rgba(253,249,240,.1);border-radius:14px;background:rgba(253,249,240,.03);margin-bottom:18px}
+.baa-tcp-toggle-row div b{display:block;font-size:.82rem}
+.baa-tcp-toggle-row div small{color:var(--dim);font-size:.68rem}
+.baa-switch{position:relative;display:inline-block;width:42px;height:24px;flex:0 0 auto}
+.baa-switch input{opacity:0;width:0;height:0}
+.baa-switch .track{position:absolute;inset:0;background:rgba(253,249,240,.18);border-radius:999px;transition:.15s ease;cursor:pointer}
+.baa-switch .track::before{content:"";position:absolute;left:3px;top:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.15s ease}
+.baa-switch input:checked + .track{background:var(--theme-accent,#7c5cfc)}
+.baa-switch input:checked + .track::before{transform:translateX(18px)}
+.baa-switch input:focus-visible + .track{outline:2px solid #F5B942;outline-offset:2px}
+
+/* ---- "Six Themes. One BAA." comparison strip ---- */
+.baa-showcase{margin:34px 0 6px}
+.baa-showcase-head{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.baa-showcase-head h2{font:700 1.3rem var(--display,Inter,sans-serif);margin:0}
+.baa-showcase-head span{color:var(--dim);font-size:.82rem}
+.baa-showcase-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:14px}
+.baa-showcase-card{border-radius:14px;overflow:hidden;border:1px solid rgba(253,249,240,.1);background:rgba(253,249,240,.02);cursor:pointer;transition:.15s ease}
+.baa-showcase-card:hover{transform:translateY(-3px)}
+.baa-showcase-card.active{border-color:var(--theme-accent,#7c5cfc);box-shadow:0 0 0 2px color-mix(in srgb,var(--theme-accent,#7c5cfc) 35%,transparent)}
+.baa-showcase-card .baa-tpc-mock{height:64px}
+.baa-showcase-card .baa-tpc-label{padding:8px 9px}
+.baa-showcase-card .baa-tpc-label b{font-size:.74rem}
+.baa-showcase-card .baa-tpc-label small{font-size:.6rem}
+
+@media(max-width:1000px){.baa-showcase-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:650px){.baa-showcase-grid{grid-template-columns:repeat(2,1fr)}.baa-theme-cardpanel{width:100vw}.baa-tcp-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:400px){.baa-tcp-grid{grid-template-columns:1fr}}
+
+/* Reduced motion: panel/overlay/card transitions collapse instantly. */
+@media(prefers-reduced-motion:reduce){
+  .baa-theme-cardpanel,.baa-theme-overlay,.baa-theme-preview-card,.baa-showcase-card,.baa-quickmode-panel,.baa-switch .track,.baa-switch .track::before{transition-duration:.001ms!important}
+}
+
+/* ============================================================
+   ACCESSIBILITY REMEDIATION PASS — 2026-09-07
+   Applies globally to every page that loads baa-themes.css.
+   Additive only: skip link, universal focus-visible, and a
+   safety net for reduced-motion users across the whole app.
+   ============================================================ */
+.baa-skip-link{position:absolute;left:-999px;top:auto;width:1px;height:1px;overflow:hidden;z-index:99999;}
+.baa-skip-link:focus{left:12px;top:12px;width:auto;height:auto;padding:12px 18px;border-radius:10px;background:#F5B942;color:#0b102d;font:700 .85rem Inter,Arial,sans-serif;text-decoration:none;box-shadow:0 10px 30px rgba(0,0,0,.35);}
+
+/* Universal visible focus ring — covers pages/components that don't
+   already define their own :focus-visible treatment. Does not
+   override a component's own more specific focus style. */
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,
+textarea:focus-visible,[tabindex]:focus-visible,summary:focus-visible{
+  outline:2px solid #F5B942;
+  outline-offset:2px;
+}
+
+/* Global reduced-motion safety net: any animation/transition on any
+   page that loads this shared file is disabled for users who have
+   asked their OS/browser for reduced motion, even on pages/components
+   this pass did not touch individually. */
+@media(prefers-reduced-motion:reduce){
+  *{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important;}
+}
+
+/* ============================================================
+   ECOSYSTEM TOOLS — shared, theme-aware component styling for
+   the real (non-decorative) M34/35/38/40/44/47/48/49/50 tools.
+   Self-contained: does not depend on any page-local .btn/.card
+   class, so it renders consistently on student-os.html,
+   admin.html, and anywhere else this stylesheet is loaded,
+   and it re-themes correctly across all six themes because it
+   is built entirely from the shared --theme-* tokens.
+   ============================================================ */
+.baa-ecotool{background:var(--theme-panel,rgba(20,27,77,.86));border:1px solid rgba(128,128,128,.18);border-radius:var(--theme-radius,16px);padding:16px;color:var(--warmwhite,#FDF9F0);}
+html[data-baa-theme="academic"][data-baa-mode="light"] .baa-ecotool,
+html[data-baa-theme="duology"][data-baa-mode="light"] .baa-ecotool{color:#182033;}
+.baa-eco-note{font-size:.78rem;color:var(--dim,rgba(253,249,240,.66));line-height:1.5;margin-top:4px;}
+.baa-eco-field{margin-bottom:10px;}
+.baa-eco-label{display:block;font-size:.76rem;font-weight:600;margin-bottom:4px;color:inherit;}
+.baa-eco-input{width:100%;max-width:420px;padding:9px 11px;border-radius:calc(var(--theme-radius,16px) * .4);border:1px solid rgba(128,128,128,.3);background:rgba(128,128,128,.08);color:inherit;font:inherit;font-size:.85rem;}
+.baa-eco-input:focus-visible{outline:2px solid var(--theme-accent,#7c5cfc);outline-offset:1px;}
+.baa-eco-btn{display:inline-flex;align-items:center;gap:6px;border:0;border-radius:999px;padding:9px 16px;font-weight:700;font-size:.82rem;margin:4px 6px 4px 0;cursor:pointer;background:var(--theme-accent,#7c5cfc);color:#fff;}
+.baa-eco-btn:hover{filter:brightness(1.08);}
+.baa-eco-btn:focus-visible{outline:2px solid #F5B942;outline-offset:2px;}
+.baa-eco-btn-ghost{background:transparent;border:1px solid var(--theme-accent,#7c5cfc);color:var(--theme-accent,#7c5cfc);}
+.baa-ecotool label input[type="checkbox"]{accent-color:var(--theme-accent,#7c5cfc);}
+
+@media(max-width:650px){.baa-eco-input{max-width:100%;}.baa-eco-btn{width:100%;justify-content:center;margin:4px 0;}}

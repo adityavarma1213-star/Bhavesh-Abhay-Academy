@@ -151,13 +151,13 @@ h1.title{font-family:var(--display);font-weight:500;font-size:clamp(1.6rem,4.4vw
 <link rel="stylesheet" href="css/baa-themes.css">
 </head>
 <body>
-
-<div class="topbar">
+<a class="baa-skip-link" href="#main-content">Skip to main content</a>
+<div class="topbar" role="banner">
   <div class="tb-logo">BAA OS · Assessments</div>
   <a class="tb-back" href="student-os.html">← Back to Student OS</a>
 </div>
 
-<div class="wrap">
+<div class="wrap" role="main" id="main-content">
 
   <!-- ============ VIEW: CATALOG ============ -->
   <div class="view active" id="view-catalog">
@@ -235,6 +235,7 @@ h1.title{font-family:var(--display);font-weight:500;font-size:clamp(1.6rem,4.4vw
 
 <script src="js/question-bank.js"></script>
 <script src="js/baa-assessment.js"></script>
+<script src="js/baa-anti-cheating.js"></script>
 <script src="js/baa-progression-gate.js"></script>
 <script>
 /* Point this at your deployed Vercel backend, same pattern as CHAT_API_URL
@@ -331,6 +332,9 @@ async function beginAssessment(assessmentId){
   }
   currentQuestions = currentAssessment.questionIds.map(BAAGetQuestion);
   currentAttempt = BAAAssessment.startAttempt(currentAssessment);
+  if(window.BAAAntiCheating?.attachToAttempt && window.BAA_LEARNER_ID){
+    window.BAAAntiCheating.attachToAttempt(currentAttempt.id, window.BAA_LEARNER_ID);
+  }
   currentIndex = 0;
   timeRemainingSec = currentAssessment.timeLimitSec;
 
@@ -450,6 +454,7 @@ function closeSubmitModal(){
 async function confirmSubmit(){
   document.getElementById('submitModal').classList.remove('open');
   clearInterval(timerInterval);
+  if(window.BAAAntiCheating?.detach) window.BAAAntiCheating.detach();
   showView('view-evaluating');
   const statusEl = document.getElementById('evalStatus');
   try{
@@ -596,5 +601,22 @@ window.BAA_READY = initGateLearner();
 })();
 </script>
 <script src="js/baa-themes.js"></script>
+<link rel="stylesheet" href="css/baa-guide-robot.css">
+<button type="button" id="baaGuideRobotBtn" aria-label="Open BAA Guide" aria-haspopup="dialog" aria-expanded="false">🤖</button>
+<div id="baaGuideRobotPanel" role="dialog" aria-modal="true" aria-labelledby="baaGuideTitle" hidden>
+  <div class="baa-guide-header">
+    <h2 id="baaGuideTitle">🤖 BAA Guide</h2>
+    <button type="button" class="baa-guide-close" aria-label="Close guide">✕</button>
+  </div>
+  <div class="baa-guide-body">
+    <p class="baa-guide-intro">What would you like explained?</p>
+    <div id="baaGuideTopicList"></div>
+    <div id="baaGuideTopicDetail" hidden></div>
+  </div>
+  <div id="baaGuideLiveRegion" class="baa-guide-sr-only" aria-live="polite" aria-atomic="true"></div>
+</div>
+<script src="js/baa-guide-topics.js"></script>
+<script src="js/baa-guide-robot.js"></script>
+<script>if(window.BAAGuideRobot)BAAGuideRobot.init();</script>
 </body>
 </html>

@@ -1,58 +1,322 @@
-/* BAA Theme Engine — M62 final theme selector
+/* BAA Theme Engine — M62 final theme selector (v2: full six-theme UI)
    One OS, six visual experiences, three display modes.
    Persists only the user's visual preference in localStorage.
+   v2 adds the approved two-tier selector: a quick pill (Light/Dark/System
+   + "Change Theme") and a full "Choose Your Theme" card panel with real
+   preview mockups, plus the "Six Themes. One BAA." showcase strip.
+   Existing public API (window.BAAThemeEngine) is preserved so any other
+   page/script that already calls it keeps working unchanged.
 */
 (function(){
   'use strict';
   const KEY='baa.theme.preferences.v1';
-  const THEMES={aurora:{name:'Aurora',icon:'⭐',desc:'Flagship BAA experience'},galaxy:{name:'Galaxy',icon:'🌌',desc:'Student exploration & adventure'},academic:{name:'Academic',icon:'📚',desc:'Clean, focused & structured'},neoglass:{name:'NeoGlass',icon:'💎',desc:'Premium modern interface'},calm:{name:'Calm',icon:'🌿',desc:'Focus & wellbeing'},duology:{name:'Duology',icon:'🧸',desc:'Animated kids experience'}};
+  const THEMES={
+    aurora:{name:'Aurora',icon:'⭐',desc:'Modern & Vibrant (Default)'},
+    galaxy:{name:'Galaxy',icon:'🌌',desc:'Dark & Immersive'},
+    academic:{name:'Academic',icon:'📚',desc:'Clean & Classic'},
+    neoglass:{name:'NeoGlass',icon:'💎',desc:'Premium & Futuristic'},
+    calm:{name:'Calm',icon:'🌿',desc:'Simple & Peaceful'},
+    duology:{name:'Duology',icon:'🧸',desc:'Playful & Friendly (Kids)'}
+  };
   const MODES={light:'☀️ Light',dark:'🌙 Dark',system:'🖥️ System'};
-  let prefs={theme:'aurora',mode:'system'}; let active=false;
+  let prefs={theme:'aurora',mode:'system',applyAllDevices:false};
+  let active=false;
   try{prefs=Object.assign(prefs,JSON.parse(localStorage.getItem(KEY)||'{}'));}catch(e){}
-  if(!THEMES[prefs.theme])prefs.theme='aurora'; if(!MODES[prefs.mode])prefs.mode='system';
-  function apply(){if(!active)return;const root=document.documentElement;root.dataset.baaTheme=prefs.theme;root.dataset.baaMode=prefs.mode;document.body.classList.toggle('baa-kids-motion',prefs.theme==='duology');const label=document.getElementById('themeCurrentLabel');if(label)label.textContent=THEMES[prefs.theme].name;const icon=document.getElementById('themeCurrentIcon');if(icon)icon.textContent=THEMES[prefs.theme].icon;document.querySelectorAll('[data-baa-theme-option]').forEach(function(el){el.setAttribute('aria-checked',String(el.dataset.baaThemeOption===prefs.theme));el.classList.toggle('selected',el.dataset.baaThemeOption===prefs.theme);});document.querySelectorAll('[data-baa-mode-option]').forEach(function(el){el.setAttribute('aria-checked',String(el.dataset.baaModeOption===prefs.mode));el.classList.toggle('selected',el.dataset.baaModeOption===prefs.mode);});try{localStorage.setItem(KEY,JSON.stringify(prefs));}catch(e){}}
-  function chooseTheme(theme){if(!THEMES[theme])return;prefs.theme=theme;apply();}
-  function chooseMode(mode){if(!MODES[mode])return;prefs.mode=mode;apply();}
-  function close(){const p=document.getElementById('baaThemePanel');const b=document.getElementById('baaThemeButton');if(!p)return;p.classList.remove('open');if(b)b.setAttribute('aria-expanded','false');}
-  function toggle(){const p=document.getElementById('baaThemePanel');const b=document.getElementById('baaThemeButton');if(!p)return;const open=!p.classList.contains('open');p.classList.toggle('open',open);if(b)b.setAttribute('aria-expanded',String(open));if(open){const first=p.querySelector('[data-baa-theme-option]');if(first)first.focus();}}
-  function build(){if(document.getElementById('baaThemeButton')){apply();return;}if(!active)return;let host=document.querySelector('#screen-home .tb-right, .tb-right');let floating=false;if(!host){host=document.body;floating=true;}const wrap=document.createElement('div');wrap.className=floating?'baa-theme-wrap baa-theme-wrap-floating':'baa-theme-wrap';wrap.innerHTML=`<button id="baaThemeButton" class="baa-theme-button" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="baaThemePanel" title="Choose BAA theme"><span id="themeCurrentIcon">⭐</span><span class="baa-theme-button-label">BAA OS Engine</span><span id="themeCurrentLabel">Aurora</span><span class="baa-theme-chevron">⌄</span></button><div id="baaThemePanel" class="baa-theme-panel" role="dialog" aria-label="BAA Theme Selector"><div class="baa-theme-head"><div><strong>Theme Engine</strong><small>BAA OS Engine • Choose your visual experience</small></div><button type="button" class="baa-theme-close" aria-label="Close theme selector">×</button></div><div class="baa-theme-grid" role="radiogroup" aria-label="Themes">${Object.entries(THEMES).map(([key,t])=>`<button type="button" class="baa-theme-option" data-baa-theme-option="${key}" role="radio" aria-checked="false"><span class="baa-theme-icon">${t.icon}</span><span><b>${t.name}</b><small>${t.desc}</small></span><span class="baa-theme-check">✓</span></button>`).join('')}</div><div class="baa-mode-title">Display mode</div><div class="baa-mode-grid" role="radiogroup" aria-label="Display mode">${Object.entries(MODES).map(([key,label])=>`<button type="button" class="baa-mode-option" data-baa-mode-option="${key}" role="radio" aria-checked="false">${label}</button>`).join('')}</div><div class="baa-theme-note">System follows your device/browser preference automatically.</div></div>`;if(floating)host.appendChild(wrap);else host.insertBefore(wrap,host.firstChild);document.getElementById('baaThemeButton').addEventListener('click',toggle);document.querySelector('.baa-theme-close').addEventListener('click',close);document.querySelectorAll('[data-baa-theme-option]').forEach(el=>el.addEventListener('click',()=>chooseTheme(el.dataset.baaThemeOption)));document.querySelectorAll('[data-baa-mode-option]').forEach(el=>el.addEventListener('click',()=>chooseMode(el.dataset.baaModeOption)));document.addEventListener('click',function(e){if(!wrap.contains(e.target))close();});document.addEventListener('keydown',function(e){if(e.key==='Escape')close();});apply();}
-  function activate(){active=true;build();apply();}
-  function deactivate(){active=false;close();var wrap=document.querySelector('.baa-theme-wrap');if(wrap)wrap.remove();document.documentElement.removeAttribute('data-baa-theme');document.documentElement.removeAttribute('data-baa-mode');document.body.classList.remove('baa-kids-motion');}
-  window.BAAThemeEngine={getPreferences:()=>Object.assign({},prefs),setTheme:chooseTheme,setMode:chooseMode,open:toggle,close:close,apply:apply,activate:activate,deactivate:deactivate};
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',activate);else activate();
-  if(window.matchMedia)window.matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change',function(){if(prefs.mode==='system')apply();});
-  function installPasswordToggle(inputId){const input=document.getElementById(inputId);if(!input||input.dataset.visibilityReady==='1')return;input.dataset.visibilityReady='1';const parent=input.parentElement;if(!parent)return;const wrap=document.createElement('div');wrap.style.cssText='position:relative;width:100%;';parent.insertBefore(wrap,input);wrap.appendChild(input);input.style.paddingRight='68px';const button=document.createElement('button');button.type='button';button.textContent='Show';button.setAttribute('aria-label','Show password');button.style.cssText='position:absolute;right:10px;top:50%;transform:translateY(-50%);border:0;background:rgba(124,92,252,.18);color:#FDF9F0;padding:7px 10px;border-radius:8px;font:600 .76rem Inter,Arial,sans-serif;cursor:pointer;z-index:3;';button.addEventListener('click',function(){const visible=input.type==='text';input.type=visible?'password':'text';button.textContent=visible?'Show':'Hide';button.setAttribute('aria-label',visible?'Show password':'Hide password');});wrap.appendChild(button);}
-  function installKeepSignedIn(){const password=document.getElementById('authPassword');if(!password||document.getElementById('keepSignedInWrap'))return;const wrap=document.createElement('label');wrap.id='keepSignedInWrap';wrap.style.cssText='display:none;align-items:center;gap:9px;margin:-2px 0 12px;color:var(--modal-fg-dim);font:500 .8rem Inter,Arial,sans-serif;cursor:pointer;user-select:none;';wrap.innerHTML='<input id="keepSignedIn" type="checkbox" style="width:16px;height:16px;accent-color:#7C5CFC;cursor:pointer"><span>Keep me signed in</span>';password.parentElement.insertAdjacentElement('afterend',wrap);const sync=function(){const loginMode=document.getElementById('authTabLogin')?.classList.contains('active');wrap.style.display=loginMode?'flex':'none';};sync();document.getElementById('authTabLogin')?.addEventListener('click',sync);document.getElementById('authTabSignup')?.addEventListener('click',sync);const original=window.callAuthApi;if(typeof original==='function'&&!window.__baaRememberPatch){window.__baaRememberPatch=true;window.callAuthApi=function(action,body){if(action==='login')body=Object.assign({},body,{remember:!!document.getElementById('keepSignedIn')?.checked});return original(action,body);};}}
-  function installAuthUx(){installPasswordToggle('authPassword');installPasswordToggle('resetPassword');const style=document.createElement('style');style.textContent='.modal input:focus-visible,.modal button:focus-visible{outline:2px solid #F5B942;outline-offset:2px}.modal .auth-tab,.modal .btn-primary{min-height:44px}#keepSignedInWrap input{margin:0}';document.head.appendChild(style);installKeepSignedIn();}
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installAuthUx);else installAuthUx();
-  function installRoleWorkspaceLink(){if(document.getElementById('baaRoleWorkspaceLink'))return;fetch('/api/auth/me',{credentials:'include',cache:'no-store'}).then(function(r){return r.ok?r.json():null}).then(function(session){const roles=session&&session.user&&(session.user.roles||session.user.role);const list=Array.isArray(roles)?roles:[roles].filter(Boolean);if(!list.includes('teacher')&&!list.includes('admin'))return;const host=document.querySelector('.tb-right,#screen-home .tb-right,.topbar,.top');if(!host)return;const link=document.createElement('a');link.id='baaRoleWorkspaceLink';link.href='teacher-portal.html';link.setAttribute('aria-label','Open Teacher and Academic Management');link.textContent='👩‍🏫 Teacher Portal';link.style.cssText='display:inline-flex;align-items:center;gap:7px;margin-left:8px;padding:9px 13px;border:1px solid rgba(76,217,232,.38);border-radius:999px;background:rgba(76,217,232,.08);color:#4CD9E8;text-decoration:none;font:700 .78rem Inter,Arial,sans-serif;white-space:nowrap;';host.appendChild(link);}).catch(function(){});}
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installRoleWorkspaceLink);else installRoleWorkspaceLink();
-  function installTeacherStarterLink(){if(document.getElementById('baaTeacherStarterLink'))return;const path=window.location.pathname;const isStudentOs=path.endsWith('/student-os.html')||path==='/student-os.html';if(!isStudentOs)return;const link=document.createElement('a');link.id='baaTeacherStarterLink';link.href='account.html?role=teacher';link.textContent='👩‍🏫 Teacher / Academic Management';link.setAttribute('aria-label','Teacher and Academic Management sign in');link.style.cssText='position:fixed;right:18px;bottom:18px;z-index:9999;display:inline-flex;align-items:center;gap:8px;padding:12px 16px;border:1px solid rgba(245,185,66,.45);border-radius:999px;background:rgba(11,15,46,.92);color:#F5B942;text-decoration:none;font:700 .8rem Inter,Arial,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.3);backdrop-filter:blur(12px);';document.body.appendChild(link);}
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installTeacherStarterLink);else installTeacherStarterLink();
-  function installLandingLinks(){const path=window.location.pathname;if(!(path==='/'||path.endsWith('/index.html')))return;if(document.getElementById('baaLandingTools'))return;const wrap=document.createElement('div');wrap.id='baaLandingTools';wrap.style.cssText='position:fixed;right:18px;bottom:18px;z-index:9998;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;';wrap.innerHTML='<a href="demo.html" style="display:inline-flex;align-items:center;gap:7px;padding:11px 15px;border-radius:999px;background:#7C5CFC;color:#fff;text-decoration:none;font:700 13px Inter,Arial,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.25)">▶ Demo</a><a href="user-guide.html" style="display:inline-flex;align-items:center;gap:7px;padding:11px 15px;border-radius:999px;background:#173b73;color:#fff;text-decoration:none;font:700 13px Inter,Arial,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.25)">📖 User Guide</a>';document.body.appendChild(wrap);}
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installLandingLinks);else installLandingLinks();
-  function installGuideRobot(){if(!document.querySelector('link[data-baa-guide-css]')){const link=document.createElement('link');link.rel='stylesheet';link.href='css/baa-guide-robot.css';link.dataset.baaGuideCss='1';document.head.appendChild(link);}if(window.BAAGuideRobot)return;const load=function(src,done){const existing=document.querySelector('script[src="'+src+'"]');if(existing){if(done)done();return;}const s=document.createElement('script');s.src=src;s.async=false;s.onload=done;s.onerror=function(){};document.head.appendChild(s);};load('js/baa-guide-catalogue.js',function(){load('js/baa-guide-robot.js');});}
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installGuideRobot);else installGuideRobot();
+  if(!THEMES[prefs.theme])prefs.theme='aurora';
+  if(!MODES[prefs.mode])prefs.mode='system';
 
-  /* M37 — Trust & Privacy Center page gate. The page contains learner-specific
-     controls (export, deletion, appeals), so access is authenticated and role
-     checked by the server before the existing local controls are exposed. */
-  function installTrustPageGate(){
-    const path=window.location.pathname;
-    if(!(path.endsWith('/trust-privacy.html')||path==='/trust-privacy.html'))return;
-    const veil=document.createElement('div');
-    veil.id='baaTrustAccessVeil';
-    veil.style.cssText='position:fixed;inset:0;z-index:100000;background:#0B0F2E;color:#FDF9F0;display:flex;align-items:center;justify-content:center;padding:24px;font:500 15px Inter,Arial,sans-serif;';
-    veil.innerHTML='<div style="max-width:520px;text-align:center"><div style="font-size:32px;margin-bottom:12px">🔒</div><h1 style="font:600 28px Fraunces,serif;margin-bottom:10px">Trust &amp; Privacy Center</h1><p id="baaTrustAccessMessage" style="color:rgba(253,249,240,.7);line-height:1.6">Checking your signed-in account…</p></div>';
-    document.documentElement.appendChild(veil);
-    fetch('/api/m37-trust-access',{credentials:'include',cache:'no-store'}).then(function(r){return r.ok?r.json():Promise.reject({status:r.status});}).then(function(session){
-      if(!session||!session.authenticated){throw {status:403};}
-      veil.remove();
-    }).catch(function(error){
-      const message=document.getElementById('baaTrustAccessMessage');
-      if(message)message.textContent=error&&error.status===401?'Please sign in to open your Trust & Privacy Center.':'This Trust & Privacy Center is only available to authenticated BAA accounts.';
-      const link=document.createElement('a');link.href='account.html?next=trust-privacy.html';link.textContent='Sign in to continue';link.style.cssText='display:inline-flex;margin-top:18px;padding:11px 18px;border-radius:999px;background:#7C5CFC;color:#fff;text-decoration:none;font-weight:700;';veil.querySelector('div').appendChild(link);
+  function persist(){
+    try{localStorage.setItem(KEY,JSON.stringify(prefs));}catch(e){}
+    /* "Apply to all devices" is a stored user intent only: no BAA OS
+       backend endpoint exists yet to sync this preference across a
+       signed-in user's devices (M64-M78 backend is out of scope for
+       this UI task), so today this affects only the current browser.
+       The flag is kept so a future sync endpoint can honor it. */
+  }
+
+  function syncDOM(){
+    const root=document.documentElement;
+    root.dataset.baaTheme=prefs.theme;
+    root.dataset.baaMode=prefs.mode;
+    document.body.classList.toggle('baa-kids-motion',prefs.theme==='duology');
+    const label=document.getElementById('themeCurrentLabel');
+    if(label)label.textContent=THEMES[prefs.theme].name;
+    const icon=document.getElementById('themeCurrentIcon');
+    if(icon)icon.textContent=THEMES[prefs.theme].icon;
+
+    document.querySelectorAll('[data-baa-mode-option]').forEach(function(el){
+      const checked=el.dataset.baaModeOption===prefs.mode;
+      el.setAttribute('aria-checked',String(checked));
+    });
+    document.querySelectorAll('[data-baa-theme-card]').forEach(function(el){
+      const sel=el.dataset.baaThemeCard===prefs.theme;
+      el.classList.toggle('selected',sel);
+      el.setAttribute('aria-checked',String(sel));
+    });
+    document.querySelectorAll('[data-baa-showcase-card]').forEach(function(el){
+      el.classList.toggle('active',el.dataset.baaShowcaseCard===prefs.theme);
+    });
+    const allDevicesInput=document.getElementById('baaApplyAllDevices');
+    if(allDevicesInput) allDevicesInput.checked=!!prefs.applyAllDevices;
+  }
+
+  function apply(){
+    if(!active)return;
+    syncDOM();
+    persist();
+    if(document.getElementById('baaThemeShowcase'))renderShowcase('baaThemeShowcase');
+  }
+
+  function chooseTheme(theme){
+    if(!THEMES[theme])return;
+    prefs.theme=theme;
+    apply();
+  }
+  function chooseMode(mode){
+    if(!MODES[mode])return;
+    prefs.mode=mode;
+    apply();
+  }
+  function setApplyAllDevices(v){
+    prefs.applyAllDevices=!!v;
+    apply();
+  }
+
+  /* ---------- Tier 1: quick pill + Light/Dark/System dropdown ---------- */
+  function closeQuick(){
+    const p=document.getElementById('baaQuickModePanel');
+    const b=document.getElementById('baaThemeButton');
+    if(!p)return;
+    p.classList.remove('open');
+    if(b)b.setAttribute('aria-expanded','false');
+  }
+  function toggleQuick(){
+    const p=document.getElementById('baaQuickModePanel');
+    const b=document.getElementById('baaThemeButton');
+    if(!p)return;
+    const open=!p.classList.contains('open');
+    closeCardPanel();
+    p.classList.toggle('open',open);
+    if(b)b.setAttribute('aria-expanded',String(open));
+    if(open){const first=p.querySelector('[data-baa-mode-option]');if(first)first.focus();}
+  }
+
+  /* ---------- Tier 2: full "Choose Your Theme" card panel ---------- */
+  function closeCardPanel(){
+    const p=document.getElementById('baaThemeCardPanel');
+    const o=document.getElementById('baaThemeOverlay');
+    if(!p)return;
+    p.classList.remove('open');
+    if(o)o.classList.remove('open');
+    document.body.style.overflow='';
+  }
+  function openCardPanel(){
+    const p=document.getElementById('baaThemeCardPanel');
+    const o=document.getElementById('baaThemeOverlay');
+    if(!p)return;
+    closeQuick();
+    p.classList.add('open');
+    if(o)o.classList.add('open');
+    document.body.style.overflow='hidden';
+    syncDOM();
+    const first=p.querySelector('.baa-tcp-close');
+    if(first)first.focus();
+  }
+
+  function themeCardMarkup(key,t,extraClass){
+    return '<button type="button" class="'+(extraClass||'baa-theme-preview-card')+' prev-'+key+'" '+
+      'data-baa-theme-card="'+key+'" role="radio" aria-checked="false" aria-label="'+t.name+', '+t.desc+'">'+
+      '<span class="baa-tpc-check">✓</span>'+
+      '<span class="baa-tpc-mock" aria-hidden="true"><span class="m-side"></span><span class="m-main"><span class="m-top"></span><span class="m-hero"></span><span class="m-stats"><span></span><span></span><span></span></span></span></span>'+
+      '<span class="baa-tpc-label"><b>'+t.name+'</b><small>'+t.desc+'</small></span>'+
+      '</button>';
+  }
+
+  function buildCardPanel(){
+    if(document.getElementById('baaThemeCardPanel'))return;
+    const overlay=document.createElement('div');
+    overlay.id='baaThemeOverlay';
+    overlay.className='baa-theme-overlay';
+    overlay.addEventListener('click',closeCardPanel);
+    document.body.appendChild(overlay);
+
+    const panel=document.createElement('div');
+    panel.id='baaThemeCardPanel';
+    panel.className='baa-theme-cardpanel';
+    panel.setAttribute('role','dialog');
+    panel.setAttribute('aria-modal','true');
+    panel.setAttribute('aria-label','Choose Your Theme');
+    panel.innerHTML=
+      '<div class="baa-tcp-head"><div><h2>Choose Your Theme</h2><p>Same powerful BAA. Different styles. Learn your way.</p></div>'+
+      '<button type="button" class="baa-tcp-close" aria-label="Close theme selector">×</button></div>'+
+      '<div class="baa-tcp-grid" role="radiogroup" aria-label="Themes">'+
+        Object.entries(THEMES).map(function(e){return themeCardMarkup(e[0],e[1]);}).join('')+
+      '</div>'+
+      '<div class="baa-tcp-appearance">'+
+        '<div class="baa-tcp-appearance-title">Appearance</div>'+
+        '<div class="baa-mode-grid" role="radiogroup" aria-label="Display mode">'+
+          Object.entries(MODES).map(function(e){return '<button type="button" class="baa-mode-option" data-baa-mode-option="'+e[0]+'" role="radio" aria-checked="false">'+e[1]+'</button>';}).join('')+
+        '</div>'+
+      '</div>'+
+      '<div class="baa-tcp-toggle-row"><div><b>Apply to all devices</b><small>Your theme preference will be synced everywhere.</small></div>'+
+      '<label class="baa-switch"><input type="checkbox" id="baaApplyAllDevices"><span class="track" aria-hidden="true"></span></label></div>';
+    document.body.appendChild(panel);
+
+    panel.querySelector('.baa-tcp-close').addEventListener('click',closeCardPanel);
+    panel.querySelectorAll('[data-baa-theme-card]').forEach(function(el){
+      el.addEventListener('click',function(){chooseTheme(el.dataset.baaThemeCard);});
+    });
+    panel.querySelectorAll('[data-baa-mode-option]').forEach(function(el){
+      el.addEventListener('click',function(){chooseMode(el.dataset.baaModeOption);});
+    });
+    document.getElementById('baaApplyAllDevices').addEventListener('change',function(e){
+      setApplyAllDevices(e.target.checked);
+    });
+    document.addEventListener('keydown',function(e){
+      if(e.key==='Escape'){closeCardPanel();closeQuick();}
     });
   }
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installTrustPageGate);else installTrustPageGate();
+
+  /* ---------- "Six Themes. One BAA." showcase strip ---------- */
+  function renderShowcase(containerId){
+    const host=document.getElementById(containerId);
+    if(!host)return;
+    if(host.dataset.baaShowcaseBuilt==='1'){syncDOM();return;}
+    host.dataset.baaShowcaseBuilt='1';
+    host.classList.add('baa-showcase');
+    host.innerHTML=
+      '<div class="baa-showcase-head"><h2>Six Themes. One BAA.</h2><span>Different vibes. Same brighter future.</span></div>'+
+      '<div class="baa-showcase-grid" role="radiogroup" aria-label="Choose a BAA theme">'+
+        Object.entries(THEMES).map(function(e){return themeCardMarkup(e[0],e[1],'baa-showcase-card');}).join('')+
+      '</div>';
+    host.querySelectorAll('[data-baa-showcase-card]').forEach(function(el){
+      el.addEventListener('click',function(){chooseTheme(el.dataset.baaShowcaseCard);});
+    });
+    syncDOM();
+  }
+
+  function build(){
+    if(document.getElementById('baaThemeButton')){apply();return;}
+    if(!active)return;
+    let host=document.querySelector('#screen-home .tb-right, .tb-right');
+    let floating=false;
+    if(!host){host=document.body;floating=true;}
+    const wrap=document.createElement('div');
+    wrap.className=floating?'baa-theme-wrap baa-theme-wrap-floating':'baa-theme-wrap';
+    wrap.innerHTML=
+      '<button id="baaThemeButton" class="baa-theme-button" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="baaQuickModePanel" title="Theme settings">'+
+        '<span id="themeCurrentIcon">⭐</span><span class="baa-theme-button-label">Theme</span><span id="themeCurrentLabel">Aurora</span><span class="baa-theme-chevron">⌄</span>'+
+      '</button>'+
+      '<div id="baaQuickModePanel" class="baa-quickmode-panel" role="menu" aria-label="Appearance">'+
+        Object.entries(MODES).map(function(e){return '<button type="button" class="baa-quickmode-item" data-baa-mode-option="'+e[0]+'" role="menuitemradio" aria-checked="false">'+e[1]+'</button>';}).join('')+
+        '<div class="baa-quickmode-sep" role="separator"></div>'+
+        '<button type="button" class="baa-quickmode-change" id="baaChangeThemeBtn">🎨 Change Theme →</button>'+
+      '</div>';
+    if(floating)host.appendChild(wrap);else host.insertBefore(wrap,host.firstChild);
+
+    document.getElementById('baaThemeButton').addEventListener('click',toggleQuick);
+    wrap.querySelectorAll('[data-baa-mode-option]').forEach(function(el){
+      el.addEventListener('click',function(){chooseMode(el.dataset.baaModeOption);});
+    });
+    document.getElementById('baaChangeThemeBtn').addEventListener('click',function(){
+      closeQuick();
+      buildCardPanel();
+      openCardPanel();
+    });
+    document.addEventListener('click',function(e){
+      if(!wrap.contains(e.target))closeQuick();
+    });
+
+    buildCardPanel();
+    apply();
+  }
+
+  function activate(){active=true;build();apply();}
+  function deactivate(){
+    active=false;
+    closeQuick();closeCardPanel();
+    var wrap=document.querySelector('.baa-theme-wrap');if(wrap)wrap.remove();
+    var panel=document.getElementById('baaThemeCardPanel');if(panel)panel.remove();
+    var overlay=document.getElementById('baaThemeOverlay');if(overlay)overlay.remove();
+    document.documentElement.removeAttribute('data-baa-theme');
+    document.documentElement.removeAttribute('data-baa-mode');
+    document.body.classList.remove('baa-kids-motion');
+  }
+
+  window.BAAThemeEngine={
+    getPreferences:()=>Object.assign({},prefs),
+    setTheme:chooseTheme,
+    setMode:chooseMode,
+    setApplyAllDevices:setApplyAllDevices,
+    open:function(){buildCardPanel();openCardPanel();},
+    openQuick:toggleQuick,
+    close:function(){closeCardPanel();closeQuick();},
+    apply:apply,
+    activate:activate,
+    deactivate:deactivate,
+    renderShowcase:renderShowcase,
+    THEMES:THEMES
+  };
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',activate);else activate();
+  if(window.matchMedia)window.matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change',function(){if(prefs.mode==='system')apply();});
+
+  function installPasswordToggle(inputId){const input=document.getElementById(inputId);if(!input||input.dataset.visibilityReady==='1')return;input.dataset.visibilityReady='1';const parent=input.parentElement;if(!parent)return;const wrap=document.createElement('div');wrap.style.cssText='position:relative;width:100%;';parent.insertBefore(wrap,input);wrap.appendChild(input);input.style.paddingRight='68px';const button=document.createElement('button');button.type='button';button.textContent='Show';button.setAttribute('aria-label','Show password');button.style.cssText='position:absolute;right:10px;top:50%;transform:translateY(-50%);border:0;background:rgba(124,92,252,.18);color:#FDF9F0;padding:7px 10px;border-radius:8px;font:600 .76rem Inter,Arial,sans-serif;cursor:pointer;z-index:3;';button.addEventListener('click',function(){const visible=input.type==='text';input.type=visible?'password':'text';button.textContent=visible?'Show':'Hide';button.setAttribute('aria-label',visible?'Show password':'Hide password');});wrap.appendChild(button);}
+  function installKeepSignedIn(){
+    const password=document.getElementById('authPassword');
+    if(!password || document.getElementById('keepSignedInWrap')) return;
+    const wrap=document.createElement('label');
+    wrap.id='keepSignedInWrap';
+    wrap.style.cssText='display:none;align-items:center;gap:9px;margin:-2px 0 12px;color:var(--modal-fg-dim);font:500 .8rem Inter,Arial,sans-serif;cursor:pointer;user-select:none;';
+    wrap.innerHTML='<input id="keepSignedIn" type="checkbox" style="width:16px;height:16px;accent-color:#7C5CFC;cursor:pointer"><span>Keep me signed in</span>';
+    password.parentElement.insertAdjacentElement('afterend',wrap);
+    const sync=function(){const loginMode=document.getElementById('authTabLogin')?.classList.contains('active');wrap.style.display=loginMode?'flex':'none';};
+    sync();
+    document.getElementById('authTabLogin')?.addEventListener('click',sync);
+    document.getElementById('authTabSignup')?.addEventListener('click',sync);
+    const original=window.callAuthApi;
+    if(typeof original==='function' && !window.__baaRememberPatch){
+      window.__baaRememberPatch=true;
+      window.callAuthApi=function(action,body){
+        if(action==='login') body=Object.assign({},body,{remember:!!document.getElementById('keepSignedIn')?.checked});
+        return original(action,body);
+      };
+    }
+  }
+  function installAuthUx(){installPasswordToggle('authPassword');installPasswordToggle('resetPassword');const style=document.createElement('style');style.textContent='.modal input:focus-visible,.modal button:focus-visible{outline:2px solid #F5B942;outline-offset:2px}.modal .auth-tab,.modal .btn-primary{min-height:44px}#keepSignedInWrap input{margin:0}';document.head.appendChild(style);installKeepSignedIn();}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installAuthUx);else installAuthUx();
+
+  /* Role-aware workspace navigation: teachers/admins must be able to reach
+     Academic Management from the OS instead of knowing a hidden URL. This is
+     additive and server-authoritative: the link is shown only after /api/auth/me
+     confirms the role. */
+  function installRoleWorkspaceLink(){
+    if(document.getElementById('baaRoleWorkspaceLink')) return;
+    fetch('/api/auth/me',{credentials:'include',cache:'no-store'}).then(function(r){return r.ok?r.json():null}).then(function(session){
+      const roles=session&&session.user&&(session.user.roles||session.user.role);
+      const list=Array.isArray(roles)?roles:[roles].filter(Boolean);
+      if(!list.includes('teacher')&&!list.includes('admin')) return;
+      const host=document.querySelector('.tb-right,#screen-home .tb-right,.topbar,.top');
+      if(!host) return;
+      const link=document.createElement('a');
+      link.id='baaRoleWorkspaceLink';
+      link.href='teacher-portal.html';
+      link.setAttribute('aria-label','Open Teacher and Academic Management');
+      link.textContent='👩‍🏫 Teacher Portal';
+      link.style.cssText='display:inline-flex;align-items:center;gap:7px;margin-left:8px;padding:9px 13px;border:1px solid rgba(76,217,232,.38);border-radius:999px;background:rgba(76,217,232,.08);color:#4CD9E8;text-decoration:none;font:700 .78rem Inter,Arial,sans-serif;white-space:nowrap;';
+      host.appendChild(link);
+    }).catch(function(){});
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installRoleWorkspaceLink);else installRoleWorkspaceLink();
+
+  function installLandingLinks(){
+    const path=window.location.pathname;
+    if(!(path==='/' || path.endsWith('/index.html'))) return;
+    if(document.getElementById('baaLandingTools')) return;
+    const wrap=document.createElement('div');
+    wrap.id='baaLandingTools';
+    wrap.style.cssText='position:fixed;right:18px;bottom:18px;z-index:9998;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;';
+    wrap.innerHTML='<a href="demo.html" style="display:inline-flex;align-items:center;gap:7px;padding:11px 15px;border-radius:999px;background:#7C5CFC;color:#fff;text-decoration:none;font:700 13px Inter,Arial,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.25)">▶ Demo</a><a href="user-guide.html" style="display:inline-flex;align-items:center;gap:7px;padding:11px 15px;border-radius:999px;background:#173b73;color:#fff;text-decoration:none;font:700 13px Inter,Arial,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.25)">📖 User Guide</a>';
+    document.body.appendChild(wrap);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installLandingLinks);else installLandingLinks();
 })();

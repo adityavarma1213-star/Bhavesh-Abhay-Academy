@@ -54,7 +54,7 @@ function corsHeaders(req) {
 function jsonError(req, status, message) {
   return new Response(JSON.stringify({ error: message }), {
     status,
-    headers: { 'Content-Type': 'application/json', ...corsHeaders(req) },
+    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...corsHeaders(req) },
   });
 }
 
@@ -196,7 +196,7 @@ async function callGeminiWithRetry(payload, apiKey, attempt = 0) {
 
 export default async function handler(req) {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: corsHeaders(req) });
+    return new Response(null, { status: 204, headers: { 'Cache-Control': 'no-store', ...corsHeaders(req) } });
   }
 
   if (req.method !== 'POST') {
@@ -408,7 +408,7 @@ export default async function handler(req) {
     status: 200,
     headers: {
       'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache, no-transform',
+      'Cache-Control': 'no-store, no-cache, no-transform',
       Connection: 'keep-alive',
       'X-Accel-Buffering': 'no',
       ...corsHeaders(req),

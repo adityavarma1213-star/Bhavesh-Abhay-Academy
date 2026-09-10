@@ -245,18 +245,36 @@ function wireButtons(){
   $('wellbeingOnBtn').addEventListener('click', () => { BAAWellbeing.setReminderPreference(true, 25); renderWellbeing(); });
   $('wellbeingOffBtn').addEventListener('click', () => { BAAWellbeing.setReminderPreference(false); renderWellbeing(); });
 
-  $('submitAppealBtn').addEventListener('click', () => {
+  $('submitAppealBtn').addEventListener('click', async () => {
     const attemptId = $('attemptSelect').value;
     const questionId = $('questionSelect').value;
-    const requestedBy = $('requestedBySelect').value;
     const reason = $('appealReason').value;
-    if (!attemptId || !questionId) return;
-    const res = BAAAssessment.requestReevaluation(attemptId, questionId, { requestedBy, reason });
     const box = $('appealResult');
     box.style.display = 'block';
-    box.textContent = res.error
-      ? ('Could not submit: ' + res.error)
-      : 'Sent for human re-evaluation — it now appears in the teacher review queue. The AI\'s original evaluation is preserved either way.';
+    if (!attemptId || !questionId) return;
+    if (!reason || !reason.trim()) { box.textContent = 'Please explain why you are requesting a review.'; return; }
+    // M39/M59 — real, server-backed review request (see api/v1/appeals).
+    // Resolves the caller's own learner id the same way student-os.html
+    // does, rather than trusting a client-supplied id.
+    try {
+      const meRes = await fetch('/api/auth/me', { credentials: 'include' });
+      if (!meRes.ok) throw new Error('NOT_AUTHENTICATED');
+      const me = await meRes.json();
+      const learnersRes = await fetch('/api/v1/my-learners', { credentials: 'include' });
+      const { learners } = await learnersRes.json();
+      const mine = (learners || []).find(l => l.relationship === 'self') || (learners || [])[0];
+      if (!mine) throw new Error('NO_LINKED_LEARNER');
+      const res = await fetch('/api/v1/appeals', {
+        method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ learnerId: mine.id, attemptId, questionId, reason }),
+      });
+      const j = await res.json();
+      box.textContent = res.ok
+        ? (j.alreadyPending ? 'This question already has a pending review — a teacher will look at it soon.' : 'Sent to your teacher\'s review queue. The AI\'s original evaluation is preserved either way — nothing is silently changed.')
+        : ('Could not submit: ' + (j?.error?.message || 'unknown error'));
+    } catch (e) {
+      box.textContent = 'Could not reach the server to submit this — please sign in and try again.';
+    }
   });
 
   $('exportBtn').addEventListener('click', () => {
@@ -332,5 +350,22 @@ wireButtons();
 })();
 </script>
 <script src="js/baa-themes.js"></script>
+<link rel="stylesheet" href="css/baa-guide-robot.css">
+<button type="button" id="baaGuideRobotBtn" aria-label="Open BAA Guide" aria-haspopup="dialog" aria-expanded="false">🤖</button>
+<div id="baaGuideRobotPanel" role="dialog" aria-modal="true" aria-labelledby="baaGuideTitle" hidden>
+  <div class="baa-guide-header">
+    <h2 id="baaGuideTitle">🤖 BAA Guide</h2>
+    <button type="button" class="baa-guide-close" aria-label="Close guide">✕</button>
+  </div>
+  <div class="baa-guide-body">
+    <p class="baa-guide-intro">What would you like explained?</p>
+    <div id="baaGuideTopicList"></div>
+    <div id="baaGuideTopicDetail" hidden></div>
+  </div>
+  <div id="baaGuideLiveRegion" class="baa-guide-sr-only" aria-live="polite" aria-atomic="true"></div>
+</div>
+<script src="js/baa-guide-topics.js"></script>
+<script src="js/baa-guide-robot.js"></script>
+<script>if(window.BAAGuideRobot)BAAGuideRobot.init();</script>
 </body>
 </html>

@@ -41,6 +41,38 @@ import { issueHomeworkVerdict, hashHomeworkText } from './_lib/assessment-verdic
 // Same model as api/chat.js and api/evaluate.js — see those files for why.
 const MODEL = 'gemini-3.5-flash-lite';
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
+// corsHeaders/jsonError/getClientIp were missing from this file — every call
+// site already assumed them, so every request was throwing ReferenceError
+// before reaching Gemini. Restored with the exact signatures the existing
+// call sites use, plus Cache-Control: no-store on every JSON response since
+// these carry a specific student's homework/image evaluation and must never
+// be cached.
+function getAllowedOrigin() {
+  return process.env.ALLOWED_ORIGIN || '*';
+}
+
+function corsHeaders() {
+  return {
+    'Access-Control-Allow-Origin': getAllowedOrigin(),
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Vary': 'Origin',
+  };
+}
+
+function jsonError(status, message) {
+  return new Response(JSON.stringify({ error: message }), {
+    status,
+    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...corsHeaders() },
+  });
+}
+
+function getClientIp(req) {
+  const fwd = req.headers.get('x-forwarded-for');
+  if (fwd) return fwd.split(',')[0].trim();
+  return req.headers.get('x-real-ip') || 'unknown';
+}
+
 const MAX_OUTPUT_TOKENS = 1024;
 const MAX_TEXT_CHARS = 8000; // matches js/baa-homework.js MAX_TEXT_LENGTH
 const MAX_SUBJECT_CHARS = 80; // matches homework-scanner.html hwSubjectInput maxlength
@@ -244,7 +276,7 @@ function buildHumanReviewReasons(parsed, imageAttached) {
 
 export default async function handler(req) {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: corsHeaders() });
+    return new Response(null, { status: 204, headers: { 'Cache-Control': 'no-store', ...corsHeaders() } });
   }
   if (req.method !== 'POST') {
     return jsonError(405, 'Method not allowed');
@@ -332,7 +364,7 @@ export default async function handler(req) {
       confidence: 'low',
       humanReviewRequired: true,
       verdictToken: null,
-    }), { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders() } });
+    }), { status: 200, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...corsHeaders() } });
   }
 
   const result = {
@@ -369,6 +401,6 @@ export default async function handler(req) {
 
   return new Response(JSON.stringify(result), {
     status: 200,
-    headers: { 'Content-Type': 'application/json', ...corsHeaders() },
+    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...corsHeaders() },
   });
 }

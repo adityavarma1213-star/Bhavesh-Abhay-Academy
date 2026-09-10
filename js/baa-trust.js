@@ -8,11 +8,20 @@
    "fully encrypted") the actual implementation does not prove. It
    documents, in plain language pulled from the running app, what data
    exists, why, who can reach it in THIS build, how long it stays, and
-   gives the student/parent real controls over it — while being explicit
-   that every one of those controls runs client-side against localStorage,
-   inspectable by anyone with devtools on this browser. A server-enforced,
-   legally-compliant version of this is a Section G4+ dependency, not
-   something this file pretends to already be.
+   gives the student/parent real controls over it.
+
+   CONSENT PERSISTENCE: the local record below (STORAGE_KEY) remains the
+   immediate, offline-first source of truth so the UI works without a
+   network round-trip. Consent changes are also sent, best-effort, to the
+   real server endpoint (/api/v1/consent -> consent_preferences table,
+   see api/v1/[...route].js) via syncConsentToServer(); the outcome of
+   that sync attempt is itself logged into the local activity log. If the
+   sync fails or the user isn't authenticated (e.g. the public demo),
+   the local acknowledgement still stands and is retried on the next
+   consent action. Every OTHER control in this file (export, fresh-start,
+   deletion request) is still client-side only against localStorage,
+   inspectable by anyone with devtools on this browser — those remain a
+   G4+ dependency and are labeled as such below.
 
    WHAT THIS FILE DOES NOT DO:
    - It does not create a second copy of Section B/C/D's data. It reads
@@ -90,6 +99,35 @@
     store.activityLog.push({ id: uid('log'), action, detail: detail || null, at: nowISO() });
     // Keep this local-browser log from growing without bound.
     if (store.activityLog.length > 500) store.activityLog = store.activityLog.slice(-500);
+  }
+
+  // ============================================================
+  // Best-effort server sync for consent (Module 37). The server API
+  // (/api/v1/consent) and its consent_preferences table already exist
+  // and are real (see api/v1/[...route].js + db/schema.sql) — this is
+  // not a G4+ dependency anymore, it was simply never called from here.
+  // This call is fire-and-forget: an unauthenticated/offline user (e.g.
+  // the public demo) still gets the local acknowledgement recorded
+  // above, and the outcome of the sync attempt is logged honestly into
+  // the local activity log rather than silently swallowed.
+  // ============================================================
+  function syncConsentToServer(store, granted) {
+    if (typeof global.fetch !== 'function') return;
+    global.fetch('/api/v1/consent', {
+      method: 'PUT',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ consentType: 'data_processing', granted }),
+    }).then((res) => {
+      const synced = load();
+      logEvent(synced, res.ok ? 'consent_synced_to_server' : 'consent_server_sync_failed',
+        res.ok ? { granted } : { status: res.status });
+      save(synced);
+    }).catch(() => {
+      const synced = load();
+      logEvent(synced, 'consent_server_sync_unreachable', { granted });
+      save(synced);
+    });
   }
 
   // ============================================================
@@ -233,6 +271,7 @@
     };
     logEvent(store, 'consent_acknowledged', { role });
     save(store);
+    syncConsentToServer(store, true);
     return { consent: { ...store.consent } };
   }
   function revokeConsentAcknowledgement() {
@@ -240,6 +279,7 @@
     store.consent = { parentalAcknowledgementGiven: false, acknowledgedAt: null, acknowledgedRole: null };
     logEvent(store, 'consent_revoked', null);
     save(store);
+    syncConsentToServer(store, false);
     return { consent: { ...store.consent } };
   }
 

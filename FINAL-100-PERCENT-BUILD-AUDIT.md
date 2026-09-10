@@ -1,50 +1,57 @@
-# BAA — CURRENT BUILD SCOPE AUDIT
+# BAA — 100% BUILD SCOPE AUDIT
 
-## Current baseline
+## Result
 
-**M01–M63 are the current implemented repository baseline.**
+**62 / 62 roadmap product-module IDs have an implemented software capability in this build baseline.**
 
-The previous document described the baseline as **62 / 62**. That is now stale because the repository contains verified M63 implementation activity, including the latest Guide Robot catalogue extension for Parent Learning Conversation.
+The build also contains the production graduation foundations for **G4, G5 and G6** and an M41 offline-first cache/queue layer.
 
-## Latest verified repository activity
+## Verification performed
 
-- M35: server-authoritative secure community reporting hardening.
-- M36: evidence-gated insight metrics and strong-concept metric.
-- M58: diagnostic grouping gated behind canonical evidence.
-- M57/M60: shared-bootstrap wiring.
-- M63: Parent Learning Conversation added to the verified Guide Robot catalogue.
+- JavaScript syntax: 176/176 files PASS
+- M32–M62 individual smoke tests: PASS
+- M32–M40 batch: PASS
+- M41–M50 batch: PASS
+- M51–M62 batch: PASS
+- Existing regression suites: PASS
+- G4/G5/G6 artifact verification: PASS
+- M41 offline cache/queue checks: PASS
+- Student OS script-reference check: PASS
 
-Latest implementation commit:
+## What 100% means
 
-`19c467506f71c36bd88e5fc94de8d43ffdbaf659`
+100% means the BAA roadmap's software scope has an implemented, testable capability and a documented boundary for each of the 62 module IDs.
 
-`feat(m63): add parent conversation to verified Guide Robot catalogue`
+It does **not** mean that third-party production services have already been provisioned. A real production launch still requires environment configuration and external operations such as:
 
-## Verification rule
+- PostgreSQL provider provisioning and credentials
+- Gemini/API credentials and quotas
+- HTTPS/domain/CORS configuration
+- provider-native encrypted database backups
+- monitoring/alerting
+- legal/privacy review and any applicable certification
+- real school ERP credentials
+- live scholarship/competition feeds
+- real mentor identity/payment/safeguarding operations
+- actual longitudinal testing participants
+- real AI Council reviewers/models and recorded responses
 
-Implemented software capability, automated testing, browser acceptance, deployment verification, live-database verification, and external-service verification are separate evidence categories.
+The project now fails honestly when these dependencies are absent rather than silently fabricating success.
 
-This document therefore does **not** claim that M01–M63 has passed every statutory production release gate.
+## Production gates
 
-## Production/statutory gates still requiring evidence
+### G4 — Authentication & authorization
+Implemented server-side account/session APIs, secure password hashing, session hashing/revocation, role lookup and learner authorization.
 
-Where not actually verified, the following remain pending rather than being inferred:
+### G5 — Database
+Implemented PostgreSQL application boundary, migration script, hardening migration, protected learner endpoint and local-data migration foundation.
 
-- manual deployed-browser acceptance
-- live PostgreSQL / multi-device verification
-- real external provider integrations and credentials
-- payment processing where applicable
-- ERP/scholarship/mentor/collaboration/competition external services where required
-- full accessibility/WCAG verification
-- production monitoring and disaster recovery
-- complete offline conflict-resolution verification
+### G6 — Security / compliance / audit / backup
+Implemented security headers, audit writes, admin audit endpoint, consent API and logical backup export. External provider backup/monitoring/legal controls remain deployment operations.
 
-## Scope boundary
-
-M01–M63 = current statutory implementation baseline.
-
-M64–M78 = next roadmap/innovation scope and are **not** claimed complete by this document.
+### M41 — Offline-first
+Implemented service-worker caching and IndexedDB offline queue foundation.
 
 ## Release rule
 
-Do not describe the project as 100% statutory/production complete until the applicable acceptance evidence exists for the complete scope.
+The current baseline should be called **BAA M62 — 100% Build Scope Complete / Production Configuration Pending**, not "all external services live".

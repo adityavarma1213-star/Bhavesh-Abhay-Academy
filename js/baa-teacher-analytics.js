@@ -8,20 +8,14 @@
 (function(global){
   'use strict';
 
-  const VALID_CORRECTNESS=new Set(['correct','partially_correct','incorrect']);
-
   function summarizeSnapshot(snapshot){
     const evidence=Array.isArray(snapshot?.evidence)?snapshot.evidence:[];
     const grouped={};
     evidence.forEach(e=>{
-      if(!e?.concept || !VALID_CORRECTNESS.has(e.correctness))return;
-      const subject=e.subject||null;
-      const key=`${subject||''}::${e.concept}`;
-      const g=(grouped[key] ||= {concept:e.concept,subject,total:0,correct:0,partiallyCorrect:0,incorrect:0});
+      if(!e?.concept)return;
+      const g=(grouped[e.concept] ||= {concept:e.concept,subject:e.subject||null,total:0,correct:0});
       g.total++;
       if(e.correctness==='correct')g.correct++;
-      else if(e.correctness==='partially_correct')g.partiallyCorrect++;
-      else g.incorrect++;
     });
     return Object.values(grouped).map(g=>({
       ...g,
@@ -32,15 +26,13 @@
   function aggregateStudentSnapshots(snapshots){
     if(!Array.isArray(snapshots))return {students:0,concepts:[]};
     const map={};
-    snapshots.forEach(snapshot=>{
+    snapshots.forEach((snapshot,index)=>{
       summarizeSnapshot(snapshot).forEach(row=>{
-        const key=`${row.subject||''}::${row.concept}`;
-        const g=(map[key] ||= {concept:row.concept,subject:row.subject,totalStudents:0,totalEvidence:0,totalCorrect:0,totalPartiallyCorrect:0,totalIncorrect:0});
+        const key=row.concept;
+        const g=(map[key] ||= {concept:key,subject:row.subject,totalStudents:0,totalEvidence:0,totalCorrect:0});
         g.totalStudents++;
         g.totalEvidence+=row.total;
         g.totalCorrect+=row.correct;
-        g.totalPartiallyCorrect+=row.partiallyCorrect;
-        g.totalIncorrect+=row.incorrect;
       });
     });
     return {

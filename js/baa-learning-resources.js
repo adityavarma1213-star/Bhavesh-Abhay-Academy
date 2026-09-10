@@ -3,8 +3,8 @@
    Conservative implementation of the Blueprint's multimodal
    resource-curation purpose. It recommends resource formats from
    real learning evidence and an explicit student format preference.
-   It does NOT diagnose a "learning style", invent resource content,
-   or claim external resources have been quality-validated.
+   It does NOT diagnose a psychological learner-type profile, invent
+   resource content, or claim external resources have been quality-validated.
    ============================================================ */
 (function(global){
 'use strict';
@@ -28,11 +28,43 @@ function setPreference(format){
   const value=normalizeFormat(format);
   if(!value)return {ok:false,error:'INVALID_RESOURCE_FORMAT'};
   try{
-    localStorage.setItem('baa_resource_preferences',JSON.stringify({
-      schemaVersion:1,format:value,updatedAt:new Date().toISOString()
-    }));
+    const record={schemaVersion:1,format:value,updatedAt:new Date().toISOString()};
+    localStorage.setItem('baa_resource_preferences',JSON.stringify(record));
+    pushSync(record);
     return {ok:true,error:null};
   }catch(_){return {ok:false,error:'PREFERENCE_STORAGE_FAILED'};}
+}
+
+// ------------------------------------------------------------
+// Server sync — was previously localStorage-only (see audit notes).
+// ------------------------------------------------------------
+let syncLearnerId=null;
+const STATE_KEY='learning_resources_v1';
+function setSyncTarget(learnerId){syncLearnerId=learnerId||null;}
+function pushSync(record){
+  if(!syncLearnerId||typeof fetch==='undefined')return;
+  const url=`/api/v1/client-state?learnerId=${encodeURIComponent(syncLearnerId)}&stateKey=${STATE_KEY}`;
+  const opts={method:'PUT',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(record)};
+  fetch(url,opts).catch((e)=>{
+    if(global.BAAOfflineSync)global.BAAOfflineSync.enqueue(url,opts);
+    console.warn('[BAA Module 27] Learning Resources preference sync queued offline',e);
+  });
+}
+async function hydrateFromServer(learnerId){
+  if(!learnerId||typeof fetch==='undefined')return false;
+  try{
+    const res=await fetch(`/api/v1/client-state?learnerId=${encodeURIComponent(learnerId)}&stateKey=${STATE_KEY}`,{credentials:'include'});
+    if(!res.ok)throw new Error(`server returned ${res.status}`);
+    const {state}=await res.json();
+    if(state&&normalizeFormat(state.format)){
+      localStorage.setItem('baa_resource_preferences',JSON.stringify(state));
+    }
+    setSyncTarget(learnerId);
+    return true;
+  }catch(e){
+    console.warn('[BAA Module 27] Could not hydrate Learning Resources preference from server — continuing with local data only.',e);
+    return false;
+  }
 }
 
 function getEvidence(){
@@ -79,7 +111,7 @@ function getRecommendations(limit=8){
   const preferred=getPreference();
   const recommendations=[];
   ev.states.filter(s=>s&&s.concept).slice(0,20).forEach(state=>{
-    rankFormats(state,preferred).slice(0,2).forEach(r=>{
+    rankFormats(state,preferred).slice(0,3).forEach(r=>{
       const format=FORMATS.find(f=>f.id===r.id);
       const query=`${state.subject||''} ${String(state.concept).replace(/-/g,' ')}`.trim();
       recommendations.push({
@@ -92,5 +124,5 @@ function getRecommendations(limit=8){
   return {ok:true,error:null,preference:preferred,recommendations:recommendations.slice(0,Math.max(1,Math.min(20,Number(limit)||8)))};
 }
 
-global.BAALearningResources={getPreference,setPreference,getRecommendations};
+global.BAALearningResources={getPreference,setPreference,getRecommendations,setSyncTarget,hydrateFromServer};
 })(window);

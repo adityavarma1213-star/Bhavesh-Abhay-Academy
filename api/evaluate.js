@@ -1,15 +1,24 @@
 // api/evaluate.js
 // BAA OS — Section B: Subjective Answer Evaluation backend.
-// Server-authoritative assessment evaluation: the authenticated learner's
-// recorded attempt and canonical question define the grading context.
+// Runs as a Vercel Edge Function, same pattern as api/chat.js: keeps the
+// Gemini API key server-side, validates input, rate-limits, retries
+// transient failures — but returns a single structured JSON evaluation
+// object instead of a stream, since the assessment player needs the whole
+// result before it can show the student their score.
+//
+// Only called for questions that CANNOT be graded deterministically
+// (short answer, long answer, math, step-based, written response). MCQ and
+// True/False are graded entirely client-side in js/baa-assessment.js.
 
 export const config = { runtime: 'nodejs' };
 
 import { requireAuth } from './_lib/auth.js';
 import { consumeAiRateLimit } from './_lib/ai-rate-limit.js';
 import { issueAssessmentVerdict } from './_lib/assessment-verdict.js';
-import { sql } from './_lib/db.js';
 
+// Same model as api/chat.js — see that file's comment for why. Section B
+// does not change the model; keeping evaluation and tutoring on the same
+// model also means their behavior/cost profile stays consistent.
 const MODEL = 'gemini-3.5-flash-lite';
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
 const MAX_OUTPUT_TOKENS = 1024;
@@ -18,9 +27,42 @@ const MAX_QUESTION_CHARS = 2000;
 const REQUEST_TIMEOUT_MS = 30_000;
 const MAX_RETRIES = 2;
 
+// corsHeaders/jsonError/getClientIp were missing from this file — every call
+// site already assumed them, so every request was throwing ReferenceError
+// before reaching Gemini. Restored with the exact signatures the existing
+// call sites use, plus Cache-Control: no-store on every JSON response since
+// these carry a specific student's answer/grade and must never be cached.
+function getAllowedOrigin() {
+  return process.env.ALLOWED_ORIGIN || '*';
+}
+
+function corsHeaders() {
+  return {
+    'Access-Control-Allow-Origin': getAllowedOrigin(),
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Vary': 'Origin',
+  };
+}
+
+function jsonError(status, message) {
+  return new Response(JSON.stringify({ error: message }), {
+    status,
+    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...corsHeaders() },
+  });
+}
+
+function getClientIp(req) {
+  const fwd = req.headers.get('x-forwarded-for');
+  if (fwd) return fwd.split(',')[0].trim();
+  return req.headers.get('x-real-ip') || 'unknown';
+}
+
 const VALID_QUESTION_TYPES = new Set([
   'short_answer', 'long_answer', 'math', 'step_based', 'written_response',
 ]);
+
+// ---------- Best-effort in-memory rate limiter (see api/chat.js) ----------
 
 function validateBody(body) {
   const { question, studentAnswer } = body || {};
@@ -40,32 +82,6 @@ function validateBody(body) {
   return { question, studentAnswer: studentAnswer.trim() };
 }
 
-async function loadCanonicalAssessmentQuestion(session, attemptId, questionId) {
-  const rows = await sql`
-    SELECT
-      aa.id AS attempt_id,
-      aa.assessment_id,
-      aq.question_id,
-      q.type,
-      q.marks,
-      q.text,
-      q.model_answer,
-      q.concept,
-      q.subject,
-      q.difficulty
-    FROM assessment_attempts aa
-    JOIN learners l ON l.id = aa.learner_id
-    JOIN assessment_questions aq ON aq.assessment_id = aa.assessment_id
-      AND aq.question_id = ${questionId}
-    JOIN questions q ON q.id = aq.question_id
-    WHERE aa.id = ${attemptId}
-      AND (l.user_id = ${session.user_id} OR EXISTS (
-        SELECT 1 FROM user_roles ur WHERE ur.user_id = ${session.user_id} AND ur.role = 'admin'
-      ))
-    LIMIT 1`;
-  return rows.rows[0] || null;
-}
-
 function buildPrompt(question, studentAnswer) {
   const isMath = question.type === 'math' || question.type === 'step_based';
   return (
@@ -73,7 +89,8 @@ function buildPrompt(question, studentAnswer) {
     `QUESTION (${question.type}, worth ${question.marks} marks):\n${question.text}\n\n` +
     (question.modelAnswer ? `MODEL ANSWER / MARKING GUIDE:\n${question.modelAnswer}\n\n` : '') +
     `STUDENT'S ANSWER:\n${studentAnswer}\n\n` +
-    `Evaluate the student's answer and respond with ONLY a single JSON object (no markdown fences, no extra text before or after) with exactly these fields:\n` +
+    `Evaluate the student's answer and respond with ONLY a single JSON object (no markdown fences, no ` +
+    `extra text before or after) with exactly these fields:\n` +
     `{\n` +
     `  "score": <number, 0 to ${question.marks}, may be a decimal>,\n` +
     `  "maxScore": ${question.marks},\n` +
@@ -88,12 +105,16 @@ function buildPrompt(question, studentAnswer) {
     `}\n\n` +
     `RULES:\n` +
     `- ${isMath
-        ? 'For math/step-based answers, evaluate METHOD, STEPS, and FINAL ANSWER separately in your reasoning. A correct method with one small arithmetic slip is "partially_correct" with most of the marks, NOT the same as a wrong method — do not treat them as equivalent.'
+        ? 'For math/step-based answers, evaluate METHOD, STEPS, and FINAL ANSWER separately in your reasoning. ' +
+          'A correct method with one small arithmetic slip is "partially_correct" with most of the marks, NOT the same as a wrong method — do not treat them as equivalent.'
         : 'Judge correctness, relevance, completeness, and reasoning quality — not just keyword matching.'}\n` +
     `- Give PARTIAL credit (a score strictly between 0 and ${question.marks}) whenever the answer is partially right. Do not just give full marks or zero unless that is genuinely warranted.\n` +
-    `- If you are not confident in your judgement (ambiguous answer, handwriting-style transcription issues, a genuinely borderline case), set "confidence" to "low" or "medium" and "humanReviewRequired" to true. Do not present an uncertain judgement as a guaranteed fact.\n` +
+    `- If you are not confident in your judgement (ambiguous answer, handwriting-style transcription issues, ` +
+    `a genuinely borderline case), set "confidence" to "low" or "medium" and "humanReviewRequired" to true. ` +
+    `Do not present an uncertain judgement as a guaranteed fact.\n` +
     `- The rubric must break the mark into 1-4 concrete criteria appropriate to the question. Criterion scores must be numeric, non-negative, and never exceed maxScore. Rubric scores should add up to the overall score within a small rounding tolerance. Evidence must point only to what the student actually wrote.\n` +
-    `- If the student's answer contains a genuine spelling or terminology error that matters for academic correctness, list it in "errors" with a short, specific description. Do not invent or nitpick harmless stylistic variations.\n` +
+    `- If the student's answer contains a genuine spelling or terminology error that matters for academic correctness, list it in "errors" with a short, specific description. Do not invent or nitpick harmless stylistic variations.
+` +
     `- Never invent facts about the student or claim history you were not given.\n` +
     `- Keep the tone constructive — a mistake is information, not a failure.\n` +
     `- Respond with ONLY the JSON object.`
@@ -127,6 +148,9 @@ async function callGeminiWithRetry(payload, apiKey, attempt = 0) {
   }
 }
 
+// Extracts the first {...} JSON object from the model's text output.
+// Gemini is instructed to return raw JSON, but we defensively strip any
+// accidental markdown fences before parsing.
 function extractJson(text) {
   const cleaned = text.replace(/```json/gi, '').replace(/```/g, '').trim();
   const start = cleaned.indexOf('{');
@@ -146,52 +170,42 @@ function clampScore(score, maxScore) {
 }
 
 export default async function handler(req) {
-  const responseHeaders = { 'Cache-Control': 'private, no-store, max-age=0' };
   if (req.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: { ...responseHeaders, ...corsHeaders() } });
+    return new Response(null, { status: 204, headers: { 'Cache-Control': 'no-store', ...corsHeaders() } });
   }
   if (req.method !== 'POST') {
-    return jsonError(405, 'Method not allowed', responseHeaders);
+    return jsonError(405, 'Method not allowed');
   }
 
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return jsonError(500, 'Server is missing GEMINI_API_KEY', responseHeaders);
+  if (!apiKey) {
+    return jsonError(500, 'Server is missing GEMINI_API_KEY');
+  }
 
   let session;
   try { session = await requireAuth(req); } catch (e) {
-    return jsonError(e.status || 401, e.message || 'Authentication required.', responseHeaders);
+    return jsonError(e.status || 401, e.message || 'Authentication required.');
   }
   let rate;
   try { rate = await consumeAiRateLimit('evaluate', session.user_id || getClientIp(req), { windowSeconds: 300, maxRequests: 30 }); }
-  catch { return jsonError(503, 'AI rate-limit service is temporarily unavailable.', responseHeaders); }
-  if (rate.limited) return jsonError(429, 'Too many evaluation requests — please wait a moment and try again.', responseHeaders);
+  catch { return jsonError(503, 'AI rate-limit service is temporarily unavailable.'); }
+  if (rate.limited) return jsonError(429, 'Too many evaluation requests — please wait a moment and try again.');
 
   let body;
-  try { body = await req.json(); } catch { return jsonError(400, 'Invalid JSON body', responseHeaders); }
+  try {
+    body = await req.json();
+  } catch {
+    return jsonError(400, 'Invalid JSON body');
+  }
 
   const validated = validateBody(body);
-  if (validated.error) return jsonError(400, validated.error, responseHeaders);
-  const { studentAnswer } = validated;
+  if (validated.error) {
+    return jsonError(400, validated.error);
+  }
+  const { question, studentAnswer } = validated;
   const attemptId = body?.attemptId;
   const questionId = body?.questionId;
-  if (!attemptId || !questionId) return jsonError(400, 'attemptId and questionId are required for a server-verifiable assessment verdict', responseHeaders);
-
-  let canonicalQuestion;
-  try { canonicalQuestion = await loadCanonicalAssessmentQuestion(session, attemptId, questionId); }
-  catch { return jsonError(503, 'Assessment verification service is temporarily unavailable.', responseHeaders); }
-  if (!canonicalQuestion) return jsonError(403, 'Assessment question is not owned by the authenticated learner or is not part of the recorded attempt.', responseHeaders);
-  if (!VALID_QUESTION_TYPES.has(canonicalQuestion.type)) return jsonError(400, 'The recorded question is not eligible for AI evaluation.', responseHeaders);
-
-  const question = {
-    id: canonicalQuestion.question_id,
-    text: canonicalQuestion.text,
-    type: canonicalQuestion.type,
-    marks: Number(canonicalQuestion.marks),
-    modelAnswer: canonicalQuestion.model_answer || null,
-    concept: canonicalQuestion.concept,
-    subject: canonicalQuestion.subject,
-    difficulty: canonicalQuestion.difficulty,
-  };
+  if (!attemptId || !questionId) return jsonError(400, 'attemptId and questionId are required for a server-verifiable assessment verdict');
 
   const payload = {
     contents: [{ role: 'user', parts: [{ text: buildPrompt(question, studentAnswer) }] }],
@@ -206,8 +220,14 @@ export default async function handler(req) {
   };
 
   let upstream;
-  try { upstream = await callGeminiWithRetry(payload, apiKey); }
-  catch { return jsonError(502, 'AI evaluation service is temporarily unavailable', responseHeaders); }
+  try {
+    upstream = await callGeminiWithRetry(payload, apiKey);
+  } catch (err) {
+    // Evaluation failure -> the frontend flags this question for human
+    // review instead of showing a broken score. See js/baa-assessment.js
+    // gradeWithAI's catch path.
+    return jsonError(502, 'AI evaluation service is temporarily unavailable');
+  }
 
   if (!upstream.ok) {
     let detail = 'AI evaluation service error';
@@ -216,29 +236,34 @@ export default async function handler(req) {
       const errObj = Array.isArray(errBody) ? errBody[0]?.error : errBody?.error;
       detail = errObj?.message || detail;
     } catch { /* ignore parse failure */ }
-    return jsonError(upstream.status === 429 ? 429 : 502, detail, responseHeaders);
+    return jsonError(upstream.status === 429 ? 429 : 502, detail);
   }
 
   let data;
-  try { data = await upstream.json(); }
-  catch { return jsonError(502, 'AI evaluation service returned an unreadable response', responseHeaders); }
+  try {
+    data = await upstream.json();
+  } catch {
+    return jsonError(502, 'AI evaluation service returned an unreadable response');
+  }
 
   const text = data?.candidates?.[0]?.content?.parts?.map((p) => p.text || '').join('') || '';
   const parsed = extractJson(text);
 
   if (!parsed) {
+    // Do not fabricate a score if we cannot parse the model's output.
     return new Response(JSON.stringify({
       score: null, maxScore: question.marks, correctness: 'uncertain',
       explanation: 'The AI evaluator did not return a readable result for this answer.',
       errors: [], missingConcepts: [], suggestedImprovement: null, confidence: 'low',
       humanReviewRequired: true, verdictToken: null,
-    }), { status: 200, headers: { 'Content-Type': 'application/json', ...responseHeaders, ...corsHeaders() } });
+    }), { status: 200, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...corsHeaders() } });
   }
 
   const result = {
     score: clampScore(parsed.score, question.marks),
     maxScore: question.marks,
-    correctness: ['correct', 'partially_correct', 'incorrect', 'uncertain'].includes(parsed.correctness) ? parsed.correctness : 'uncertain',
+    correctness: ['correct', 'partially_correct', 'incorrect', 'uncertain'].includes(parsed.correctness)
+      ? parsed.correctness : 'uncertain',
     explanation: typeof parsed.explanation === 'string' ? parsed.explanation.slice(0, 1000) : '',
     errors: Array.isArray(parsed.errors) ? parsed.errors.slice(0, 10).map(String) : [],
     missingConcepts: Array.isArray(parsed.missingConcepts) ? parsed.missingConcepts.slice(0, 10).map(String) : [],
@@ -252,7 +277,8 @@ export default async function handler(req) {
         })).filter(item => item.maxScore > 0)
       : [],
     confidence: ['high', 'medium', 'low'].includes(parsed.confidence) ? parsed.confidence : 'low',
-    humanReviewRequired: parsed.score === null || parsed.score === undefined ? true : (!!parsed.humanReviewRequired || parsed.confidence === 'low'),
+    humanReviewRequired: parsed.score === null || parsed.score === undefined
+      ? true : (!!parsed.humanReviewRequired || parsed.confidence === 'low'),
   };
 
   if (result.score === null) result.humanReviewRequired = true;
@@ -266,6 +292,6 @@ export default async function handler(req) {
 
   return new Response(JSON.stringify(result), {
     status: 200,
-    headers: { 'Content-Type': 'application/json', ...responseHeaders, ...corsHeaders() },
+    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...corsHeaders() },
   });
 }

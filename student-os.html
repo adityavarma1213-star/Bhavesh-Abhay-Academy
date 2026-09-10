@@ -44,6 +44,12 @@ a{color:inherit;text-decoration:none;}
              radial-gradient(ellipse 800px 600px at 50% 100%,rgba(245,185,66,0.06),transparent 60%);
   animation:drift 26s ease-in-out infinite alternate;}
 @keyframes drift{0%{transform:translate(0,0) scale(1);}100%{transform:translate(-2%,2%) scale(1.05);}}
+/* M41 — Smart Low-Bandwidth Learning. A real, measurable behavior
+   change: the continuous ambient background animation/gradient is
+   costly to repaint on a low-end device and adds nothing functional —
+   turned off entirely under Data Saver, not just visually dimmed. */
+body.baa-data-saver .aurora{animation:none;background:none;}
+body.baa-data-saver .grain{display:none;}
 .grain{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:0.03;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
 
@@ -981,6 +987,7 @@ async function sendMentorChat(overrideText){
       <button class="baa-nav" onclick="openWorld('code')"><span class="ni">💻</span> Coding Lab</button>
       <button class="baa-nav" onclick="openWorld('career')"><span class="ni">🎓</span> Career</button>
       <button class="baa-nav" onclick="openWorld('community')"><span class="ni">👥</span> Community</button>
+      <button class="baa-nav" onclick="window.location.href='board-exam-center.html'"><span class="ni">🏛️</span> Board &amp; Exam Center</button>
       <button class="baa-nav" onclick="window.location.href='feature-map.html'"><span class="ni">🧩</span> Feature Explorer</button>
       <button class="baa-nav" onclick="window.location.href='homework-scanner.html'"><span class="ni">🧾</span> Homework</button>
       <div class="baa-side-label">Support</div>
@@ -1060,7 +1067,7 @@ async function sendMentorChat(overrideText){
             <div class="baa-feature" onclick="openWorld('planner')"><div class="fi">🧭</div><h3>AI Planner</h3><p>Evidence-based daily study plan.</p></div>
           </div></section>
           <section class="baa-feature-section"><div class="baa-card"><div class="baa-card-head"><h2>🧩 All BAA Modules</h2><button class="baa-mini" onclick="window.location.href='feature-map.html'">Open Feature Explorer →</button></div><div class="baa-all-modules">
-            <div class="baa-module" onclick="openWorld('achievements')">🏆 Achievement & Rewards</div><div class="baa-module" onclick="openWorld('community')">👥 Community & Collaboration</div><div class="baa-module" onclick="openWorld('guardian')">🛡️ AI Guardian</div><div class="baa-module" onclick="openWorld('mentor')">🧭 AI Mentor</div><div class="baa-module" onclick="window.location.href='homework-scanner.html'">🧾 Homework Scanner</div><div class="baa-module" onclick="window.location.href='assessment.html'">📝 Smart Assessments</div><div class="baa-module" onclick="window.location.href='feature-map.html'">🌍 Multilingual Learning</div><div class="baa-module" onclick="window.location.href='feature-map.html'">🎤 Voice Learning</div><div class="baa-module" onclick="window.location.href='feature-map.html'">📖 AI Notes Generator</div><div class="baa-module" onclick="window.location.href='feature-map.html'">🎥 Learning Resources</div><div class="baa-module" onclick="window.location.href='feature-map.html'">🧠 Learning Intelligence</div><div class="baa-module" onclick="window.location.href='feature-map.html'">⚖️ AI Review & Appeal</div><div class="baa-module" onclick="window.location.href='feature-map.html'">🏫 School Portal</div><div class="baa-module" onclick="window.location.href='feature-map.html'">📊 Institution Analytics</div><div class="baa-module" onclick="window.location.href='feature-map.html'">🌍 Global Collaboration</div><div class="baa-module" onclick="window.location.href='feature-map.html'">🏅 Olympiad Center</div><div class="baa-module" onclick="window.location.href='feature-map.html'">🔒 Trust & Privacy</div><div class="baa-module" onclick="window.location.href='feature-map.html'">💬 Feedback Center</div>
+            <div class="baa-module" onclick="openWorld('achievements')">🏆 Achievement & Rewards</div><div class="baa-module" onclick="openWorld('community')">👥 Community & Collaboration</div><div class="baa-module" onclick="openWorld('guardian')">🛡️ AI Guardian</div><div class="baa-module" onclick="openWorld('mentor')">🧭 AI Mentor</div><div class="baa-module" onclick="window.location.href='homework-scanner.html'">🧾 Homework Scanner</div><div class="baa-module" onclick="window.location.href='assessment.html'">📝 Smart Assessments</div><div class="baa-module" onclick="window.location.href='feature-map.html'">🌍 Multilingual Learning</div><div class="baa-module" onclick="window.location.href='feature-map.html'">🎤 Voice Learning</div><div class="baa-module" onclick="window.location.href='feature-map.html'">📖 AI Notes Generator</div><div class="baa-module" onclick="openWorld('profile')">🎥 Learning Resources</div><div class="baa-module" onclick="window.location.href='feature-map.html'">🧠 Learning Intelligence</div><div class="baa-module" onclick="window.location.href='feature-map.html'">⚖️ AI Review & Appeal</div><div class="baa-module" onclick="window.location.href='admin.html'">🏫 School Portal</div><div class="baa-module" onclick="window.location.href='admin.html'">📊 Institution Analytics</div><div class="baa-module" onclick="openWorld('profile')">🌍 Global Collaboration</div><div class="baa-module" onclick="openWorld('profile')">🏅 Olympiad Center</div><div class="baa-module" onclick="window.location.href='trust-privacy.html'">🔒 Trust & Privacy</div><div class="baa-module" onclick="window.location.href='feature-map.html'">💬 Feedback Center</div>
           </div></div></section>
         </div>
         <aside>
@@ -1070,6 +1077,7 @@ async function sendMentorChat(overrideText){
           <section class="baa-card baa-side-card"><div class="baa-card-head"><h2>🎯 Today's Goals</h2><span>2 / 4</span></div><div style="font-size:.72rem;color:var(--dim);line-height:2"><div>✅ Complete Math Lesson</div><div>✅ Practice 10 Questions</div><div>⬜ Take a Quiz</div><div>⬜ Brain Buster</div></div><div class="baa-progress"><span style="width:50%"></span></div></section>
         </aside>
       </div>
+      <div id="baaThemeShowcase"></div>
     </main>
   </div>
 </section>
@@ -1231,6 +1239,11 @@ async function sendMentorChat(overrideText){
         <p class="concept-why">M41–M50 provide low-bandwidth, integrity, opportunity, institutional and extension capabilities. External services are never presented as connected until configured.</p>
         <div id="expansionCards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;"></div>
       </section>
+      <div id="insightsPanel" class="pf-card" style="margin-bottom:18px;">
+        <h2>📡 Weekly AI Review</h2>
+        <p class="concept-why">One honest summary from your real recorded activity — no invented score, and it says so plainly when there isn't enough evidence yet.</p>
+        <div id="insightsSummary"></div>
+      </div>
       <section id="ecosystemHub" class="pf-card" style="margin-bottom:18px;">
         <h2>🌐 BAA Ecosystem</h2>
         <p class="concept-why">M32–M40 tools are evidence-backed. Capabilities that require a school server, authorized reviewer, or external curriculum source are clearly identified as local/prototype capabilities.</p>
@@ -1262,6 +1275,40 @@ async function sendMentorChat(overrideText){
           </select>
         </div>
         <div id="resourceList"></div>
+      </div>
+      <div id="mistakeMapPanel" class="pf-card" style="margin-bottom:18px;">
+        <h2>🧩 Mistake Map</h2>
+        <p class="concept-why">Groups recorded mistakes by concept, with the actual questions behind each pattern. A pattern only appears with confidence once real evidence repeats — a single mistake is never called a pattern.</p>
+        <div id="mistakeMapList"></div>
+      </div>
+      <div id="outcomesPanel" class="pf-card" style="margin-bottom:18px;">
+        <h2>📈 Real Progress Check</h2>
+        <p class="concept-why">Compares your accuracy from your earliest recorded attempts on a concept to your most recent ones. Shown only once there's enough real evidence in both periods — a single good attempt is never called improvement.</p>
+        <select id="outcomeConceptSelect" style="margin:0 0 10px;padding:8px 10px;border-radius:10px;background:rgba(253,249,240,.06);color:inherit;border:1px solid rgba(253,249,240,.16);">
+          <option value="">Choose a concept…</option>
+        </select>
+        <div id="outcomeResult"></div>
+      </div>
+      <div id="scholarshipsPanel" class="pf-card" style="margin-bottom:18px;">
+        <h2>🎓 Scholarships</h2>
+        <p class="concept-why">Published opportunities only — nothing here is invented or estimated.</p>
+        <div id="scholarshipsList"></div>
+      </div>
+      <div id="mentorsPanel" class="pf-card" style="margin-bottom:18px;">
+        <h2>🧑‍🏫 Find a Mentor</h2>
+        <p class="concept-why">Only verified, safeguarding-checked mentors are shown. A request goes to the mentor — nothing is booked automatically.</p>
+        <select id="mentorSubjectFilter" style="margin:0 0 10px;padding:8px 10px;border-radius:10px;background:rgba(253,249,240,.06);color:inherit;border:1px solid rgba(253,249,240,.16);">
+          <option value="">All subjects</option>
+        </select>
+        <div id="mentorsList"></div>
+      </div>
+      <div id="dataSaverPanel" class="pf-card" style="margin-bottom:18px;">
+        <h2>📶 Data Saver</h2>
+        <p class="concept-why">Reduces image size for homework photo uploads and hides non-essential visuals — useful on a slow or expensive connection.</p>
+        <label style="display:flex;align-items:center;gap:8px;font-size:.86rem;">
+          <input type="checkbox" id="dataSaverToggle" onchange="onDataSaverToggle(this.checked)"> Turn on Data Saver
+        </label>
+        <div id="dataSaverStatus" class="task-subtext" style="margin-top:6px;"></div>
       </div>
       <div id="goalsPanel" class="pf-card" style="margin-bottom:18px;">
         <h2>🎯 Goals</h2><p class="concept-why">Goals connect to real Planner and learning evidence.</p>
@@ -1405,6 +1452,26 @@ async function sendMentorChat(overrideText){
 
     <section class="baa-card" aria-labelledby="progressionGateTitle"><div class="baa-card-head"><h2 id="progressionGateTitle">🔴🟢 Mastery Gate</h2><span>Nothing stays hidden</span></div><div id="progressionGatePanel"><div class="gate-empty">Complete an assessment to see chapter findings and green/red clearance.</div></div></section>
 <section class="baa-card" aria-labelledby="academicForecastTitle"><div class="baa-card-head"><h2 id="academicForecastTitle">🔮 Exam Forecast</h2><span>Evidence-based estimate</span></div><div id="academicForecastPanel"><div class="gate-empty">Add an upcoming assessment to see a forecast.</div></div></section>
+<section class="baa-card" aria-labelledby="cognitiveSafetyTitle"><div class="baa-card-head"><h2 id="cognitiveSafetyTitle">🌱 How's today going?</h2><span>Optional, just for you</span></div>
+  <div id="cognitiveSafetyPanel">
+    <p class="ai-mode-copy">This is a quick, private check-in — not a diagnosis, just a way for your plan to adjust if today's a heavier day. Only you can answer this for yourself.</p>
+    <div class="ai-mode-actions">
+      <label for="cognitiveSafetyPressure" class="task-subtext">How much pressure are you feeling today? (1 = light, 5 = a lot)</label>
+      <select id="cognitiveSafetyPressure" class="planner-input">
+        <option value="1">1 — light</option><option value="2">2</option><option value="3" selected>3</option><option value="4">4</option><option value="5">5 — a lot</option>
+      </select>
+      <label for="cognitiveSafetyBreaks" class="task-subtext">Break minutes you've had today</label>
+      <input id="cognitiveSafetyBreaks" class="planner-input" type="number" min="0" max="600" step="5" value="0" aria-label="Break minutes today">
+      <button id="cognitiveSafetyBtn" class="task-btn" type="button">Save check-in</button>
+    </div>
+    <div id="cognitiveSafetyResult" aria-live="polite" aria-atomic="true"></div>
+  </div>
+</section>
+<section class="baa-card" aria-labelledby="adaptivePacingTitle"><div class="baa-card-head"><h2 id="adaptivePacingTitle">⚡ Today's pacing</h2><span>Based on your real plan</span></div>
+  <div id="adaptivePacingPanel">
+    <div id="adaptivePacingResult" aria-live="polite" aria-atomic="true"></div>
+  </div>
+</section>
 <section class="custom-mode-card" aria-labelledby="customModeTitle">
       <h3 id="customModeTitle">🧭 Custom Mode — I choose my learning path</h3>
       <p class="ai-mode-copy">You control the order, task type and time. Custom Mode does not ask AI to reorder your choices or invent evidence.</p>
@@ -1566,6 +1633,7 @@ async function sendMentorChat(overrideText){
       </select>
       <div id="careerPlanDynamic" style="margin-top:14px;"></div>
     </div>
+    <div id="baaCareerPrepRealTool" class="pf-card" style="margin-top:14px;"></div>
   </div>
 </div>
 
@@ -1589,6 +1657,7 @@ async function sendMentorChat(overrideText){
     <h1 class="world-title">Learn <em>out loud.</em></h1>
     <p class="world-sub">The rest of the galaxy is here too — ask, celebrate, compare notes.</p>
     <p class="preview-note">Preview design — the posts below are sample content, not a live feed.</p>
+    <div id="baaCommunityRealTool" style="margin-bottom:16px;"></div>
     <div class="community-layout">
       <div class="channels">
         <div class="channel active">🌌 general</div>
@@ -1731,6 +1800,14 @@ function _clearBackgroundInert(){
 }
 function openWorld(name){
   const overlay = document.getElementById('world-'+name);
+  if(name==='community' && window.BAAEcosystemTools){
+    const host=document.getElementById('baaCommunityRealTool');
+    if(host && !host.dataset.mounted){host.dataset.mounted='1';host.appendChild(window.BAAEcosystemTools.community());}
+  }
+  if(name==='career' && window.BAAEcosystemTools){
+    const host=document.getElementById('baaCareerPrepRealTool');
+    if(host && !host.dataset.mounted){host.dataset.mounted='1';host.appendChild(window.BAAEcosystemTools.careerPrep());}
+  }
   // Only one world overlay is ever active at a time.
   Array.prototype.forEach.call(document.querySelectorAll('.world-overlay.open'), function(o){
     if(o !== overlay) o.classList.remove('open');
@@ -1802,8 +1879,82 @@ function getBAALanguage(){
 }
 function saveResponseLanguage(code){
   const safe=BAA_LANGUAGES.some(x=>x.code===code)?code:'en';
-  try{localStorage.setItem(BAA_LANGUAGE_KEY,JSON.stringify({schemaVersion:1,code:safe,updatedAt:new Date().toISOString()}));}catch(_){}
+  const record={schemaVersion:1,code:safe,updatedAt:new Date().toISOString()};
+  try{localStorage.setItem(BAA_LANGUAGE_KEY,JSON.stringify(record));}catch(_){}
+  pushLanguageSync(record);
   return safe;
+}
+// M31 — Multilingual Learning Ecosystem. Was previously localStorage-only
+// (see audit notes) — the preference didn't follow the student across
+// devices even though the AI Tutor backend was already fully ready to
+// honor it. Now synced through the generic /api/v1/client-state
+// endpoint, same pattern as every other small-preference module.
+let languageSyncLearnerId=null;
+function setLanguageSyncTarget(learnerId){ languageSyncLearnerId=learnerId||null; }
+function pushLanguageSync(record){
+  if(!languageSyncLearnerId||typeof fetch==='undefined')return;
+  const url=`/api/v1/client-state?learnerId=${encodeURIComponent(languageSyncLearnerId)}&stateKey=language_pref_v1`;
+  const opts={method:'PUT',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(record)};
+  fetch(url,opts).catch((e)=>{
+    if(window.BAAOfflineSync)window.BAAOfflineSync.enqueue(url,opts);
+    console.warn('[BAA Module 31] Language preference sync queued offline',e);
+  });
+}
+async function hydrateLanguagePreference(learnerId){
+  if(!learnerId||typeof fetch==='undefined')return;
+  try{
+    const res=await fetch(`/api/v1/client-state?learnerId=${encodeURIComponent(learnerId)}&stateKey=language_pref_v1`,{credentials:'include'});
+    if(res.ok){
+      const {state}=await res.json();
+      if(state&&BAA_LANGUAGES.some(x=>x.code===state.code)) localStorage.setItem(BAA_LANGUAGE_KEY,JSON.stringify(state));
+    }
+  }catch(e){ console.warn('[BAA Module 31] Could not hydrate language preference from server — continuing with local data only.',e); }
+  setLanguageSyncTarget(learnerId);
+  populateResponseLanguages();
+}
+
+// M41 — Smart Low-Bandwidth Learning. The toggle applies immediately
+// (local CSS class + js/baa-low-bandwidth.js's own localStorage), and
+// syncs to the server via client_state so the preference — including
+// the real compression-aggressiveness change in js/baa-homework-image.js
+// — follows the student to another device, not just this browser.
+let dataSaverSyncLearnerId=null;
+function applyDataSaverClass(enabled){
+  document.body.classList.toggle('baa-data-saver',!!enabled);
+}
+function onDataSaverToggle(enabled){
+  if(typeof BAALowBandwidth==='undefined') return;
+  const r=BAALowBandwidth.set(!!enabled,'auto');
+  if(!r.ok) return;
+  applyDataSaverClass(enabled);
+  document.getElementById('dataSaverStatus').textContent=enabled?'On — homework photo uploads will compress more aggressively.':'Off.';
+  pushDataSaverSync(r.state);
+}
+function pushDataSaverSync(state){
+  if(!dataSaverSyncLearnerId||typeof fetch==='undefined')return;
+  const url=`/api/v1/client-state?learnerId=${encodeURIComponent(dataSaverSyncLearnerId)}&stateKey=low_bandwidth_v1`;
+  const opts={method:'PUT',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(state)};
+  fetch(url,opts).catch((e)=>{
+    if(window.BAAOfflineSync)window.BAAOfflineSync.enqueue(url,opts);
+    console.warn('[BAA Module 41] Data Saver sync queued offline',e);
+  });
+}
+async function hydrateDataSaverPreference(learnerId){
+  if(!learnerId||typeof fetch==='undefined')return;
+  try{
+    const res=await fetch(`/api/v1/client-state?learnerId=${encodeURIComponent(learnerId)}&stateKey=low_bandwidth_v1`,{credentials:'include'});
+    if(res.ok){
+      const {state}=await res.json();
+      if(state&&typeof BAALowBandwidth!=='undefined') BAALowBandwidth.set(!!state.enabled,state.contentMode||'auto');
+    }
+  }catch(e){ console.warn('[BAA Module 41] Could not hydrate Data Saver preference from server — continuing with local data only.',e); }
+  dataSaverSyncLearnerId=learnerId;
+  if(typeof BAALowBandwidth!=='undefined'){
+    const current=BAALowBandwidth.get();
+    applyDataSaverClass(current.enabled);
+    const toggle=document.getElementById('dataSaverToggle');
+    if(toggle) toggle.checked=!!current.enabled;
+  }
 }
 function getResponseLanguage(){
   const s=document.getElementById('responseLanguage');
@@ -2708,15 +2859,29 @@ function refreshExpansionHub(){
  ['M41','📶 Low Bandwidth','Text/lite/audio preferences; offline sync requires future cache/server layer.'],
  ['M42','🛡️ Integrity','Transparent assessment integrity signals, not surveillance or proof of cheating.'],
  ['M43','🎓 Scholarships','Ranks only supplied/verified scholarship records; no invented opportunities.'],
- ['M44','💼 Career Prep','Skill-gap and portfolio preparation without fabricated job outcomes.'],
  ['M45','👨‍🏫 Mentors','Vetted-profile shape and filtering; real verification/payment remains external.'],
- ['M46','🔌 ERP Integration','Vendor-neutral adapter contract; no unconfigured school system connection.'],
- ['M47','📊 Institution Analytics','Aggregates supplied institutional records with evidence-quality labels.'],
- ['M48','🌍 Global Collaboration','Safe project objects; production identity/moderation is required.'],
- ['M49','🏆 Olympiad','Practice plans from supplied topics; no invented contest dates.'],
- ['M50','🧩 Plugin Marketplace','Manifest validation only; arbitrary plugin code is never executed.']
+ ['M46','🔌 ERP Integration','Vendor-neutral adapter contract; no unconfigured school system connection.']
  ];
  cards.forEach(([id,title,desc])=>{const c=document.createElement('div');c.className='concept-row';const b=document.createElement('b');b.textContent=`${id} ${title}`;const d=document.createElement('div');d.className='concept-why';d.textContent=desc;c.append(b,d);root.appendChild(c);});
+ if(window.BAAEcosystemTools){window.BAAEcosystemTools.expansion().forEach(card=>root.appendChild(card));}
+}
+function refreshInsightsPanel(){
+  const box=document.getElementById('insightsSummary');
+  if(!box||typeof BAAInsights==='undefined')return;
+  const r=BAAInsights.build();
+  if(!r.ok){ box.textContent='Insights are unavailable right now.'; return; }
+  if(r.evidenceQuality==='insufficient_evidence'){
+    box.innerHTML=`<div class="concept-why">Not enough recorded activity yet for a real weekly review — complete an assessment or two and this fills in with real numbers, never a guess.</div>`;
+    return;
+  }
+  const m=r.metrics;
+  box.innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:8px;">
+    <span class="state-badge">${m.completedAssessments} assessments done</span>
+    <span class="state-badge">${m.answeredQuestions} questions answered</span>
+    <span class="state-badge">${m.accuracyPercent==null?'Accuracy —':m.accuracyPercent+'% accuracy'}</span>
+    <span class="state-badge">${m.weakConceptCount==null?'—':m.weakConceptCount} concept(s) to work on</span>
+    <span class="state-badge">${m.xp==null?'—':m.xp} XP earned</span>
+  </div>`;
 }
 function refreshEcosystemHub(){
   const root=document.getElementById('ecosystemCards'); if(!root)return;
@@ -2724,13 +2889,9 @@ function refreshEcosystemHub(){
   const cards=[
     ['M32','🎙️ Voice Learning','BAAVoice','Browser-dependent speech input/output.'],
     ['M33','🧪 Virtual Labs','BAALabs','Safe interactive simulations; no arbitrary code execution.'],
-    ['M34','🏫 School Portal','BAASchool','Local roster, attendance and announcements.'],
-    ['M35','🌟 Community','BAACommunity','Moderated local study posts.'],
     ['M36','📡 AI Insights','BAAInsights','Evidence-based learning summary.'],
     ['M37','🔒 Trust & Privacy','BAATrust','Existing trust/privacy controls remain authoritative.'],
-    ['M38','🧠 Explainable AI','BAAExplainability','Evidence-based explanations, not hidden model internals.'],
-    ['M39','⚖️ Review & Appeal','BAAAppeals','Auditable appeal workflow requiring human review.'],
-    ['M40','📚 Curriculum','BAACurriculum','Explicit board/profile and stored mappings.']
+    ['M39','⚖️ Review & Appeal','BAAAppeals','Auditable appeal workflow requiring human review.']
   ];
   cards.forEach(([id,title,api,desc])=>{
     const card=document.createElement('div');card.className='concept-row';
@@ -2738,6 +2899,7 @@ function refreshEcosystemHub(){
     const d=document.createElement('div');d.className='concept-why';d.textContent=desc;
     card.append(b,d);root.appendChild(card);
   });
+  if(window.BAAEcosystemTools){window.BAAEcosystemTools.ecosystem().forEach(card=>root.appendChild(card));}
 }
 function refreshRewardsPanel(){
   const summary=document.getElementById('rewardsSummary'),badges=document.getElementById('rewardsBadges'),milestones=document.getElementById('rewardsMilestones');
@@ -2793,6 +2955,118 @@ function refreshResourcePanel(){
     select.dataset.bound='1';
   }
   render();
+}
+
+// M52 — Mistake Archeology & Confusion Map. Server-backed, read-only
+// view over data M22 already derives. A 'watching' pattern is rendered
+// with a visibly different, less confident treatment than a
+// 'possible_misconception' pattern — never presented as equally certain.
+async function refreshMistakeMapPanel(){
+  const list=document.getElementById('mistakeMapList');
+  if(!list||!window.BAA_LEARNER_ID) return;
+  list.textContent='Loading…';
+  try{
+    const res=await fetch(`/api/v1/mistake-map?learnerId=${encodeURIComponent(window.BAA_LEARNER_ID)}`,{credentials:'include'});
+    const j=await res.json();
+    if(!res.ok){ list.textContent=j?.error?.message||'Mistake map unavailable.'; return; }
+    if(!j.patterns?.length){ list.textContent='No recurring mistake patterns recorded yet.'; return; }
+    list.innerHTML=j.patterns.map(p=>{
+      const confident=p.rootCauseClaimed;
+      const chain=p.evidenceChain.map(e=>`<li>${escapePlannerHtml(e.questionText)}</li>`).join('');
+      return `<div class="concept-row" style="opacity:${confident?1:0.7};">
+        <b>${escapePlannerHtml(p.concept)}</b> · ${escapePlannerHtml((p.error_type||'').replace(/_/g,' '))} · ${confident?'🔴 recurring pattern':'👁 watching'} (${p.occurrenceCount} occurrence${p.occurrenceCount===1?'':'s'})
+        <div class="concept-why">${escapePlannerHtml(p.limitation)}</div>
+        ${chain?`<details style="margin-top:6px;"><summary style="cursor:pointer;font-size:.82rem;">Show the actual questions</summary><ul style="font-size:.82rem;">${chain}</ul></details>`:''}
+      </div>`;
+    }).join('');
+  }catch(e){
+    list.textContent='Could not reach the server — try again in a moment.';
+  }
+}
+
+// M53 — Learning Outcome Measurement. Real early-vs-recent accuracy
+// comparison via the server (which enforces the actual evidence floor —
+// this panel never computes or claims a comparison on its own).
+async function refreshOutcomesPanel(){
+  const select=document.getElementById('outcomeConceptSelect');
+  const result=document.getElementById('outcomeResult');
+  if(!select||!result||typeof BAAAssessment==='undefined'||!window.BAA_LEARNER_ID) return;
+  if(!select.dataset.populated){
+    const profile=BAAAssessment.getAcademicProfile();
+    const concepts=[...new Set([...(profile.strengths||[]),...(profile.weaknesses||[])].map(x=>x.concept))];
+    select.innerHTML='<option value="">Choose a concept…</option>'+concepts.map(c=>`<option value="${escapePlannerHtml(c)}">${escapePlannerHtml(c.replace(/-/g,' '))}</option>`).join('');
+    select.dataset.populated='1';
+    select.addEventListener('change',refreshOutcomesPanel);
+  }
+  if(!select.value){ result.textContent=''; return; }
+  result.textContent='Loading…';
+  try{
+    const res=await fetch(`/api/v1/outcome-comparison?learnerId=${encodeURIComponent(window.BAA_LEARNER_ID)}&concept=${encodeURIComponent(select.value)}`,{credentials:'include'});
+    const j=await res.json();
+    if(!res.ok){ result.textContent=j?.error?.message||'Comparison unavailable.'; return; }
+    if(j.status==='insufficient_evidence'){
+      result.innerHTML=`<div class="concept-why">Only ${j.totalEvidence} recorded attempt(s) on this concept so far — need at least ${j.minRequired} before a real before/after comparison is meaningful.</div>`;
+      return;
+    }
+    const arrow=j.interpretation==='improved'?'📈':j.interpretation==='declined'?'📉':'➡️';
+    result.innerHTML=`<div class="concept-row">
+      <b>${arrow} ${escapePlannerHtml(j.interpretation)}</b> — ${j.earlyWindow.accuracy}% → ${j.recentWindow.accuracy}% (${j.absoluteChange>=0?'+':''}${j.absoluteChange} points)
+      <div class="concept-why">Early period: ${j.earlyWindow.count} attempt(s). Recent period: ${j.recentWindow.count} attempt(s).</div>
+    </div>`;
+  }catch(e){
+    result.textContent='Could not reach the server — try again in a moment.';
+  }
+}
+
+// M43 — AI Scholarship Finder. Real, published-only records via the
+// existing BAAScholarships.fetchVerified() (already calls the real,
+// admin-managed /api/m43-scholarships backend).
+async function refreshScholarshipsPanel(){
+  const list=document.getElementById('scholarshipsList');
+  if(!list||typeof BAAScholarships==='undefined') return;
+  list.textContent='Loading…';
+  const res=await BAAScholarships.fetchVerified();
+  if(!res.ok){ list.textContent='Scholarships are unavailable right now.'; return; }
+  if(!res.results.length){ list.textContent='No published scholarships match your profile yet.'; return; }
+  list.innerHTML=res.results.map(s=>`<div class="concept-row">
+    <b>${escapePlannerHtml(s.title)}</b> · ${escapePlannerHtml(s.provider)}
+    <div class="concept-why">${s.amountText?escapePlannerHtml(s.amountText)+' · ':''}${s.deadline?'Deadline: '+escapePlannerHtml(s.deadline):'No deadline listed'}</div>
+    ${s.sourceUrl?`<a href="${escapePlannerHtml(s.sourceUrl)}" target="_blank" rel="noopener noreferrer" style="font-size:.8rem;">View details</a>`:''}
+  </div>`).join('');
+}
+
+// M45 — Mentor Marketplace. Real, verified+safeguarded mentors only via
+// BAAMentors.fetchVerified()/requestMentor() (already call the real
+// backend). A request is server-authorized against the real learner id.
+async function refreshMentorsPanel(){
+  const list=document.getElementById('mentorsList');
+  const subjectSelect=document.getElementById('mentorSubjectFilter');
+  if(!list||typeof BAAMentors==='undefined') return;
+  list.textContent='Loading…';
+  const res=await BAAMentors.fetchVerified(subjectSelect?.value||'');
+  if(!res.ok){ list.textContent='Mentor search is unavailable right now.'; return; }
+  if(subjectSelect && !subjectSelect.dataset.populated){
+    const subjects=new Set();
+    res.results.forEach(m=>(m.subjects||[]).forEach(s=>subjects.add(s)));
+    subjectSelect.innerHTML='<option value="">All subjects</option>'+[...subjects].map(s=>`<option value="${escapePlannerHtml(s)}">${escapePlannerHtml(s)}</option>`).join('');
+    subjectSelect.dataset.populated='1';
+    if(!subjectSelect.dataset.bound){ subjectSelect.addEventListener('change',refreshMentorsPanel); subjectSelect.dataset.bound='1'; }
+  }
+  if(!res.results.length){ list.textContent='No verified mentors match this filter yet.'; return; }
+  list.innerHTML=res.results.map(m=>`<div class="concept-row">
+    <b>${escapePlannerHtml(m.displayName)}</b> · ${(m.subjects||[]).map(escapePlannerHtml).join(', ')}
+    <div class="concept-why">${m.bio?escapePlannerHtml(m.bio):'Verified mentor.'}</div>
+    <button class="task-btn" data-request-mentor="${escapePlannerHtml(m.id)}" type="button">Request this mentor</button>
+  </div>`).join('');
+  list.querySelectorAll('[data-request-mentor]').forEach(btn=>{
+    btn.addEventListener('click', async()=>{
+      if(!window.BAA_LEARNER_ID){ btn.textContent='Sign in required'; return; }
+      btn.disabled=true; btn.textContent='Requesting…';
+      const r=await BAAMentors.requestMentor(btn.dataset.requestMentor, window.BAA_LEARNER_ID, {});
+      btn.textContent=r.ok?'Requested ✓':(r.error||'Could not request — try again');
+      if(!r.ok) btn.disabled=false;
+    });
+  });
 }
 
 function refreshRevisionGoalsPanels(){
@@ -3165,6 +3439,81 @@ function renderPlannerDailyTasks(){
     }).join('');
 }
 
+// M54 — Psychological Safety & Cognitive Recovery. Explicit,
+// student-initiated only. Loads today's check-in (if any) and lets the
+// student save a new one; the server independently re-runs the
+// recommendation logic rather than trusting anything computed here.
+async function renderCognitiveSafety(learnerId){
+  const box = document.getElementById('cognitiveSafetyResult');
+  if(!learnerId||!box) return;
+  try{
+    const res = await fetch(`/api/v1/cognitive-safety?learnerId=${encodeURIComponent(learnerId)}`, { credentials: 'include' });
+    const j = await res.json();
+    if(res.ok && j.checkedInToday){
+      document.getElementById('cognitiveSafetyPressure').value = String(j.signals ? (j.signals.highPressure ? 4 : 3) : 3);
+      document.getElementById('cognitiveSafetyBreaks').value = String(j.breakMinutes ?? 0);
+      box.innerHTML = `<div class="task-subtext">Checked in today · ${escapePlannerHtml(j.recommendation)}</div>`;
+    }
+  }catch(e){ console.warn('[BAA Module 54] Could not load today\'s check-in — continuing without it.', e); }
+
+  const btn = document.getElementById('cognitiveSafetyBtn');
+  if(btn && !btn.dataset.bound){
+    btn.addEventListener('click', async()=>{
+      const selfRatedPressure = Number(document.getElementById('cognitiveSafetyPressure').value);
+      const breakMinutes = Number(document.getElementById('cognitiveSafetyBreaks').value);
+      btn.disabled = true;
+      try{
+        const res = await fetch(`/api/v1/cognitive-safety?learnerId=${encodeURIComponent(learnerId)}`, {
+          method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ learnerId, selfRatedPressure, breakMinutes }),
+        });
+        const j = await res.json();
+        box.innerHTML = res.ok
+          ? `<div class="task-subtext">${escapePlannerHtml(j.recommendation)}</div>`
+          : `<div class="task-subtext">${escapePlannerHtml(j?.error?.message || 'Could not save your check-in — try again.')}</div>`;
+        if(res.ok && typeof renderAdaptivePacing==='function') renderAdaptivePacing(learnerId);
+      }catch(e){
+        box.innerHTML = `<div class="task-subtext">Could not reach the server — try again in a moment.</div>`;
+      }finally{ btn.disabled = false; }
+    });
+    btn.dataset.bound = '1';
+  }
+}
+
+// M56 — Adaptive Pacing & Productive Planning. Real server-derived
+// recommendation from actual planner data + M54's real check-in (if
+// any today). "Reduce scope" is only ever applied when the student
+// explicitly clicks the button — never automatically.
+async function renderAdaptivePacing(learnerId){
+  const box = document.getElementById('adaptivePacingResult');
+  if(!learnerId||!box) return;
+  try{
+    const res = await fetch(`/api/v1/adaptive-pacing?learnerId=${encodeURIComponent(learnerId)}`, { credentials: 'include' });
+    const j = await res.json();
+    if(!res.ok){ box.textContent = j?.error?.message || 'Pacing check unavailable.'; return; }
+    const base = `<div class="task-subtext">${escapePlannerHtml(j.plannedMinutes)} min planned · ${escapePlannerHtml(j.availableMinutes)} min available today${j.energyKnown?'':' · energy not checked in yet'}</div>`;
+    if(j.action==='reduce_scope'){
+      box.innerHTML = base + `<div class="ai-mode-copy">${escapePlannerHtml(j.reason)}</div><button id="adaptivePacingApplyBtn" class="task-btn" type="button">Reduce today's plan to fit</button>`;
+      const btn = document.getElementById('adaptivePacingApplyBtn');
+      btn.addEventListener('click', async()=>{
+        btn.disabled = true; btn.textContent = 'Adjusting…';
+        try{
+          const r = await fetch(`/api/v1/adaptive-pacing?learnerId=${encodeURIComponent(learnerId)}`, { method:'POST', credentials:'include' });
+          const rj = await r.json();
+          box.innerHTML = r.ok
+            ? `<div class="task-subtext">Reduced ${escapePlannerHtml(rj.cancelledTaskCount)} lower-priority task(s) — ${escapePlannerHtml(rj.plannedMinutesBefore)} → ${escapePlannerHtml(rj.plannedMinutesAfter)} min planned.</div>`
+            : `<div class="task-subtext">${escapePlannerHtml(rj?.error?.message||'Could not adjust — try again.')}</div>`;
+          if(r.ok && typeof renderPlannerDailyTasks==='function') renderPlannerDailyTasks();
+        }catch(e){ box.innerHTML = `<div class="task-subtext">Could not reach the server — try again in a moment.</div>`; }
+      });
+    }else{
+      box.innerHTML = base + `<div class="task-subtext">${escapePlannerHtml(j.reason)}</div>`;
+    }
+  }catch(e){
+    console.warn('[BAA Module 56] Could not load pacing check.', e);
+  }
+}
+
 function startPlannerTask(taskId){
   const plan = BAAPlanner.getDailyPlan();
   const t = plan.tasks.find(x=>x.id===taskId);
@@ -3205,9 +3554,14 @@ openWorld = function(name){
   if(name==='profile') refreshLearningPathPanel();
   if(name==='profile') refreshRewardsPanel();
   if(name==='profile') refreshEcosystemHub();
+  if(name==='profile') refreshInsightsPanel();
   if(name==='profile') refreshExpansionHub();
   if(name==='profile') refreshResearchHub();
   if(name==='profile') refreshResourcePanel();
+  if(name==='profile') refreshMistakeMapPanel();
+  if(name==='profile') refreshOutcomesPanel();
+  if(name==='profile') refreshScholarshipsPanel();
+  if(name==='profile') refreshMentorsPanel();
   if(name==='career') refreshCareerPlan();
   if(name==='planner') refreshPlannerPanel();
 };
@@ -3279,7 +3633,6 @@ document.addEventListener('keydown', function(e){
 <script src="js/baa-learning-paths.js"></script>
 <script src="js/baa-rewards.js"></script>
 <script src="js/baa-homework.js"></script>
-<script src="js/baa-voice.js"></script>
 <script src="js/baa-labs.js"></script>
 <script src="js/baa-student-wiring-m21-23-33.js"></script>
 <script src="js/baa-school.js"></script>
@@ -3292,9 +3645,7 @@ document.addEventListener('keydown', function(e){
 <script src="js/baa-mistakes.js"></script>
 <script src="js/baa-outcomes.js"></script>
 <script src="js/baa-cognitive-safety.js"></script>
-<script src="js/baa-fresh-start.js"></script>
 <script src="js/baa-adaptive-pacing.js"></script>
-<script src="js/baa-parent-conversation.js"></script>
 <script src="js/baa-teacher-diagnostic.js"></script>
 <script src="js/baa-governance.js"></script>
 <script src="js/baa-purpose-design.js"></script>
@@ -3311,6 +3662,7 @@ document.addEventListener('keydown', function(e){
 <script src="js/baa-global-collab.js"></script>
 <script src="js/baa-olympiad.js"></script>
 <script src="js/baa-plugins.js"></script>
+<script src="js/baa-ecosystem-tools.js"></script>
 <script src="js/baa-learning-resources.js"></script>
 <script src="js/baa-ai-mode.js"></script>
 <script src="js/baa-hybrid-mode.js"></script>
@@ -3651,12 +4003,41 @@ document.addEventListener('keydown', function(e){
         await BAARewards.hydrateFromServer(mine.id);
         if (typeof refreshRewardsPanel === 'function') refreshRewardsPanel();
       }
+      // Previously localStorage-only modules — now synced through the
+      // generic /api/v1/client-state endpoint (see audit notes / M02, M03,
+      // M15, M18, M27 fixes). Each hydrate call also arms that module's
+      // sync target so subsequent local saves push back to the server.
+      if (typeof BAACustomMode !== 'undefined' && BAACustomMode.hydrateFromServer) {
+        await BAACustomMode.hydrateFromServer(mine.id);
+      }
+      if (typeof BAAHybridMode !== 'undefined' && BAAHybridMode.hydrateFromServer) {
+        await BAAHybridMode.hydrateFromServer(mine.id);
+      }
+      if (typeof BAAParentApproval !== 'undefined' && BAAParentApproval.hydrateFromServer) {
+        await BAAParentApproval.hydrateFromServer(mine.id);
+      }
+      if (typeof BAASchoolCalendar !== 'undefined' && BAASchoolCalendar.hydrateFromServer) {
+        await BAASchoolCalendar.hydrateFromServer(mine.id);
+      }
+      if (typeof BAALearningResources !== 'undefined' && BAALearningResources.hydrateFromServer) {
+        await BAALearningResources.hydrateFromServer(mine.id);
+      }
+      // M31 — see hydrateLanguagePreference definition for details.
+      await hydrateLanguagePreference(mine.id);
+      // M41 — see hydrateDataSaverPreference definition for details.
+      await hydrateDataSaverPreference(mine.id);
       if(window.BAAProgressionGate){
         const upcoming=typeof BAAPlanner!=='undefined'?BAAPlanner.getUpcomingAssessments():[];
         const target=upcoming.find(x=>x.assessmentId)||null;
         if(target && typeof BAAGetAssessment==='function'){ const a=BAAGetAssessment(target.assessmentId); if(a) await BAAProgressionGate.renderStudentGate({subject:a.subject,chapter:a.chapter}); }
         await BAAProgressionGate.renderForecast({});
       }
+      // M54 — Psychological Safety & Cognitive Recovery. Explicit,
+      // student-initiated only (see api/v1 cognitive-safety route —
+      // it rejects any write that isn't from the learner's own account).
+      await renderCognitiveSafety(mine.id);
+      // M56 — see renderAdaptivePacing definition for details.
+      await renderAdaptivePacing(mine.id);
     }catch(e){
       console.warn('[BAA] Server sync unavailable — continuing in local-only mode.', e);
     }
@@ -3671,20 +4052,25 @@ if ('serviceWorker' in navigator) {
 }
 </script>
 <script src="js/baa-ui-wiring-final.js"></script>
-
-<!-- BAA TEACHER PORTAL: static discoverability entry -->
-<style id="baa-teacher-portal-static-style">
-#baa-teacher-portal-entry{position:fixed;top:78px;right:24px;z-index:99999;width:min(430px,calc(100vw - 48px));padding:18px 20px;border:1px solid rgba(245,185,66,.55);border-radius:18px;background:linear-gradient(135deg,#171040,#141B4D);box-shadow:0 18px 50px rgba(0,0,0,.45);display:flex;align-items:center;justify-content:space-between;gap:14px}
-#baa-teacher-portal-entry .tp-copy{min-width:0}
-#baa-teacher-portal-entry .tp-kicker{font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:#F5B942;font-weight:800;margin-bottom:5px}
-#baa-teacher-portal-entry .tp-title{font-size:1rem;font-weight:800;color:#FDF9F0;margin-bottom:4px}
-#baa-teacher-portal-entry .tp-sub{font-size:.76rem;line-height:1.4;color:rgba(253,249,240,.68)}
-#baa-teacher-portal-entry .tp-btn{display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;padding:10px 14px;border-radius:999px;background:#F5B942;color:#0B0F2E;font-weight:800;text-decoration:none}
-@media(max-width:640px){#baa-teacher-portal-entry{top:64px;left:12px;right:12px;width:auto;flex-direction:column;align-items:stretch}.tp-btn{width:100%}}
-</style>
-<div id="baa-teacher-portal-entry" aria-label="Teacher and Academic Management">
-  <div class="tp-copy"><div class="tp-kicker">Academic Management</div><div class="tp-title">👩‍🏫 Teacher Portal</div><div class="tp-sub">Manage classes, syllabus, students, assessments and teacher tools.</div></div>
-  <a class="tp-btn" href="account.html?role=teacher" aria-label="Open Teacher Portal">Open Teacher Portal →</a>
+<link rel="stylesheet" href="css/baa-guide-robot.css">
+<button type="button" id="baaGuideRobotBtn" aria-label="Open BAA Guide" aria-haspopup="dialog" aria-expanded="false">🤖</button>
+<div id="baaGuideRobotPanel" role="dialog" aria-modal="true" aria-labelledby="baaGuideTitle" hidden>
+  <div class="baa-guide-header">
+    <h2 id="baaGuideTitle">🤖 BAA Guide</h2>
+    <button type="button" class="baa-guide-close" aria-label="Close guide">✕</button>
+  </div>
+  <div class="baa-guide-body">
+    <p class="baa-guide-intro">What would you like explained?</p>
+    <div id="baaGuideTopicList"></div>
+    <div id="baaGuideTopicDetail" hidden></div>
+  </div>
+  <div id="baaGuideLiveRegion" class="baa-guide-sr-only" aria-live="polite" aria-atomic="true"></div>
 </div>
+<script src="js/baa-fresh-start.js"></script>
+<script src="js/baa-language.js"></script>
+<script src="js/baa-voice.js"></script>
+<script src="js/baa-guide-topics.js"></script>
+<script src="js/baa-guide-robot.js"></script>
+<script>if(window.BAAGuideRobot)BAAGuideRobot.init();</script>
 </body>
 </html>

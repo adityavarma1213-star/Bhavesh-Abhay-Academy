@@ -17,8 +17,8 @@
 <div class="grid">
 <section class="card"><h2>👩‍🏫 Teacher OS</h2><p>Open the existing single-learner Teacher View. It remains separate from the student command center.</p><a class="btn primary" href="teacher-os.html">Open Teacher OS →</a></section>
 <section class="card"><h2>📘 Syllabus Management</h2><p>Upload a syllabus by board, class, subject and academic year. The file is transferred in authenticated chunks to the BAA server database.</p>
-<div class="fields"><div class="field"><label>Board / Curriculum</label><input id="board" placeholder="e.g. Maharashtra SSC"></div><div class="field"><label>Class / Grade</label><input id="grade" placeholder="e.g. 9"></div><div class="field"><label>Subject</label><input id="subject" placeholder="e.g. Mathematics"></div><div class="field"><label>Academic Year</label><input id="year" placeholder="e.g. 2026–27"></div></div>
-<div class="upload"><div><b>📎 Choose syllabus file</b></div><div class="hint">PDF, DOCX or TXT · maximum 10 MB</div><input id="file" type="file" accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"><button class="btn gold" id="saveBtn">Upload Syllabus</button></div><div id="status" class="status">Checking teacher account…</div><div id="list" class="list"></div></section>
+<div class="fields"><div class="field"><label for="board">Board / Curriculum</label><input id="board" placeholder="e.g. Maharashtra SSC"></div><div class="field"><label for="grade">Class / Grade</label><input id="grade" placeholder="e.g. 9"></div><div class="field"><label for="subject">Subject</label><input id="subject" placeholder="e.g. Mathematics"></div><div class="field"><label for="year">Academic Year</label><input id="year" placeholder="e.g. 2026–27"></div></div>
+<div class="upload"><label for="file"><b>📎 Choose syllabus file</b></label><div class="hint" id="fileHint">PDF, DOCX or TXT · maximum 10 MB</div><input id="file" type="file" aria-describedby="fileHint" accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"><button class="btn gold" id="saveBtn">Upload Syllabus</button></div><div id="status" class="status" role="status" aria-live="polite">Checking teacher account…</div><div id="list" class="list" aria-label="Uploaded syllabi"></div></section>
 </div>
 <div class="scope"><b>Server-backed status:</b> syllabus metadata and file chunks are stored in the authenticated BAA PostgreSQL boundary. Published syllabi can be listed/downloaded by authenticated BAA users; teacher drafts remain teacher-scoped. If the production database is not configured, the upload is rejected rather than silently falling back to browser storage.</div>
 </main>
@@ -34,4 +34,22 @@ async function load(){try{const j=await api('/api/syllabus');const rows=j.syllab
 $('saveBtn').onclick=async()=>{const f=$('file').files[0];if(!f){statusEl.textContent='Please choose a syllabus file first.';return}if(f.size>10*1024*1024){statusEl.textContent='File is larger than 10 MB.';return}try{statusEl.textContent='Creating secure upload…';const init=await api('/api/syllabus?action=init',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'init',board:$('board').value.trim(),grade:$('grade').value.trim(),subject:$('subject').value.trim(),academicYear:$('year').value.trim(),filename:f.name,mimeType:f.type||'application/octet-stream',sizeBytes:f.size})});const chunkSize=init.maxChunkBytes||262144;const total=Math.ceil(f.size/chunkSize);for(let i=0;i<total;i++){const chunk=await f.slice(i*chunkSize,Math.min(f.size,(i+1)*chunkSize)).arrayBuffer();statusEl.textContent=`Uploading syllabus… ${i+1}/${total}`;await api('/api/syllabus?action=chunk',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'chunk',uploadId:init.uploadId,chunkIndex:i,totalChunks:total,dataBase64:b64(chunk)})})}await api('/api/syllabus?action=finalize',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'finalize',uploadId:init.uploadId,totalChunks:total})});statusEl.textContent='Syllabus uploaded as a server-backed draft. Review it below and publish when ready.';$('file').value='';load()}catch(e){statusEl.textContent=`Upload failed: ${e.message}`}}
 (async()=>{if(await guard())load()})();
 </script>
+<link rel="stylesheet" href="css/baa-guide-robot.css">
+<button type="button" id="baaGuideRobotBtn" aria-label="Open BAA Guide" aria-haspopup="dialog" aria-expanded="false">🤖</button>
+<div id="baaGuideRobotPanel" role="dialog" aria-modal="true" aria-labelledby="baaGuideTitle" hidden>
+  <div class="baa-guide-header">
+    <h2 id="baaGuideTitle">🤖 BAA Guide</h2>
+    <button type="button" class="baa-guide-close" aria-label="Close guide">✕</button>
+  </div>
+  <div class="baa-guide-body">
+    <p class="baa-guide-intro">What would you like explained?</p>
+    <div id="baaGuideTopicList"></div>
+    <div id="baaGuideTopicDetail" hidden></div>
+  </div>
+  <div id="baaGuideLiveRegion" class="baa-guide-sr-only" aria-live="polite" aria-atomic="true"></div>
+</div>
+<script src="js/baa-guide-topics.js"></script>
+<script src="js/baa-guide-robot.js"></script>
+<script>if(window.BAAGuideRobot)BAAGuideRobot.init();</script>
+<script src="js/baa-themes.js"></script>
 </body></html>
