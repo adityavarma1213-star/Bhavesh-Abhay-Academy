@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BAA OS — Galaxy Student Dashboard (Prototype)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --warmwhite:#fdf9f0;
+    --dim:rgba(253,249,240,.68);
+    --faint:rgba(253,249,240,.45);
+    --gold:#f5b942;
+    --cyan:#4cd9e8;
+    --violet:#7c5cfc;
+    --void:#090d1f;
+    --cosmos:#111936;
+    --cosmos-2:#172044;
+    --display:'Fraunces',serif;
+    --body:'Inter',sans-serif;
+    --radius:18px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:var(--body);
+    background:
+      radial-gradient(1200px 600px at 85% -10%, rgba(124,92,252,.20), transparent 60%),
+      radial-gradient(900px 500px at -10% 20%, rgba(76,217,232,.12), transparent 55%),
+      var(--void);
+    color:var(--warmwhite);
+    min-height:100vh;
+    display:flex;
+  }
+  a{color:inherit;text-decoration:none;}
+
+  /* ---------- Sidebar ---------- */
+  .sidebar{
+    width:248px; flex-shrink:0; padding:22px 16px; display:flex; flex-direction:column; gap:22px;
+    border-right:1px solid rgba(253,249,240,.08);
+    background:rgba(9,13,31,.4);
+    position:sticky; top:0; height:100vh; overflow-y:auto;
+  }
+  .brand{display:flex; align-items:center; gap:10px; padding:0 6px;}
+  .brand-mark{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--violet),var(--cyan));display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;}
+  .brand-text b{display:block;font-family:var(--display);font-size:1.02rem;letter-spacing:.01em;}
+  .brand-text span{display:block;font-size:.63rem;color:var(--faint);margin-top:1px;}
+
+  .engine-pill{
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    background:rgba(124,92,252,.14); border:1px solid rgba(124,92,252,.35);
+    border-radius:100px; padding:8px 12px; font-size:.72rem; font-weight:700; color:var(--warmwhite);
+  }
+  .engine-pill small{font-weight:600;color:var(--faint);text-transform:none;}
+
+  nav{display:flex;flex-direction:column;gap:2px;}
+  .nav-label{font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);padding:14px 10px 6px;}
+  .nav-item{
+    display:flex; align-items:center; gap:11px; padding:9px 10px; border-radius:11px;
+    font-size:.84rem; font-weight:600; color:var(--dim); cursor:pointer; transition:.15s ease;
+  }
+  .nav-item .ic{width:18px;text-align:center;opacity:.85;}
+  .nav-item:hover{background:rgba(253,249,240,.05); color:var(--warmwhite);}
+  .nav-item.active{background:linear-gradient(90deg, rgba(124,92,252,.25), rgba(124,92,252,.06)); color:var(--warmwhite); box-shadow:inset 2px 0 0 var(--violet);}
+
+  .customize-btn{margin-top:auto; display:flex; align-items:center; justify-content:center; gap:8px; padding:11px; border-radius:12px; background:rgba(245,185,66,.12); border:1px solid rgba(245,185,66,.35); color:var(--gold); font-weight:700; font-size:.78rem; cursor:pointer;}
+
+  /* ---------- Main ---------- */
+  main{flex:1; padding:22px 28px 60px; max-width:1400px;}
+  .topbar{display:flex; align-items:center; gap:16px; margin-bottom:26px;}
+  .search{
+    flex:1; display:flex; align-items:center; gap:9px; background:rgba(253,249,240,.05);
+    border:1px solid rgba(253,249,240,.1); border-radius:12px; padding:10px 14px; color:var(--faint); font-size:.82rem;
+  }
+  .search kbd{margin-left:auto; font-size:.65rem; background:rgba(253,249,240,.08); padding:2px 6px; border-radius:6px;}
+  .topbar-icon{width:38px;height:38px;border-radius:11px;background:rgba(253,249,240,.05);border:1px solid rgba(253,249,240,.1);display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;}
+  .xp-pill{display:flex;align-items:center;gap:6px;background:rgba(245,185,66,.14);border:1px solid rgba(245,185,66,.35);color:var(--gold);padding:8px 13px;border-radius:100px;font-weight:800;font-size:.82rem;}
+  .avatar{width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,var(--cyan),var(--violet));display:flex;align-items:center;justify-content:center;font-weight:700;}
+
+  h1.hello{font-family:var(--display); font-weight:600; font-size:1.7rem; margin:0 0 3px;}
+  .subline{color:var(--dim); font-size:.88rem; margin:0 0 22px;}
+
+  .grid-top{display:grid; grid-template-columns:1.5fr 1fr 1fr; gap:16px; margin-bottom:16px;}
+  @media(max-width:980px){.grid-top{grid-template-columns:1fr;}}
+
+  .card{background:rgba(253,249,240,.035); border:1px solid rgba(253,249,240,.09); border-radius:var(--radius); padding:20px;}
+  .card-label{font-size:.72rem; color:var(--faint); margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;}
+
+  .focus-card{position:relative; overflow:hidden; min-height:190px; display:flex; flex-direction:column; justify-content:flex-end;
+    background:
+      radial-gradient(400px 300px at 90% -20%, rgba(124,92,252,.35), transparent 60%),
+      radial-gradient(300px 260px at 100% 100%, rgba(76,217,232,.22), transparent 60%),
+      var(--cosmos-2);
+  }
+  .focus-card h2{font-family:var(--display); font-weight:600; font-size:1.35rem; margin:2px 0 10px;}
+  .progress-track{height:6px; border-radius:6px; background:rgba(253,249,240,.1); overflow:hidden; margin-bottom:8px;}
+  .progress-fill{height:100%; background:linear-gradient(90deg,var(--cyan),var(--violet)); border-radius:6px;}
+  .focus-meta{display:flex; justify-content:space-between; font-size:.72rem; color:var(--dim); margin-bottom:14px;}
+  .btn-primary{align-self:flex-start; background:linear-gradient(90deg,var(--violet),#9b7bff); color:var(--warmwhite); border:none; padding:10px 18px; border-radius:100px; font-weight:700; font-size:.82rem; cursor:pointer; display:flex; align-items:center; gap:6px;}
+
+  .stat-big{font-family:var(--display); font-size:1.85rem; font-weight:600;}
+  .stat-sub{font-size:.75rem; color:var(--dim);}
+  .ring{width:64px;height:64px;border-radius:50%; background:conic-gradient(var(--cyan) 0% 62%, rgba(253,249,240,.08) 62% 100%); display:flex; align-items:center; justify-content:center; margin:6px 0;}
+  .ring span{width:48px;height:48px;border-radius:50%;background:var(--void);display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:700;}
+  .trend-up{color:#7ee89a; font-weight:700; font-size:.74rem; background:rgba(126,232,154,.12); padding:2px 8px; border-radius:100px;}
+  .sparkline{margin-top:8px;}
+
+  .grid-mid{display:grid; grid-template-columns:2.2fr 1fr; gap:16px; margin-bottom:16px;}
+  @media(max-width:980px){.grid-mid{grid-template-columns:1fr;}}
+
+  .universe-grid{display:grid; grid-template-columns:repeat(5,1fr); gap:12px;}
+  @media(max-width:1180px){.universe-grid{grid-template-columns:repeat(3,1fr);}}
+  @media(max-width:640px){.universe-grid{grid-template-columns:repeat(2,1fr);}}
+  .tile{
+    border-radius:14px; padding:16px 14px; display:flex; flex-direction:column; gap:20px; cursor:pointer;
+    border:1px solid rgba(253,249,240,.08); transition:.15s ease; min-height:104px; justify-content:space-between;
+  }
+  .tile:hover{transform:translateY(-2px); border-color:rgba(253,249,240,.2);}
+  .tile .t-ic{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1rem;}
+  .tile b{font-size:.85rem;}
+  .tile small{display:block; color:var(--faint); font-size:.66rem; margin-top:1px;}
+  .t-1{background:rgba(124,92,252,.10);} .t-1 .t-ic{background:rgba(124,92,252,.25);}
+  .t-2{background:rgba(76,217,232,.10);} .t-2 .t-ic{background:rgba(76,217,232,.25);}
+  .t-3{background:rgba(126,232,154,.10);} .t-3 .t-ic{background:rgba(126,232,154,.25);}
+  .t-4{background:rgba(245,185,66,.10);} .t-4 .t-ic{background:rgba(245,185,66,.25);}
+  .t-5{background:rgba(255,120,120,.10);} .t-5 .t-ic{background:rgba(255,120,120,.25);}
+
+  .side-list{display:flex; flex-direction:column; gap:16px;}
+  .list-item{display:flex; gap:11px; align-items:flex-start; padding:10px 0; border-bottom:1px solid rgba(253,249,240,.06);}
+  .list-item:last-child{border-bottom:none;}
+  .list-ic{width:30px;height:30px;border-radius:9px;background:rgba(253,249,240,.06);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:.85rem;}
+  .list-item b{display:block; font-size:.8rem;}
+  .list-item span{font-size:.68rem; color:var(--faint);}
+  .list-item time{margin-left:auto; font-size:.66rem; color:var(--faint); white-space:nowrap;}
+  .view-all{display:block; text-align:center; margin-top:14px; font-size:.76rem; font-weight:700; color:var(--cyan); cursor:pointer;}
+
+  .grid-bottom{display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px;}
+  @media(max-width:900px){.grid-bottom{grid-template-columns:1fr;}}
+
+  .robot-fab{
+    position:fixed; bottom:26px; right:26px; width:280px; background:var(--cosmos-2); border:1px solid rgba(124,92,252,.4);
+    border-radius:18px; padding:14px 16px; box-shadow:0 20px 50px rgba(0,0,0,.4); display:flex; gap:10px; align-items:flex-start;
+  }
+  .robot-avatar{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--violet),var(--cyan));display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1.1rem;}
+  .robot-fab b{font-size:.8rem;}
+  .robot-fab p{font-size:.74rem; color:var(--dim); margin:4px 0 8px;}
+  .robot-fab button{background:linear-gradient(90deg,var(--violet),#9b7bff); border:none; color:var(--warmwhite); font-weight:700; font-size:.72rem; padding:7px 12px; border-radius:100px; cursor:pointer;}
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="brand">
+    <div class="brand-mark">✦</div>
+    <div class="brand-text"><b>BAA</b><span>Bhavesh Abhay Academy</span></div>
+  </div>
+  <div class="engine-pill">✦ Galaxy <small>Student OS</small></div>
+  <nav>
+    <div class="nav-item active"><span class="ic">🏠</span> Home</div>
+    <div class="nav-item"><span class="ic">📘</span> Learning</div>
+    <div class="nav-item"><span class="ic">🎙️</span> AI Tutor</div>
+    <div class="nav-item"><span class="ic">📈</span> Confidence</div>
+    <div class="nav-item"><span class="ic">🗓️</span> Planner</div>
+    <div class="nav-item"><span class="ic">🎯</span> Goals</div>
+    <div class="nav-item"><span class="ic">🔁</span> Revision</div>
+    <div class="nav-item"><span class="ic">📊</span> Insights</div>
+    <div class="nav-item"><span class="ic">🧪</span> Mistake Lab</div>
+    <div class="nav-item"><span class="ic">🎓</span> Scholarships</div>
+    <div class="nav-item"><span class="ic">🧭</span> Mentors</div>
+    <div class="nav-item"><span class="ic">🎙️</span> Voice Desk</div>
+    <div class="nav-item"><span class="ic">🤖</span> Guide Robot</div>
+  </nav>
+  <div class="customize-btn">✦ Customize OS</div>
+</aside>
+
+<main>
+  <div class="topbar">
+    <div class="search">🔍 Search anything… <kbd>Ctrl K</kbd></div>
+    <div class="topbar-icon">🔔</div>
+    <div class="xp-pill">🪙 1,250</div>
+    <div class="avatar">A</div>
+  </div>
+
+  <h1 class="hello">Good evening, Aarav 👋</h1>
+  <p class="subline">Let's continue your learning journey.</p>
+
+  <div class="grid-top">
+    <div class="card focus-card">
+      <div class="card-label">CURRENT FOCUS</div>
+      <h2>Quadratic Equations</h2>
+      <div class="focus-meta"><span>72% complete</span></div>
+      <div class="progress-track"><div class="progress-fill" style="width:72%"></div></div>
+      <button class="btn-primary">Continue Learning →</button>
+    </div>
+    <div class="card">
+      <div class="card-label">TODAY'S PLAN <span>🕐</span></div>
+      <div class="stat-big">3 / 6</div>
+      <div class="stat-sub">tasks completed</div>
+      <div class="progress-track" style="margin-top:14px;"><div class="progress-fill" style="width:50%"></div></div>
+    </div>
+    <div class="card">
+      <div class="card-label">STUDY TIME <span>🕐</span></div>
+      <div class="ring"><span>2h15m</span></div>
+      <div class="stat-sub">today</div>
+    </div>
+  </div>
+
+  <div class="grid-mid">
+    <div class="card">
+      <div class="card-label">YOUR LEARNING UNIVERSE</div>
+      <div class="universe-grid">
+        <div class="tile t-1"><div class="t-ic">📘</div><div><b>Learning</b><small>Subjects & topics</small></div></div>
+        <div class="tile t-2"><div class="t-ic">🎙️</div><div><b>AI Tutor</b><small>Personal assistant</small></div></div>
+        <div class="tile t-3"><div class="t-ic">📈</div><div><b>Confidence</b><small>Evidence & growth</small></div></div>
+        <div class="tile t-4"><div class="t-ic">🗓️</div><div><b>Planner</b><small>Plan your day</small></div></div>
+        <div class="tile t-5"><div class="t-ic">🎯</div><div><b>Goals</b><small>Track & achieve</small></div></div>
+        <div class="tile t-3"><div class="t-ic">🔁</div><div><b>Revision</b><small>Spaced learning</small></div></div>
+        <div class="tile t-2"><div class="t-ic">📊</div><div><b>Insights</b><small>Your analytics</small></div></div>
+        <div class="tile t-1"><div class="t-ic">🧪</div><div><b>Mistake Lab</b><small>Learn from mistakes</small></div></div>
+        <div class="tile t-4"><div class="t-ic">🎓</div><div><b>Scholarships</b><small>Find opportunities</small></div></div>
+        <div class="tile t-5"><div class="t-ic">🧭</div><div><b>Mentors</b><small>Connect & grow</small></div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-label">UPCOMING <span>🗓️</span></div>
+      <div class="side-list">
+        <div class="list-item"><div class="list-ic">📐</div><div><b>Math Test</b><span>Algebra</span></div><time>28 May</time></div>
+        <div class="list-item"><div class="list-ic">🧪</div><div><b>Science Quiz</b><span>Physics</span></div><time>30 May</time></div>
+        <div class="list-item"><div class="list-ic">🧭</div><div><b>Mentor Session</b><span>Career guidance</span></div><time>31 May</time></div>
+        <div class="list-item"><div class="list-ic">🎓</div><div><b>Scholarship Deadline</b><span>KVPY application</span></div><time>05 Jun</time></div>
+      </div>
+      <span class="view-all">View calendar</span>
+    </div>
+  </div>
+
+  <div class="grid-bottom">
+    <div class="card">
+      <div class="card-label">CONFIDENCE TREND <span class="trend-up">+18%</span></div>
+      <svg viewBox="0 0 220 60" width="100%" height="60" class="sparkline">
+        <polyline points="0,45 30,38 60,42 90,30 120,35 150,20 180,24 220,10" fill="none" stroke="#7ee89a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div class="card">
+      <div class="card-label">LEVEL PROGRESS</div>
+      <b style="font-size:.85rem;">Galaxy Explorer · Level 7</b>
+      <div class="progress-track" style="margin-top:10px;"><div class="progress-fill" style="width:72%"></div></div>
+      <div class="stat-sub" style="margin-top:6px;">720 / 1000 XP</div>
+    </div>
+    <div class="card">
+      <div class="card-label">STREAK</div>
+      <div class="stat-big">12 <span style="font-size:1.1rem;">🔥</span></div>
+      <div class="stat-sub">days</div>
+    </div>
+  </div>
+</main>
+
+<div class="robot-fab">
+  <div class="robot-avatar">🤖</div>
+  <div>
+    <b>Hi Aarav 👋</b>
+    <p>Need help with something? I'm your BAA Guide Robot.</p>
+    <button>Ask Me Anything</button>
+  </div>
+</div>
+
+</body>
+</html>
