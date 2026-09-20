@@ -17,7 +17,7 @@ import { requireAuth } from './_lib/auth.js';
 import { consumeAiRateLimit } from './_lib/ai-rate-limit.js';
 
 const MODEL = 'gemini-3.5-flash-lite';
-const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
+const GEMINI_API_URL = \`https://generativelanguage.googleapis.com/v1beta/models/\${MODEL}:generateContent\`;
 const MAX_GOAL_CHARS = 120;
 const MAX_CONCEPTS = 20;
 const MAX_STEPS = 7;
@@ -39,16 +39,19 @@ const VALID_STATE = new Set([
 // the existing call sites use, plus Cache-Control: no-store on every JSON
 // response since AI-generated plans are per-user and must never be cached.
 function getAllowedOrigin() {
-  return process.env.ALLOWED_ORIGIN || '*';
+  // No wildcard fallback — see api/evaluate.js for the rationale.
+  return process.env.ALLOWED_ORIGIN || null;
 }
 
 function corsHeaders(req) {
-  return {
-    'Access-Control-Allow-Origin': getAllowedOrigin(req),
+  const origin = getAllowedOrigin(req);
+  const headers = {
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Vary': 'Origin',
   };
+  if (origin) headers['Access-Control-Allow-Origin'] = origin;
+  return headers;
 }
 
 function jsonError(req, status, code, message) {
@@ -87,7 +90,7 @@ export function validateBody(body) {
   }
 
   if (!Array.isArray(body.concepts) || body.concepts.length > MAX_CONCEPTS) {
-    return { error: { code: 'INVALID_CONCEPTS', message: `concepts must be an array of at most ${MAX_CONCEPTS} items.` } };
+    return { error: { code: 'INVALID_CONCEPTS', message: \`concepts must be an array of at most \${MAX_CONCEPTS} items.\` } };
   }
 
   const concepts = body.concepts.map((c) => {
@@ -163,32 +166,32 @@ function validatePreviousPlan(value) {
 function buildPrompt(input) {
   const evidenceLines = input.concepts.length
     ? input.concepts.map((c) =>
-        `- ${c.concept}: state=${c.state}, confidence=${c.confidence}, evidenceCount=${c.evidenceCount}`
+        \`- \${c.concept}: state=\${c.state}, confidence=\${c.confidence}, evidenceCount=\${c.evidenceCount}\`
       ).join('\n')
     : '- No concept evidence is available yet.';
 
   const assessmentLines = input.upcomingAssessments.length
     ? input.upcomingAssessments.map((a) =>
-        `- ${a.title}${a.subject ? ` (${a.subject})` : ''} on ${a.date}`
+        \`- \${a.title}\${a.subject ? \` (\${a.subject})\` : ''} on \${a.date}\`
       ).join('\n')
     : '- No upcoming assessments supplied.';
 
-  return `You are BAA's AI Mode planner. Create a short, actionable academic path using ONLY the learner evidence and goal supplied below.
+  return \`You are BAA's AI Mode planner. Create a short, actionable academic path using ONLY the learner evidence and goal supplied below.
 
 GOAL:
-${input.goal}
+\${input.goal}
 
 REAL LEARNING EVIDENCE:
-${evidenceLines}
+\${evidenceLines}
 
 AVAILABLE DAILY TIME:
-${input.availableMinutesPerDay} minutes
+\${input.availableMinutesPerDay} minutes
 
 UPCOMING ASSESSMENTS:
-${assessmentLines}
+\${assessmentLines}
 
 PREVIOUS AI MODE PLAN (if adapting):
-${input.previousPlan
+\${input.previousPlan
     ? JSON.stringify(input.previousPlan)
     : 'No previous plan supplied. Create the first plan.'}
 
@@ -208,7 +211,7 @@ Return ONLY JSON:
 }
 
 RULES:
-- Create 1 to ${MAX_STEPS} steps.
+- Create 1 to \${MAX_STEPS} steps.
 - Total minutes must not exceed the learner's daily available time.
 - Prioritize struggling/needs_revision concepts over mastered concepts.
 - If evidence is insufficient, say so in the reason and use a low-risk learning/tutor step; do not claim mastery.
@@ -219,14 +222,14 @@ RULES:
 - Do not create medical, psychological, or disciplinary claims.
 - This is a learning plan, not a diagnosis.
 - Keep each step concise and practical.
-- Return JSON only.`;
+- Return JSON only.\`;
 }
 
 async function callGemini(payload, apiKey, attempt = 0) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   try {
-    const res = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
+    const res = await fetch(\`\${GEMINI_API_URL}?\${'key'}=\${apiKey}\`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -249,7 +252,7 @@ async function callGemini(payload, apiKey, attempt = 0) {
 }
 
 function extractJson(text) {
-  const cleaned = String(text || '').replace(/```json/gi, '').replace(/```/g, '').trim();
+  const cleaned = String(text || '').replace(/\`\`\`json/gi, '').replace(/\`\`\`/g, '').trim();
   const start = cleaned.indexOf('{');
   const end = cleaned.lastIndexOf('}');
   if (start < 0 || end <= start) return null;

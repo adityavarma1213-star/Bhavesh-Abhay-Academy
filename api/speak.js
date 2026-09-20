@@ -44,15 +44,18 @@ const DEFAULT_VOICE = 'Achird';
 
 
 function getAllowedOrigin(req) {
-  return process.env.ALLOWED_ORIGIN || '*';
+  // No wildcard fallback — see api/evaluate.js for the rationale.
+  return process.env.ALLOWED_ORIGIN || null;
 }
 function corsHeaders(req) {
-  return {
-    'Access-Control-Allow-Origin': getAllowedOrigin(req),
+  const origin = getAllowedOrigin(req);
+  const headers = {
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Vary': 'Origin',
   };
+  if (origin) headers['Access-Control-Allow-Origin'] = origin;
+  return headers;
 }
 function jsonError(req, status, message) {
   return new Response(JSON.stringify({ error: message }), {

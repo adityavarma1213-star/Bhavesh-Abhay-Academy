@@ -175,6 +175,7 @@ async function download(req, res, session) {
   const file = Buffer.concat(chunks.rows.map(x => Buffer.from(x.data)));
   res.status(200);
   res.setHeader('Content-Type', row.mime_type);
+  res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Content-Length', String(file.length));
   res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(row.filename)}`);
   res.setHeader('Cache-Control', 'private, no-store');
