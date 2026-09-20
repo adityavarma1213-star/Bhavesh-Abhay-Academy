@@ -9,6 +9,7 @@ export const config = { runtime: 'nodejs' };
 
 import { requireAuth } from './_lib/auth.js';
 import { consumeAiRateLimit } from './_lib/ai-rate-limit.js';
+import { bytesMatchDeclaredType } from './_lib/file-signature.js';
 
 // ---------- Configuration ----------
 // gemini-3.5-flash-lite is Google's current GA, production-ready Flash-Lite
@@ -115,6 +116,11 @@ function validateMessages(messages) {
       }
       if (m.image.data.length > MAX_IMAGE_BASE64_CHARS) {
         return { error: 'image is too large — please upload a smaller or more compressed image' };
+      }
+      let imageBytes;
+      try { imageBytes = Buffer.from(m.image.data, 'base64'); } catch { return { error: 'image data is invalid' }; }
+      if (!bytesMatchDeclaredType(imageBytes, m.image.mimeType)) {
+        return { error: 'image content does not match its declared format' };
       }
     }
   }
