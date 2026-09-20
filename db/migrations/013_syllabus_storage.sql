@@ -2,8 +2,8 @@
 -- Metadata and chunked file bytes are scoped to the authenticated teacher who uploads them.
 -- Chunking avoids large single-request uploads and keeps the browser from being the system of record.
 CREATE TABLE IF NOT EXISTS syllabus_uploads (
-  id UUID PRIMARY KEY,
-  teacher_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  id TEXT PRIMARY KEY,
+  teacher_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   board TEXT NOT NULL,
   grade TEXT NOT NULL,
   subject TEXT NOT NULL,
@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS syllabus_uploads (
 );
 
 CREATE TABLE IF NOT EXISTS syllabus_file_chunks (
-  upload_id UUID NOT NULL REFERENCES syllabus_uploads(id) ON DELETE CASCADE,
+  upload_id TEXT NOT NULL REFERENCES syllabus_uploads(id) ON DELETE CASCADE,
   chunk_index INTEGER NOT NULL CHECK (chunk_index >= 0),
   data BYTEA NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
