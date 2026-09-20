@@ -39,16 +39,18 @@ function getAllowedOrigin(req) {
   // Set ALLOWED_ORIGIN in Vercel env vars to your GitHub Pages URL, e.g.
   // "https://yourusername.github.io". Falls back to "*" (open) if unset —
   // tighten this before going fully live.
-  return process.env.ALLOWED_ORIGIN || '*';
+  return process.env.ALLOWED_ORIGIN || null;
 }
 
 function corsHeaders(req) {
-  return {
-    'Access-Control-Allow-Origin': getAllowedOrigin(req),
+  const origin = getAllowedOrigin(req);
+  const headers = {
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Vary': 'Origin',
   };
+  if (origin) headers['Access-Control-Allow-Origin'] = origin;
+  return headers;
 }
 
 function jsonError(req, status, message) {
