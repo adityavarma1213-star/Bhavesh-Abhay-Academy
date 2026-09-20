@@ -82,7 +82,7 @@
 
     try {
       const buffer = await file.arrayBuffer();
-      const loadingTask = pdfjs.getDocument({ data: buffer });
+      const loadingTask = pdfjs.getDocument({ data: buffer, isEvalSupported: false });
       const pdf = await loadingTask.promise;
 
       if (!pdf || typeof pdf.numPages !== 'number' || pdf.numPages < 1) {
