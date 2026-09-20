@@ -33,16 +33,19 @@ const MAX_RETRIES = 2;
 // call sites use, plus Cache-Control: no-store on every JSON response since
 // these carry a specific student's answer/grade and must never be cached.
 function getAllowedOrigin() {
-  return process.env.ALLOWED_ORIGIN || '*';
+  // No wildcard fallback: an unset ALLOWED_ORIGIN now means "don't advertise any cross-origin access" rather than "allow every origin." Same-origin requests from this app's own frontend are unaffected — browsers only consult Access-Control-Allow-Origin for cross-origin requests.
+  return process.env.ALLOWED_ORIGIN || null;
 }
 
 function corsHeaders() {
-  return {
-    'Access-Control-Allow-Origin': getAllowedOrigin(),
+  const origin = getAllowedOrigin();
+  const headers = {
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Vary': 'Origin',
   };
+  if (origin) headers['Access-Control-Allow-Origin'] = origin;
+  return headers;
 }
 
 function jsonError(status, message) {
