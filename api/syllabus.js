@@ -3,6 +3,7 @@
 import { sql } from './_lib/db.js';
 import { requireAuth, hasRole } from './_lib/auth.js';
 import { randomUUID } from 'node:crypto';
+import { bytesMatchDeclaredType } from './_lib/file-signature.js';
 
 const MAX_BYTES = 10 * 1024 * 1024;
 const MAX_CHUNK_BYTES = 256 * 1024;
@@ -139,6 +140,13 @@ async function finalize(req, res, session) {
   }
   const totalBytes = chunks.rows.reduce((n, x) => n + Number(x.bytes || 0), 0);
   if (totalBytes !== Number(row.size_bytes)) return send(res, 409, { ok: false, error: { code: 'SYLLABUS_SIZE_MISMATCH', message: 'Uploaded bytes do not match the declared file size.' } });
+  const fileRows = await sql`SELECT data FROM syllabus_file_chunks WHERE upload_id=${id} ORDER BY chunk_index`;
+  const file = Buffer.concat(fileRows.rows.map(x => Buffer.from(x.data)));
+  if (!bytesMatchDeclaredType(file, row.mime_type)) {
+    await sql`UPDATE syllabus_uploads SET status='rejected', updated_at=NOW() WHERE id=${id}`;
+    await sql`DELETE FROM syllabus_file_chunks WHERE upload_id=${id}`;
+    return send(res, 422, { ok: false, error: { code: 'SYLLABUS_CONTENT_MISMATCH', message: 'Uploaded file content does not match the declared file type.' } });
+  }
   await sql`UPDATE syllabus_uploads SET updated_at=NOW() WHERE id=${id}`;
   send(res, 200, { ok: true, uploadId: id, status: row.status, bytes: totalBytes });
 }

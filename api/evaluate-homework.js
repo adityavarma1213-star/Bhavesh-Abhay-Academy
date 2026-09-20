@@ -36,6 +36,7 @@ export const config = { runtime: 'nodejs' };
 
 import { requireAuth } from './_lib/auth.js';
 import { consumeAiRateLimit } from './_lib/ai-rate-limit.js';
+import { bytesMatchDeclaredType } from './_lib/file-signature.js';
 import { issueHomeworkVerdict, hashHomeworkText } from './_lib/assessment-verdict.js';
 
 // Same model as api/chat.js and api/evaluate.js — see those files for why.
@@ -143,6 +144,9 @@ function validateBody(body) {
     if(typeof value!=='string'||value.length>7000000)return {error:'imageDataUrl is invalid or too large'};
     const m=value.match(/^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=]+)$/);
     if(!m)return {error:'imageDataUrl must be a supported base64 image data URL'};
+    let imageBytes;
+    try { imageBytes=Buffer.from(m[2],'base64'); } catch { return {error:'imageDataUrl contains invalid base64 data'}; }
+    if(!bytesMatchDeclaredType(imageBytes,m[1]))return {error:'image content does not match its declared format'};
     cleanImages.push({mimeType:m[1],data:m[2]});
   }
   if(imageAttached===true&&!cleanImages.length)return {error:'imageDataUrl is required when imageAttached is true'};
