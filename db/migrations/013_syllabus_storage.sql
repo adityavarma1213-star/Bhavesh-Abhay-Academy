@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS syllabus_uploads (
   filename TEXT NOT NULL,
   mime_type TEXT NOT NULL,
   size_bytes BIGINT NOT NULL CHECK (size_bytes > 0 AND size_bytes <= 10485760),
-  status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','published','archived')),
+  status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','published','archived','rejected')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
