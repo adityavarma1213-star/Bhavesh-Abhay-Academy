@@ -76,7 +76,7 @@ function getClientIp(req) {
 
 function cleanText(value, max) {
   if (typeof value !== 'string') return '';
-  return value.replace(/\\s+/g, ' ').trim().slice(0, max);
+  return value.replace(/\s+/g, ' ').trim().slice(0, max);
 }
 
 export function validateBody(body) {
@@ -118,7 +118,7 @@ export function validateBody(body) {
         title: cleanText(a?.title, 120),
         subject: cleanText(a?.subject, 60) || null,
         date: cleanText(a?.date, 10),
-      })).filter((a) => a.title && /^\\d{4}-\\d{2}-\\d{2}$/.test(a.date))
+      })).filter((a) => a.title && /^\d{4}-\d{2}-\d{2}$/.test(a.date))
     : [];
 
   const previousPlan = validatePreviousPlan(body.previousPlan);
@@ -167,13 +167,13 @@ function buildPrompt(input) {
   const evidenceLines = input.concepts.length
     ? input.concepts.map((c) =>
         \`- \${c.concept}: state=\${c.state}, confidence=\${c.confidence}, evidenceCount=\${c.evidenceCount}\`
-      ).join('\\n')
+      ).join('\n')
     : '- No concept evidence is available yet.';
 
   const assessmentLines = input.upcomingAssessments.length
     ? input.upcomingAssessments.map((a) =>
         \`- \${a.title}\${a.subject ? \` (\${a.subject})\` : ''} on \${a.date}\`
-      ).join('\\n')
+      ).join('\n')
     : '- No upcoming assessments supplied.';
 
   return \`You are BAA's AI Mode planner. Create a short, actionable academic path using ONLY the learner evidence and goal supplied below.
